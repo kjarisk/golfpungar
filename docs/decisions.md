@@ -28,6 +28,11 @@ Keep this short: what we decided, and why.
 - 2026-02-22: v2 — Supabase remains deferred. All v2 features use Zustand mock data. Real-time behavior is client-reactive only.
 - 2026-02-22: v2 — Demo data (`seedDemoData()`) will be expanded in Phase 22 to cover multi-tournament, teams, round statuses, announcements, and full v2 feature set. Same seed/clear pattern preserved.
 - 2026-02-22: Phase 16 — Enter page redesigned as group-based spreadsheet grid (GroupScoreGrid). "Total" manual entry mode removed. Group selector with localStorage persistence added. Side event quick-actions (birdie, eagle, snake, snopp, GIR, bunker, HIO) integrated inline in the number pad panel; distance events (LD, NTP, longest putt) remain in SideEventLogger card below grid.
+- 2026-02-22: Improvement Pass 1 — Score entry overlay: replaced inline number pad with Dialog overlay. Added player tabs, quick number buttons (1–10), +/- auto-save, hole navigation. Manual side event buttons removed from score entry grid; replaced with auto-detection.
+- 2026-02-22: Auto-detect side events: birdie/eagle/albatross/HIO now auto-logged and removed on every score change in GroupScoreGrid. Logic lives in the component (not the scoring store) to avoid cross-store coupling.
+- 2026-02-22: Soft delete for rounds: `removeRound` sets `deleted: true` instead of hard delete. Admin can view and restore deleted rounds via collapsible section on Rounds page.
+- 2026-02-22: Edit Round dialog rewrite: now supports editing all round data including course selector and full group assignment UI (auto-assign, add/remove groups, player dropdowns). Uses key-based remount pattern to avoid React Compiler lint violation with useEffect+setState.
+- 2026-02-22: Dead code cleanup: removed 5 files (ScoreEntryGrid, RoundTotalEntry, sheet.tsx, dropdown-menu.tsx, .gitkeep), 4 unused types (SetTotalInput, CreateScorecardInput, UpdateStrokesInput, AddEvidenceInput), 2 unused barrel re-exports (HoleSelector, scoring types), 1 unused store action (getPlayersByTournament).
 
 ## UI system choice (per project)
 

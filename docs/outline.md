@@ -451,29 +451,29 @@ Winner logic:
 - [x] Responsive for mobile + desktop
 - [x] Tests for points, side-events, bets, snakes
 
-### v2 (in progress)
+### v2 (completed)
 
-- [ ] Admin/player role enforcement in UI
-- [ ] Multi-tournament with active selection
-- [ ] Past tournament browser (read-only leaderboards)
-- [ ] Round status management (upcoming/active/completed)
-- [ ] Active round as default across app
-- [ ] Group-based score entry grid (hole rows × player columns)
-- [ ] Team score entry (single column per team)
-- [ ] Team configuration after round creation
-- [ ] Team naming (default + custom, editable, feed event on change)
-- [ ] Edit round after creation
-- [ ] Side events integrated in score entry view
-- [ ] Side event icons on scorecard cells
-- [ ] Player scorecard detail view (tap-to-expand)
-- [ ] Feed: announcement cards with animation for notable events
-- [ ] Feed: active round leaders card
-- [ ] Feed: admin announcement posting
-- [ ] Betting: round vs tournament vs settled sections
-- [ ] Course view layout polish
-- [ ] Handicap change feed events
-- [ ] Completed rounds sort to bottom
-- [ ] Updated demo data for full v2 demo
+- [x] Admin/player role enforcement in UI
+- [x] Multi-tournament with active selection
+- [x] Past tournament browser (read-only leaderboards)
+- [x] Round status management (upcoming/active/completed)
+- [x] Active round as default across app
+- [x] Group-based score entry grid (hole rows × player columns)
+- [x] Team score entry (single column per team)
+- [x] Team configuration after round creation
+- [x] Team naming (default + custom, editable, feed event on change)
+- [x] Edit round after creation
+- [x] Side events integrated in score entry view
+- [x] Side event icons on scorecard cells
+- [x] Player scorecard detail view (tap-to-expand)
+- [x] Feed: announcement cards with animation for notable events
+- [x] Feed: active round leaders card
+- [x] Feed: admin announcement posting
+- [x] Betting: round vs tournament vs settled sections
+- [x] Course view layout polish
+- [x] Handicap change feed events
+- [x] Completed rounds sort to bottom
+- [x] Updated demo data for full v2 demo
 
 ---
 

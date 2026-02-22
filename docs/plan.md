@@ -263,3 +263,18 @@
 - [x] Performance pass (grid rendering, large feeds)
 - [x] Update README + QUICKSTART for v2 features
 - [x] Final test count verification (342 tests, 21 files) + docs update
+
+---
+
+# Post-v2 Improvements
+
+## Improvement Pass 1 -- Score entry, round management, cleanup
+
+- [x] Score entry overlay: replace inline number pad with Dialog overlay (player tabs, quick buttons, +/- auto-save, hole nav)
+- [x] Auto-detect side events from scores: birdie, eagle, albatross, HIO auto-logged/removed on every score change
+- [x] Soft delete for rounds: `removeRound` sets `deleted: true`, admin can view/restore deleted rounds
+- [x] Edit Round dialog rewrite: full editing of name, format, holes, date, course, and group assignments
+- [x] `updateGroups` store action for replacing all groups in a round
+- [x] Dead code cleanup: removed 5 unused files, 6 unused types/exports, 1 unused store action
+- [x] Fix React Compiler lint: replaced useEffect+setState with key-based remount in EditRoundDialog
+- [x] Test count: 347 tests across 21 files
