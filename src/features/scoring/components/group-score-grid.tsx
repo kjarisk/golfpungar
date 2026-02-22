@@ -9,6 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import type { Scorecard, HoleStroke } from '@/features/scoring'
@@ -19,6 +26,7 @@ import type { SideEventLog, SideEventType } from '@/features/side-events'
 import { stablefordPointsForHole } from '@/features/scoring/lib/scoring-calc'
 import { Minus, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 
 // --- Types ---
 
@@ -125,6 +133,16 @@ function getAutoEventType(
 
 // --- Component ---
 
+/** Truncate name for narrow columns */
+function shortName(name: string): string {
+  if (name.length <= 8) return name
+  if (name.includes(' & ')) {
+    const parts = name.split(' & ')
+    return parts.map((p) => p.charAt(0)).join('&')
+  }
+  return name.slice(0, 7) + '\u2026'
+}
+
 export function GroupScoreGrid({
   roundId,
   tournamentId,
@@ -140,6 +158,7 @@ export function GroupScoreGrid({
   const logEvent = useSideEventsStore((s) => s.logEvent)
   const removeEvent = useSideEventsStore((s) => s.removeEvent)
   const allSideEvents = useSideEventsStore((s) => s.events)
+  const isMobile = useIsMobile()
 
   const roundEvents = allSideEvents.filter((e) => e.roundId === roundId)
 
@@ -196,6 +215,71 @@ export function GroupScoreGrid({
 
   function closeOverlay() {
     setOverlayHoleIdx(null)
+  }
+
+  /** Keyboard navigation for the score grid (arrow keys + Enter/Space) */
+  function handleGridKeyDown(e: React.KeyboardEvent<HTMLTableElement>) {
+    const target = e.target as HTMLElement
+    if (!target.matches('[role="gridcell"] button')) return
+
+    const cell = target.closest('[role="gridcell"]') as HTMLElement | null
+    if (!cell) return
+
+    const row = cell.closest('tr')
+    if (!row) return
+
+    const cells = Array.from(
+      row.querySelectorAll<HTMLElement>('[role="gridcell"] button')
+    )
+    const cellIdx = cells.indexOf(target)
+
+    const tbody = row.closest('tbody')
+    if (!tbody) return
+
+    // Collect all data rows (skip subtotal and total rows — they have no gridcell buttons)
+    const allRows = Array.from(tbody.querySelectorAll('tr')).filter(
+      (r) => r.querySelector('[role="gridcell"] button') !== null
+    )
+    const rowIdx = allRows.indexOf(row)
+
+    let nextTarget: HTMLElement | null = null
+
+    switch (e.key) {
+      case 'ArrowRight':
+        if (cellIdx < cells.length - 1) nextTarget = cells[cellIdx + 1]
+        break
+      case 'ArrowLeft':
+        if (cellIdx > 0) nextTarget = cells[cellIdx - 1]
+        break
+      case 'ArrowDown':
+        if (rowIdx < allRows.length - 1) {
+          const nextRow = allRows[rowIdx + 1]
+          const nextCells = Array.from(
+            nextRow.querySelectorAll<HTMLElement>('[role="gridcell"] button')
+          )
+          nextTarget = nextCells[cellIdx] ?? nextCells[nextCells.length - 1]
+        }
+        break
+      case 'ArrowUp':
+        if (rowIdx > 0) {
+          const prevRow = allRows[rowIdx - 1]
+          const prevCells = Array.from(
+            prevRow.querySelectorAll<HTMLElement>('[role="gridcell"] button')
+          )
+          nextTarget = prevCells[cellIdx] ?? prevCells[prevCells.length - 1]
+        }
+        break
+      default:
+        return // don't preventDefault for other keys
+    }
+
+    if (nextTarget) {
+      e.preventDefault()
+      // Roving tabindex: move tabIndex from current to next
+      target.tabIndex = -1
+      nextTarget.tabIndex = 0
+      nextTarget.focus()
+    }
   }
 
   /**
@@ -312,16 +396,6 @@ export function GroupScoreGrid({
     return roundEvents.filter(
       (e) => e.holeNumber === holeNumber && playerIds.includes(e.playerId)
     )
-  }
-
-  /** Truncate name for narrow columns */
-  function shortName(name: string): string {
-    if (name.length <= 8) return name
-    if (name.includes(' & ')) {
-      const parts = name.split(' & ')
-      return parts.map((p) => p.charAt(0)).join('&')
-    }
-    return name.slice(0, 7) + '\u2026'
   }
 
   function renderHoleRows(holeSubset: Hole[]) {
@@ -523,6 +597,7 @@ export function GroupScoreGrid({
             role="grid"
             aria-label="Score entry grid"
             className="w-full border-collapse text-center"
+            onKeyDown={handleGridKeyDown}
           >
             <thead>
               <tr className="bg-muted border-b">
@@ -569,195 +644,365 @@ export function GroupScoreGrid({
         </CardContent>
       </Card>
 
-      {/* Score Entry Overlay */}
-      <Dialog
+      {/* Score Entry Overlay — Drawer on mobile, Dialog on desktop */}
+      <ScoreOverlay
         open={overlayHoleIdx !== null}
-        onOpenChange={(open) => {
-          if (!open) closeOverlay()
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          {overlayHole && overlayParticipant && overlayHoleIdx !== null && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-center">
-                  Hole {overlayHole.holeNumber}
-                </DialogTitle>
-                <DialogDescription className="text-center text-sm">
-                  Par {overlayHole.par} &middot; SI {overlayHole.strokeIndex}
-                </DialogDescription>
-              </DialogHeader>
+        onClose={closeOverlay}
+        overlayHole={overlayHole}
+        overlayHoleIdx={overlayHoleIdx}
+        overlayParticipant={overlayParticipant}
+        overlayPIdx={overlayPIdx}
+        participants={participants}
+        totalHoles={totalHoles}
+        format={format}
+        isMobile={isMobile}
+        onSelectParticipant={setOverlayPIdx}
+        onIncrement={() =>
+          overlayHoleIdx !== null &&
+          incrementStroke(overlayHoleIdx, overlayPIdx)
+        }
+        onDecrement={() =>
+          overlayHoleIdx !== null &&
+          decrementStroke(overlayHoleIdx, overlayPIdx)
+        }
+        onSetStroke={(n) =>
+          overlayHoleIdx !== null && setStroke(overlayHoleIdx, overlayPIdx, n)
+        }
+        onClear={() =>
+          overlayHoleIdx !== null && clearStroke(overlayHoleIdx, overlayPIdx)
+        }
+        onPrevHole={() =>
+          overlayHoleIdx !== null &&
+          overlayHoleIdx > 0 &&
+          setOverlayHoleIdx(overlayHoleIdx - 1)
+        }
+        onNextHole={() =>
+          overlayHoleIdx !== null &&
+          overlayHoleIdx < totalHoles - 1 &&
+          setOverlayHoleIdx(overlayHoleIdx + 1)
+        }
+      />
+    </>
+  )
+}
 
-              {/* Player tabs */}
-              <div className="flex gap-1 overflow-x-auto rounded-lg border p-1">
-                {participants.map((p, idx) => {
-                  const strokes = p.scorecard.holeStrokes[overlayHoleIdx]
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => setOverlayPIdx(idx)}
-                      className={`flex min-w-0 flex-1 flex-col items-center rounded-md px-2 py-1.5 text-xs transition-colors ${
-                        idx === overlayPIdx
-                          ? 'bg-primary text-primary-foreground'
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <span className="truncate font-medium">
-                        {shortName(p.name)}
-                      </span>
-                      <span
-                        className={`text-[10px] ${idx === overlayPIdx ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
-                      >
-                        {strokes !== null ? `${strokes}` : '\u2013'}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+// --- Score Overlay ---
 
-              {/* Score entry area */}
-              <div className="flex flex-col items-center gap-3 py-2">
-                {/* Score display + label */}
-                {(() => {
-                  const currentStrokes =
-                    overlayParticipant.scorecard.holeStrokes[overlayHoleIdx]
-                  return (
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex items-center gap-4">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="size-12"
-                          onClick={() =>
-                            decrementStroke(overlayHoleIdx, overlayPIdx)
-                          }
-                          disabled={
-                            currentStrokes !== null && currentStrokes <= 1
-                          }
-                          aria-label="Decrease strokes"
-                        >
-                          <Minus className="size-5" aria-hidden="true" />
-                        </Button>
-                        <span
-                          className="w-16 text-center text-4xl font-bold tabular-nums"
-                          aria-live="polite"
-                          role="status"
-                        >
-                          {currentStrokes ?? '\u2013'}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="size-12"
-                          onClick={() =>
-                            incrementStroke(overlayHoleIdx, overlayPIdx)
-                          }
-                          disabled={
-                            currentStrokes !== null && currentStrokes >= 15
-                          }
-                          aria-label="Increase strokes"
-                        >
-                          <Plus className="size-5" aria-hidden="true" />
-                        </Button>
-                      </div>
+interface ScoreOverlayProps {
+  open: boolean
+  onClose: () => void
+  overlayHole: Hole | null
+  overlayHoleIdx: number | null
+  overlayParticipant: Participant | null
+  overlayPIdx: number
+  participants: Participant[]
+  totalHoles: number
+  format: RoundFormat
+  isMobile: boolean
+  onSelectParticipant: (idx: number) => void
+  onIncrement: () => void
+  onDecrement: () => void
+  onSetStroke: (n: number) => void
+  onClear: () => void
+  onPrevHole: () => void
+  onNextHole: () => void
+}
 
-                      {/* Score label */}
-                      {currentStrokes !== null && (
-                        <span
-                          className={`text-sm ${getScoreLabelClass(currentStrokes, overlayHole.par)}`}
-                        >
-                          {getScoreLabel(currentStrokes, overlayHole.par)}
-                        </span>
-                      )}
+function ScoreOverlay({
+  open,
+  onClose,
+  overlayHole,
+  overlayHoleIdx,
+  overlayParticipant,
+  overlayPIdx,
+  participants,
+  totalHoles,
+  format,
+  isMobile,
+  onSelectParticipant,
+  onIncrement,
+  onDecrement,
+  onSetStroke,
+  onClear,
+  onPrevHole,
+  onNextHole,
+}: ScoreOverlayProps) {
+  const content =
+    overlayHole && overlayParticipant && overlayHoleIdx !== null ? (
+      <ScoreOverlayContent
+        overlayHole={overlayHole}
+        overlayHoleIdx={overlayHoleIdx}
+        overlayParticipant={overlayParticipant}
+        overlayPIdx={overlayPIdx}
+        participants={participants}
+        totalHoles={totalHoles}
+        format={format}
+        onSelectParticipant={onSelectParticipant}
+        onIncrement={onIncrement}
+        onDecrement={onDecrement}
+        onSetStroke={onSetStroke}
+        onClear={onClear}
+        onPrevHole={onPrevHole}
+        onNextHole={onNextHole}
+      />
+    ) : null
 
-                      {/* Stableford points */}
-                      {format === 'stableford' && currentStrokes !== null && (
-                        <span className="text-muted-foreground text-xs">
-                          {stablefordPointsForHole(
-                            currentStrokes,
-                            overlayHole.par,
-                            overlayParticipant.handicap,
-                            overlayHole.strokeIndex,
-                            totalHoles as 9 | 18
-                          )}{' '}
-                          stableford pts
-                        </span>
-                      )}
-                    </div>
-                  )
-                })()}
-
-                {/* Quick number buttons (1-10) for fast entry */}
-                <div className="grid grid-cols-5 gap-1.5">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
-                    const currentStrokes =
-                      overlayParticipant.scorecard.holeStrokes[overlayHoleIdx]
-                    const isSelected = currentStrokes === n
-                    return (
-                      <Button
-                        key={n}
-                        variant={isSelected ? 'default' : 'outline'}
-                        size="sm"
-                        className="h-9 w-9 tabular-nums"
-                        onClick={() =>
-                          setStroke(overlayHoleIdx, overlayPIdx, n)
-                        }
-                      >
-                        {n}
-                      </Button>
-                    )
-                  })}
-                </div>
-
-                {/* Clear button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => clearStroke(overlayHoleIdx, overlayPIdx)}
-                  className="text-muted-foreground"
-                >
-                  <X className="size-4" />
-                  Clear
-                </Button>
-              </div>
-
-              {/* Hole navigation */}
-              <div className="flex items-center justify-between border-t pt-3">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (overlayHoleIdx > 0) {
-                      setOverlayHoleIdx(overlayHoleIdx - 1)
-                    }
-                  }}
-                  disabled={overlayHoleIdx <= 0}
-                >
-                  <ChevronLeft className="size-4" />
-                  Prev
-                </Button>
-                <span className="text-muted-foreground text-xs">
-                  {overlayHoleIdx + 1} / {totalHoles}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (overlayHoleIdx < totalHoles - 1) {
-                      setOverlayHoleIdx(overlayHoleIdx + 1)
-                    }
-                  }}
-                  disabled={overlayHoleIdx >= totalHoles - 1}
-                >
-                  Next
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            </>
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={(o) => !o && onClose()}>
+        <DrawerContent>
+          {overlayHole && (
+            <DrawerHeader className="sr-only">
+              <DrawerTitle>Hole {overlayHole.holeNumber}</DrawerTitle>
+              <DrawerDescription>
+                Par {overlayHole.par}, SI {overlayHole.strokeIndex}
+              </DrawerDescription>
+            </DrawerHeader>
           )}
-        </DialogContent>
-      </Dialog>
+          <div className="px-4 pb-6 pt-2">{content}</div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        {overlayHole && (
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              Hole {overlayHole.holeNumber}
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm">
+              Par {overlayHole.par} &middot; SI {overlayHole.strokeIndex}
+            </DialogDescription>
+          </DialogHeader>
+        )}
+        {content}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// --- Score Overlay Content (shared between Drawer & Dialog) ---
+
+/** Format relative score as a string: "+2", "-1", "E" for even */
+function formatRelativeScore(strokes: number, par: number): string {
+  const diff = strokes - par
+  if (diff === 0) return 'E'
+  return diff > 0 ? `+${diff}` : `${diff}`
+}
+
+/** CSS class for the relative score badge */
+function getRelativeBadgeClass(strokes: number, par: number): string {
+  const diff = strokes - par
+  if (diff <= -2) return 'bg-yellow-500 text-white' // eagle or better
+  if (diff === -1) return 'bg-primary text-primary-foreground' // birdie
+  if (diff === 0) return 'bg-muted text-muted-foreground' // par
+  if (diff === 1)
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' // bogey
+  return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' // double+
+}
+
+interface ScoreOverlayContentProps {
+  overlayHole: Hole
+  overlayHoleIdx: number
+  overlayParticipant: Participant
+  overlayPIdx: number
+  participants: Participant[]
+  totalHoles: number
+  format: RoundFormat
+  onSelectParticipant: (idx: number) => void
+  onIncrement: () => void
+  onDecrement: () => void
+  onSetStroke: (n: number) => void
+  onClear: () => void
+  onPrevHole: () => void
+  onNextHole: () => void
+}
+
+function ScoreOverlayContent({
+  overlayHole,
+  overlayHoleIdx,
+  overlayParticipant,
+  overlayPIdx,
+  participants,
+  totalHoles,
+  format,
+  onSelectParticipant,
+  onIncrement,
+  onDecrement,
+  onSetStroke,
+  onClear,
+  onPrevHole,
+  onNextHole,
+}: ScoreOverlayContentProps) {
+  const currentStrokes =
+    overlayParticipant.scorecard.holeStrokes[overlayHoleIdx]
+
+  return (
+    <>
+      {/* Hole header (visible in Drawer since DialogHeader is sr-only there) */}
+      <div className="mb-3 flex items-center justify-center gap-3 sm:hidden">
+        <span className="text-lg font-semibold">
+          Hole {overlayHole.holeNumber}
+        </span>
+        <span className="text-muted-foreground text-sm">
+          Par {overlayHole.par} &middot; SI {overlayHole.strokeIndex}
+        </span>
+      </div>
+
+      {/* Player tabs */}
+      <div className="flex gap-1 overflow-x-auto rounded-lg border p-1">
+        {participants.map((p, idx) => {
+          const strokes = p.scorecard.holeStrokes[overlayHoleIdx]
+          return (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onSelectParticipant(idx)}
+              className={`flex min-w-0 flex-1 flex-col items-center rounded-md px-2 py-1.5 text-xs transition-colors ${
+                idx === overlayPIdx
+                  ? 'bg-primary text-primary-foreground'
+                  : 'hover:bg-muted'
+              }`}
+            >
+              <span className="truncate font-medium">{shortName(p.name)}</span>
+              <span
+                className={`text-[10px] ${idx === overlayPIdx ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+              >
+                {strokes !== null ? `${strokes}` : '\u2013'}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Score entry area */}
+      <div className="flex flex-col items-center gap-3 py-2">
+        {/* Score display + relative badge */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-12"
+              onClick={onDecrement}
+              disabled={currentStrokes !== null && currentStrokes <= 1}
+              aria-label="Decrease strokes"
+            >
+              <Minus className="size-5" aria-hidden="true" />
+            </Button>
+            <div className="flex flex-col items-center">
+              <span
+                className="w-16 text-center text-4xl font-bold tabular-nums"
+                aria-live="polite"
+                role="status"
+              >
+                {currentStrokes ?? '\u2013'}
+              </span>
+              {/* Relative score badge */}
+              {currentStrokes !== null && (
+                <span
+                  className={`mt-1 inline-flex min-w-[2.5rem] items-center justify-center rounded-full px-2 py-0.5 text-sm font-bold ${getRelativeBadgeClass(currentStrokes, overlayHole.par)}`}
+                >
+                  {formatRelativeScore(currentStrokes, overlayHole.par)}
+                </span>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-12"
+              onClick={onIncrement}
+              disabled={currentStrokes !== null && currentStrokes >= 15}
+              aria-label="Increase strokes"
+            >
+              <Plus className="size-5" aria-hidden="true" />
+            </Button>
+          </div>
+
+          {/* Score label */}
+          {currentStrokes !== null && (
+            <span
+              className={`text-sm ${getScoreLabelClass(currentStrokes, overlayHole.par)}`}
+            >
+              {getScoreLabel(currentStrokes, overlayHole.par)}
+            </span>
+          )}
+
+          {/* Stableford points */}
+          {format === 'stableford' && currentStrokes !== null && (
+            <span className="text-muted-foreground text-xs">
+              {stablefordPointsForHole(
+                currentStrokes,
+                overlayHole.par,
+                overlayParticipant.handicap,
+                overlayHole.strokeIndex,
+                totalHoles as 9 | 18
+              )}{' '}
+              stableford pts
+            </span>
+          )}
+        </div>
+
+        {/* Quick number buttons (1-10) for fast entry */}
+        <div className="grid grid-cols-5 gap-1.5">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+            const isSelected = currentStrokes === n
+            const isPar = n === overlayHole.par
+            return (
+              <Button
+                key={n}
+                variant={isSelected ? 'default' : 'outline'}
+                size="sm"
+                className={`h-9 w-9 tabular-nums ${
+                  !isSelected && isPar ? 'ring-primary/50 ring-2 font-bold' : ''
+                }`}
+                onClick={() => onSetStroke(n)}
+              >
+                {n}
+              </Button>
+            )
+          })}
+        </div>
+
+        {/* Clear button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClear}
+          className="text-muted-foreground"
+        >
+          <X className="size-4" />
+          Clear
+        </Button>
+      </div>
+
+      {/* Hole navigation */}
+      <div className="flex items-center justify-between border-t pt-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onPrevHole}
+          disabled={overlayHoleIdx <= 0}
+        >
+          <ChevronLeft className="size-4" />
+          Prev
+        </Button>
+        <span className="text-muted-foreground text-xs">
+          {overlayHoleIdx + 1} / {totalHoles}
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onNextHole}
+          disabled={overlayHoleIdx >= totalHoles - 1}
+        >
+          Next
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
     </>
   )
 }

@@ -33,6 +33,13 @@ Keep this short: what we decided, and why.
 - 2026-02-22: Soft delete for rounds: `removeRound` sets `deleted: true` instead of hard delete. Admin can view and restore deleted rounds via collapsible section on Rounds page.
 - 2026-02-22: Edit Round dialog rewrite: now supports editing all round data including course selector and full group assignment UI (auto-assign, add/remove groups, player dropdowns). Uses key-based remount pattern to avoid React Compiler lint violation with useEffect+setState.
 - 2026-02-22: Dead code cleanup: removed 5 files (ScoreEntryGrid, RoundTotalEntry, sheet.tsx, dropdown-menu.tsx, .gitkeep), 4 unused types (SetTotalInput, CreateScorecardInput, UpdateStrokesInput, AddEvidenceInput), 2 unused barrel re-exports (HoleSelector, scoring types), 1 unused store action (getPlayersByTournament).
+- 2026-02-22: Improvement Pass 2 — Score entry overlay now uses Drawer (vaul) on mobile and Dialog on desktop, selected via `useIsMobile` hook using `useSyncExternalStore` (React Compiler safe).
+- 2026-02-22: Improvement Pass 2 — Par button highlighted with `ring-2 ring-primary/50` in score entry quick number grid for faster entry.
+- 2026-02-22: Improvement Pass 2 — Relative score badge (`+2`, `-1`, `E`) shown as colored pill below the stroke count in the score overlay.
+- 2026-02-22: Improvement Pass 2 — Keyboard navigation on score grid: arrow keys to move between cells (roving tabindex), Enter/Space opens overlay (browser default via button click).
+- 2026-02-22: Improvement Pass 2 — PWA support via `vite-plugin-pwa` with `generateSW` strategy, SVG icons, workbox precaching. App installable as standalone PWA.
+- 2026-02-22: Improvement Pass 2 — Dark mode via `next-themes` ThemeProvider. Sun/moon toggle in app shell header. Dark tokens already existed in `index.css` via Tailwind v4.
+- 2026-02-22: Improvement Pass 2 — Shared `SIDE_EVENT_ICONS` module at `src/lib/side-event-icons.ts` — single source of truth for icon, className, bgClassName, label across all 12 side event types.
 
 ## UI system choice (per project)
 

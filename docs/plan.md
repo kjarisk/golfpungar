@@ -278,3 +278,18 @@
 - [x] Dead code cleanup: removed 5 unused files, 6 unused types/exports, 1 unused store action
 - [x] Fix React Compiler lint: replaced useEffect+setState with key-based remount in EditRoundDialog
 - [x] Test count: 347 tests across 21 files
+
+## Improvement Pass 2 -- UX polish, dark mode, PWA
+
+- [x] 404 catch-all route (`NotFoundPage`)
+- [x] Safe-area padding on bottom nav (`pb-[env(safe-area-inset-bottom)]`, `viewport-fit=cover`)
+- [x] Highlight current user in leaderboards (`bg-primary/10` on matching rows)
+- [x] Extract shared `SIDE_EVENT_ICONS` module (`src/lib/side-event-icons.ts`)
+- [x] Dark mode toggle (next-themes `ThemeProvider`, sun/moon toggle in header)
+- [x] Score entry: responsive overlay (Drawer on mobile, Dialog on desktop)
+- [x] Score entry: highlight par button in quick number grid (ring indicator)
+- [x] Score entry: prominent relative score badge (+N/-N colored pill)
+- [x] Score entry: keyboard navigation (arrow keys + Enter/Space on grid)
+- [x] PWA support (`vite-plugin-pwa`, manifest, service worker, precaching)
+- [x] `useIsMobile` hook (`useSyncExternalStore` pattern, no React Compiler lint issues)
+- [x] Test count: 347 tests across 21 files
