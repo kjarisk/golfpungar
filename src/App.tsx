@@ -9,6 +9,12 @@ import {
   PlayersPage,
   TournamentsPage,
 } from '@/pages'
+import { seedDemoData, isDemoSeeded } from '@/lib/demo-data'
+
+// Auto-seed demo data on first load so the app is never empty
+if (!isDemoSeeded()) {
+  seedDemoData()
+}
 
 function App() {
   return (

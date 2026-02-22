@@ -436,6 +436,18 @@ export function FeedPage() {
         </Card>
       )}
 
+      {/* Role toggle (always visible for demo) */}
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setRole(currentRole === 'admin' ? 'player' : 'admin')}
+          className="gap-1.5 text-xs"
+        >
+          Role: {currentRole}
+        </Button>
+      </div>
+
       {/* Dev controls (dev only) */}
       {IS_DEV && (
         <div className="flex flex-wrap items-center gap-2">
@@ -461,16 +473,6 @@ export function FeedPage() {
               Clear Demo Data
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setRole(currentRole === 'admin' ? 'player' : 'admin')
-            }
-            className="gap-1.5 text-xs"
-          >
-            Role: {currentRole}
-          </Button>
           {tournament && (
             <span className="text-muted-foreground text-[10px]">
               {seeded ? 'Demo data loaded' : 'No rounds yet'}
