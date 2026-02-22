@@ -9,6 +9,7 @@ export {
   isScorecardComplete,
 } from './lib/scoring-calc'
 export { awardPoints, DEFAULT_POINTS } from './lib/points-calc'
+export { ScorecardDetail, SideEventBadges } from './components/scorecard-detail'
 export type {
   Scorecard,
   RoundPoints,

@@ -194,27 +194,27 @@
 
 ## Phase 17 -- Feed Page Redesign
 
-- [ ] Remove player count stat card
-- [ ] Add active round leaders card (top 3–5 current standings)
-- [ ] Keep "Your Points" summary
-- [ ] Announcement cards for notable events:
-  - [ ] Eagle, birdie, hole-in-one, albatross, nearest to pin
-  - [ ] Large colorful card with slide-in animation (auto-dismiss ~5s)
-  - [ ] Queue system: one announcement at a time, stack if multiple
-- [ ] Admin announcement posting (text input + send button, admin only)
-- [ ] Announcement model in feed store
-- [ ] Handicap change events in feed
-- [ ] Tests for announcement rendering + auto-dismiss
+- [x] Remove player count stat card
+- [x] Add active round leaders card (top 3–5 current standings)
+- [x] Keep "Your Points" summary
+- [x] Announcement cards for notable events:
+  - [x] Eagle, birdie, hole-in-one, albatross, nearest to pin
+  - [x] Large colorful card with slide-in animation (auto-dismiss ~5s)
+  - [x] Queue system: one announcement at a time, stack if multiple
+- [x] Admin announcement posting (text input + send button, admin only)
+- [x] Announcement model in feed store
+- [x] Handicap change events in feed
+- [x] Tests for announcement rendering + auto-dismiss
 
 ## Phase 18 -- Leaderboards Enhancement
 
-- [ ] Default to Round tab when active round exists; Total tab otherwise
-- [ ] Player scorecard detail: tap player row → expand inline or sheet
-  - [ ] Full 18-hole scorecard with strokes per hole
-  - [ ] Side event icons per hole (birdie, eagle, snake, snopp, GIR, etc.)
-  - [ ] Gross/net/stableford summary
-- [ ] Side event icons on leaderboard rows (small badges)
-- [ ] Tests for scorecard detail rendering
+- [x] Default to Round tab when active round exists; Total tab otherwise
+- [x] Player scorecard detail: tap player row → expand inline or sheet
+  - [x] Full 18-hole scorecard with strokes per hole
+  - [x] Side event icons per hole (birdie, eagle, snake, snopp, GIR, etc.)
+  - [x] Gross/net/stableford summary
+- [x] Side event icons on leaderboard rows (small badges)
+- [x] Tests for scorecard detail rendering (13 tests)
 
 ## Phase 19 -- Betting Improvements
 

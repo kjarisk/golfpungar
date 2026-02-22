@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -14,8 +14,13 @@ import {
 import { useTournamentStore } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
 import { usePlayersStore } from '@/features/players'
-import { useScoringStore } from '@/features/scoring'
+import {
+  useScoringStore,
+  ScorecardDetail,
+  SideEventBadges,
+} from '@/features/scoring'
 import { useSideEventsStore, EvidenceGallery } from '@/features/side-events'
+import { useCoursesStore } from '@/features/courses'
 import { usePenaltiesStore } from '@/features/penalties'
 import { useBettingStore } from '@/features/betting'
 import { computeTrophyStandings, RoadToWinner } from '@/features/trophies'
@@ -45,6 +50,7 @@ import {
   AlertTriangle,
   Hash,
   CircleDollarSign,
+  ChevronDown,
 } from 'lucide-react'
 
 export function LeaderboardsPage() {
@@ -72,10 +78,19 @@ export function LeaderboardsPage() {
 
   const activeRound = useActiveRound()
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null)
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
   const playerIds = players.map((p) => p.id)
+
+  // Course + holes for scorecard detail view
+  const getHolesByCourse = useCoursesStore((s) => s.getHolesByCourse)
+  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
+
+  const toggleExpand = useCallback((playerId: string) => {
+    setExpandedPlayerId((prev) => (prev === playerId ? null : playerId))
+  }, [])
 
   // Default tab: 'round' when an active round exists, 'total' otherwise
   const defaultTab = activeRound ? 'round' : 'total'
@@ -240,32 +255,43 @@ export function LeaderboardsPage() {
                 <EmptyState message="No points awarded yet. Score some rounds first." />
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  {totalPointsLeaderboard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {entry.roundBreakdown.length > 0 && (
-                          <span className="text-muted-foreground text-xs tabular-nums">
-                            {entry.roundBreakdown
-                              .map((r) => r.points)
-                              .join('+')}
-                          </span>
-                        )}
-                        <Badge
-                          variant="default"
-                          className="min-w-[3rem] justify-center tabular-nums text-xs"
-                        >
-                          {entry.totalPoints}p
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                  {totalPointsLeaderboard.map((entry) => {
+                    const isExpanded = expandedPlayerId === entry.playerId
+                    return (
+                      <ExpandableRow
+                        key={entry.playerId}
+                        playerId={entry.playerId}
+                        isExpanded={isExpanded}
+                        onToggle={toggleExpand}
+                        roundId={effectiveRoundId}
+                        rounds={rounds}
+                        getHolesByCourse={getHolesByCourse}
+                        getScorecardsByRound={getScorecardsByRound}
+                        getEventsByRound={getEventsByRound}
+                        getPlayerName={getPlayerName}
+                      >
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {entry.roundBreakdown.length > 0 && (
+                            <span className="text-muted-foreground text-xs tabular-nums">
+                              {entry.roundBreakdown
+                                .map((r) => r.points)
+                                .join('+')}
+                            </span>
+                          )}
+                          <Badge
+                            variant="default"
+                            className="min-w-[3rem] justify-center tabular-nums text-xs"
+                          >
+                            {entry.totalPoints}p
+                          </Badge>
+                        </div>
+                      </ExpandableRow>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
@@ -284,28 +310,39 @@ export function LeaderboardsPage() {
                 <EmptyState message="No scorecards yet. Enter scores to see gross standings." />
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  {grossLeaderboard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          {entry.roundsPlayed}R
+                  {grossLeaderboard.map((entry) => {
+                    const isExpanded = expandedPlayerId === entry.playerId
+                    return (
+                      <ExpandableRow
+                        key={entry.playerId}
+                        playerId={entry.playerId}
+                        isExpanded={isExpanded}
+                        onToggle={toggleExpand}
+                        roundId={effectiveRoundId}
+                        rounds={rounds}
+                        getHolesByCourse={getHolesByCourse}
+                        getScorecardsByRound={getScorecardsByRound}
+                        getEventsByRound={getEventsByRound}
+                        getPlayerName={getPlayerName}
+                      >
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
                         </span>
-                        <Badge
-                          variant="secondary"
-                          className="min-w-[3rem] justify-center tabular-nums text-xs"
-                        >
-                          {entry.grossTotal}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            {entry.roundsPlayed}R
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="min-w-[3rem] justify-center tabular-nums text-xs"
+                          >
+                            {entry.grossTotal}
+                          </Badge>
+                        </div>
+                      </ExpandableRow>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
@@ -324,28 +361,39 @@ export function LeaderboardsPage() {
                 <EmptyState message="No net scores yet. Enter hole-by-hole scores with handicaps." />
               ) : (
                 <div className="flex flex-col gap-0.5">
-                  {netLeaderboard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          {entry.roundsPlayed}R
+                  {netLeaderboard.map((entry) => {
+                    const isExpanded = expandedPlayerId === entry.playerId
+                    return (
+                      <ExpandableRow
+                        key={entry.playerId}
+                        playerId={entry.playerId}
+                        isExpanded={isExpanded}
+                        onToggle={toggleExpand}
+                        roundId={effectiveRoundId}
+                        rounds={rounds}
+                        getHolesByCourse={getHolesByCourse}
+                        getScorecardsByRound={getScorecardsByRound}
+                        getEventsByRound={getEventsByRound}
+                        getPlayerName={getPlayerName}
+                      >
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
                         </span>
-                        <Badge
-                          variant="secondary"
-                          className="min-w-[3rem] justify-center tabular-nums text-xs"
-                        >
-                          {entry.netTotal}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground text-xs tabular-nums">
+                            {entry.roundsPlayed}R
+                          </span>
+                          <Badge
+                            variant="secondary"
+                            className="min-w-[3rem] justify-center tabular-nums text-xs"
+                          >
+                            {entry.netTotal}
+                          </Badge>
+                        </div>
+                      </ExpandableRow>
+                    )
+                  })}
                 </div>
               )}
             </CardContent>
@@ -363,7 +411,57 @@ export function LeaderboardsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <EmptyState message="No rounds created yet. Go to the Rounds tab to create one." />
+                {roundLeaderboard.length === 0 ? (
+                  <EmptyState message="No scores entered for this round yet." />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {roundLeaderboard.map((entry) => {
+                      const isExpanded =
+                        expandedPlayerId === entry.participantId
+                      const roundEvents = getEventsByRound(effectiveRoundId)
+                      return (
+                        <ExpandableRow
+                          key={entry.participantId}
+                          playerId={entry.participantId}
+                          isExpanded={isExpanded}
+                          onToggle={toggleExpand}
+                          roundId={effectiveRoundId}
+                          rounds={rounds}
+                          getHolesByCourse={getHolesByCourse}
+                          getScorecardsByRound={getScorecardsByRound}
+                          getEventsByRound={getEventsByRound}
+                          getPlayerName={getPlayerName}
+                        >
+                          <PlacingBadge placing={entry.placing} />
+                          <span className="flex-1 truncate text-sm font-medium">
+                            {getPlayerName(entry.participantId)}
+                          </span>
+                          <SideEventBadges
+                            sideEvents={roundEvents}
+                            playerId={entry.participantId}
+                          />
+                          <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
+                            {entry.grossTotal > 0 && (
+                              <span>{entry.grossTotal} gross</span>
+                            )}
+                            {entry.netTotal != null && (
+                              <span>{entry.netTotal} net</span>
+                            )}
+                            {entry.stablefordPoints != null && (
+                              <span>{entry.stablefordPoints} stb</span>
+                            )}
+                          </div>
+                          <Badge
+                            variant="default"
+                            className="min-w-[3rem] justify-center tabular-nums text-xs"
+                          >
+                            {entry.pointsAwarded}p
+                          </Badge>
+                        </ExpandableRow>
+                      )
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (
@@ -398,34 +496,77 @@ export function LeaderboardsPage() {
                     <EmptyState message="No scores entered for this round yet." />
                   ) : (
                     <div className="flex flex-col gap-0.5">
-                      {roundLeaderboard.map((entry) => (
-                        <div
-                          key={entry.participantId}
-                          className="flex items-center gap-3 rounded-md px-2 py-2"
-                        >
-                          <PlacingBadge placing={entry.placing} />
-                          <span className="flex-1 truncate text-sm font-medium">
-                            {getPlayerName(entry.participantId)}
-                          </span>
-                          <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
-                            {entry.grossTotal > 0 && (
-                              <span>{entry.grossTotal} gross</span>
-                            )}
-                            {entry.netTotal != null && (
-                              <span>{entry.netTotal} net</span>
-                            )}
-                            {entry.stablefordPoints != null && (
-                              <span>{entry.stablefordPoints} stb</span>
+                      {roundLeaderboard.map((entry) => {
+                        const isExpanded =
+                          expandedPlayerId === entry.participantId
+                        const selectedRound = rounds.find(
+                          (r) => r.id === effectiveRoundId
+                        )
+                        const holes = selectedRound
+                          ? getHolesByCourse(selectedRound.courseId)
+                          : []
+                        const scorecard = getScorecardsByRound(
+                          effectiveRoundId
+                        ).find(
+                          (sc) =>
+                            (sc.playerId ?? sc.teamId) === entry.participantId
+                        )
+                        const roundEvents = getEventsByRound(effectiveRoundId)
+                        return (
+                          <div key={entry.participantId}>
+                            <button
+                              type="button"
+                              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50"
+                              onClick={() => toggleExpand(entry.participantId)}
+                              aria-expanded={isExpanded}
+                              aria-label={`${getPlayerName(entry.participantId)} scorecard`}
+                            >
+                              <PlacingBadge placing={entry.placing} />
+                              <span className="flex-1 truncate text-sm font-medium">
+                                {getPlayerName(entry.participantId)}
+                              </span>
+                              <SideEventBadges
+                                sideEvents={roundEvents}
+                                playerId={entry.participantId}
+                              />
+                              <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
+                                {entry.grossTotal > 0 && (
+                                  <span>{entry.grossTotal} gross</span>
+                                )}
+                                {entry.netTotal != null && (
+                                  <span>{entry.netTotal} net</span>
+                                )}
+                                {entry.stablefordPoints != null && (
+                                  <span>{entry.stablefordPoints} stb</span>
+                                )}
+                              </div>
+                              <Badge
+                                variant="default"
+                                className="min-w-[3rem] justify-center tabular-nums text-xs"
+                              >
+                                {entry.pointsAwarded}p
+                              </Badge>
+                              <ChevronDown
+                                className={`text-muted-foreground size-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                              />
+                            </button>
+                            {isExpanded && scorecard && holes.length > 0 && (
+                              <div className="bg-muted/30 mt-0.5 rounded-md px-3 py-2">
+                                <ScorecardDetail
+                                  holes={holes}
+                                  holeStrokes={scorecard.holeStrokes}
+                                  sideEvents={roundEvents.filter(
+                                    (e) => e.playerId === entry.participantId
+                                  )}
+                                  grossTotal={scorecard.grossTotal}
+                                  netTotal={scorecard.netTotal}
+                                  stablefordPoints={scorecard.stablefordPoints}
+                                />
+                              </div>
                             )}
                           </div>
-                          <Badge
-                            variant="default"
-                            className="min-w-[3rem] justify-center tabular-nums text-xs"
-                          >
-                            {entry.pointsAwarded}p
-                          </Badge>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   )}
                 </CardContent>
@@ -715,5 +856,84 @@ function SideCompetitionCard({
         )}
       </CardContent>
     </Card>
+  )
+}
+
+/**
+ * Reusable expandable leaderboard row.
+ * Tapping toggles an inline ScorecardDetail for the given round.
+ */
+interface ExpandableRowProps {
+  playerId: string
+  isExpanded: boolean
+  onToggle: (playerId: string) => void
+  roundId: string
+  rounds: { id: string; courseId: string }[]
+  getHolesByCourse: (courseId: string) => import('@/features/courses').Hole[]
+  getScorecardsByRound: (
+    roundId: string
+  ) => import('@/features/scoring').Scorecard[]
+  getEventsByRound: (
+    roundId: string
+  ) => import('@/features/side-events').SideEventLog[]
+  getPlayerName: (id: string) => string
+  children: React.ReactNode
+}
+
+function ExpandableRow({
+  playerId,
+  isExpanded,
+  onToggle,
+  roundId,
+  rounds,
+  getHolesByCourse,
+  getScorecardsByRound,
+  getEventsByRound,
+  getPlayerName,
+  children,
+}: ExpandableRowProps) {
+  const round = rounds.find((r) => r.id === roundId)
+  const holes = round ? getHolesByCourse(round.courseId) : []
+  const scorecard = roundId
+    ? getScorecardsByRound(roundId).find(
+        (sc) => (sc.playerId ?? sc.teamId) === playerId
+      )
+    : undefined
+  const roundEvents = roundId ? getEventsByRound(roundId) : []
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50"
+        onClick={() => onToggle(playerId)}
+        aria-expanded={isExpanded}
+        aria-label={`${getPlayerName(playerId)} scorecard`}
+      >
+        {children}
+        <ChevronDown
+          className={`text-muted-foreground size-4 shrink-0 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {isExpanded && scorecard && holes.length > 0 && (
+        <div className="bg-muted/30 mt-0.5 rounded-md px-3 py-2">
+          <ScorecardDetail
+            holes={holes}
+            holeStrokes={scorecard.holeStrokes}
+            sideEvents={roundEvents.filter((e) => e.playerId === playerId)}
+            grossTotal={scorecard.grossTotal}
+            netTotal={scorecard.netTotal}
+            stablefordPoints={scorecard.stablefordPoints}
+          />
+        </div>
+      )}
+      {isExpanded && !scorecard && (
+        <div className="bg-muted/30 mt-0.5 rounded-md px-3 py-2">
+          <p className="text-muted-foreground text-xs">
+            No scorecard for this round.
+          </p>
+        </div>
+      )}
+    </div>
   )
 }
