@@ -21,6 +21,8 @@ interface PlayerFormDialogProps {
   player?: Player
   /** If false, the handicap field is hidden (non-admin editing own profile) */
   canEditHandicap?: boolean
+  /** If true, show the email field (admin only) */
+  showEmail?: boolean
 }
 
 export function PlayerFormDialog({
@@ -29,12 +31,14 @@ export function PlayerFormDialog({
   tournamentId,
   player,
   canEditHandicap = true,
+  showEmail = false,
 }: PlayerFormDialogProps) {
   const addPlayer = usePlayersStore((s) => s.addPlayer)
   const updatePlayer = usePlayersStore((s) => s.updatePlayer)
 
   const [displayName, setDisplayName] = useState(player?.displayName ?? '')
   const [nickname, setNickname] = useState(player?.nickname ?? '')
+  const [email, setEmail] = useState(player?.email ?? '')
   const [groupHandicap, setGroupHandicap] = useState(
     player?.groupHandicap?.toString() ?? ''
   )
@@ -51,12 +55,14 @@ export function PlayerFormDialog({
       updatePlayer(player.id, {
         displayName: displayName.trim(),
         nickname: nickname.trim() || undefined,
+        email: email.trim() || undefined,
         groupHandicap: isNaN(hcp) ? player.groupHandicap : hcp,
       })
     } else {
       addPlayer(tournamentId, {
         displayName: displayName.trim(),
         nickname: nickname.trim() || undefined,
+        email: email.trim() || undefined,
         groupHandicap: isNaN(hcp) ? 18 : hcp,
       })
     }
@@ -64,6 +70,7 @@ export function PlayerFormDialog({
     if (!isEditing) {
       setDisplayName('')
       setNickname('')
+      setEmail('')
       setGroupHandicap('')
     }
     onOpenChange(false)
@@ -102,6 +109,23 @@ export function PlayerFormDialog({
               onChange={(e) => setNickname(e.target.value)}
             />
           </div>
+
+          {showEmail && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email (optional)</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="e.g. magnus@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <p className="text-muted-foreground text-xs">
+                If set, invites sent to this email will auto-link to this
+                player.
+              </p>
+            </div>
+          )}
 
           {canEditHandicap && (
             <div className="flex flex-col gap-2">

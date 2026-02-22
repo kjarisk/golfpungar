@@ -4,6 +4,7 @@ export interface Player {
   userId: string
   displayName: string
   nickname?: string
+  email?: string
   groupHandicap: number
   active: boolean
   createdAt: string
@@ -12,12 +13,14 @@ export interface Player {
 export interface CreatePlayerInput {
   displayName: string
   nickname?: string
+  email?: string
   groupHandicap: number
 }
 
 export interface UpdatePlayerInput {
   displayName?: string
   nickname?: string
+  email?: string
   groupHandicap?: number
   active?: boolean
 }
@@ -33,4 +36,6 @@ export interface Invite {
   expiresAt: string
   acceptedAt?: string
   status: InviteStatus
+  /** Linked player ID — set when a player with matching email exists */
+  linkedPlayerId?: string
 }

@@ -237,11 +237,11 @@
 
 ## Phase 21 -- Player & Invite Refinements
 
-- [ ] Admin-only: add player, edit player, invite player buttons
-- [ ] Handicap change creates feed event (show old → new value)
-- [ ] Player-invite linking: create player with email, invite same email, auto-link on acceptance
-- [ ] Player profile: editable by self (name, nickname) but not handicap
-- [ ] Tests for handicap feed events + invite linking
+- [x] Admin-only: add player, edit player, invite player buttons
+- [x] Handicap change creates feed event (show old → new value)
+- [x] Player-invite linking: create player with email, invite same email, auto-link on acceptance
+- [x] Player profile: editable by self (name, nickname) but not handicap
+- [x] Tests for handicap feed events + invite linking
 
 ## Phase 22 -- Updated Demo Data & Final Polish (v2)
 

@@ -10,7 +10,7 @@ import { usePlayersStore } from '@/features/players'
 import type { Player } from '@/features/players'
 import { PlayerFormDialog } from '@/features/players/components/player-form-dialog'
 import { InvitePlayersDialog } from '@/features/players/components/invite-players-dialog'
-import { Mail, Plus, UserPlus, Pencil } from 'lucide-react'
+import { Check, Link2, Mail, Plus, UserPlus, Pencil } from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useAuthStore } from '@/features/auth'
 
@@ -27,6 +27,8 @@ export function PlayersPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getInvites = usePlayersStore((s) => s.getInvitesByTournament)
+  const acceptInvite = usePlayersStore((s) => s.acceptInvite)
+  const players = tournament ? getActivePlayers(tournament.id) : []
   const isAdmin = useIsAdmin()
   const authUser = useAuthStore((s) => s.user)
 
@@ -48,9 +50,11 @@ export function PlayersPage() {
     )
   }
 
-  const players = getActivePlayers(tournament.id)
   const invites = getInvites(tournament.id)
   const pendingInvites = invites.filter((i) => i.status === 'pending')
+
+  // Build a map of player ID → player name for linked invites
+  const playerMap = new Map(players.map((p) => [p.id, p]))
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,9 +129,15 @@ export function PlayersPage() {
                           </span>
                         )}
                       </div>
-                      <span className="text-muted-foreground text-xs">
-                        HCP {player.groupHandicap}
-                      </span>
+                      {isAdmin && player.email ? (
+                        <span className="text-muted-foreground truncate text-xs">
+                          {player.email} &middot; HCP {player.groupHandicap}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">
+                          HCP {player.groupHandicap}
+                        </span>
+                      )}
                     </div>
                     <Badge variant="outline" className="text-xs tabular-nums">
                       {player.groupHandicap}
@@ -161,27 +171,60 @@ export function PlayersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-0">
-            {pendingInvites.map((invite, i) => (
-              <div key={invite.id}>
-                {i > 0 && <Separator />}
-                <div className="flex items-center gap-3 py-3">
-                  <Avatar className="size-9">
-                    <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                      <Mail className="size-4" />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-sm">{invite.email}</span>
-                    <span className="text-muted-foreground text-xs">
-                      Invite sent
-                    </span>
+            {pendingInvites.map((invite, i) => {
+              const linkedPlayer = invite.linkedPlayerId
+                ? playerMap.get(invite.linkedPlayerId)
+                : undefined
+              return (
+                <div key={invite.id}>
+                  {i > 0 && <Separator />}
+                  <div className="flex items-center gap-3 py-3">
+                    <Avatar className="size-9">
+                      <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+                        <Mail className="size-4" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate text-sm">{invite.email}</span>
+                      {linkedPlayer ? (
+                        <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                          <Link2 className="size-3" aria-hidden="true" />
+                          Linked to {linkedPlayer.displayName}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">
+                          Invite sent
+                        </span>
+                      )}
+                    </div>
+                    {linkedPlayer && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-green-600"
+                      >
+                        Linked
+                      </Badge>
+                    )}
+                    {!linkedPlayer && (
+                      <Badge variant="secondary" className="text-xs">
+                        Pending
+                      </Badge>
+                    )}
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => acceptInvite(invite.id)}
+                        aria-label={`Accept invite for ${invite.email}`}
+                        title="Accept invite (mock)"
+                      >
+                        <Check className="size-3.5" />
+                      </Button>
+                    )}
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    Pending
-                  </Badge>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </CardContent>
         </Card>
       )}
@@ -191,6 +234,7 @@ export function PlayersPage() {
         open={showAddPlayer}
         onOpenChange={setShowAddPlayer}
         tournamentId={tournament.id}
+        showEmail={isAdmin}
       />
 
       {editingPlayer && (
@@ -202,6 +246,7 @@ export function PlayersPage() {
           tournamentId={tournament.id}
           player={editingPlayer}
           canEditHandicap={isAdmin}
+          showEmail={isAdmin}
         />
       )}
 
