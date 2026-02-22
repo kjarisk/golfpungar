@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,6 +11,8 @@ import type { Player } from '@/features/players'
 import { PlayerFormDialog } from '@/features/players/components/player-form-dialog'
 import { InvitePlayersDialog } from '@/features/players/components/invite-players-dialog'
 import { Mail, Plus, UserPlus, Pencil } from 'lucide-react'
+import { useIsAdmin } from '@/hooks/use-is-admin'
+import { useAuthStore } from '@/features/auth'
 
 function getInitials(name: string) {
   return name
@@ -24,6 +27,8 @@ export function PlayersPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getInvites = usePlayersStore((s) => s.getInvitesByTournament)
+  const isAdmin = useIsAdmin()
+  const authUser = useAuthStore((s) => s.user)
 
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [showInvite, setShowInvite] = useState(false)
@@ -34,8 +39,11 @@ export function PlayersPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-bold tracking-tight">Players</h1>
         <p className="text-muted-foreground text-sm">
-          Create a tournament first to manage players.
+          No active tournament. Select or create one to manage players.
         </p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link to="/tournaments">View Tournaments</Link>
+        </Button>
       </div>
     )
   }
@@ -54,25 +62,27 @@ export function PlayersPage() {
             {tournament.name}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowInvite(true)}
-            aria-label="Invite players"
-          >
-            <Mail className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Invite</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setShowAddPlayer(true)}
-            aria-label="Add player"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Add</span>
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInvite(true)}
+              aria-label="Invite players"
+            >
+              <Mail className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Invite</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowAddPlayer(true)}
+              aria-label="Add player"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Add</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Player list */}
@@ -85,49 +95,59 @@ export function PlayersPage() {
             <div className="flex flex-col items-center gap-3 py-8 text-center">
               <UserPlus className="text-muted-foreground size-10" />
               <p className="text-muted-foreground text-sm">No players yet</p>
-              <Button size="sm" onClick={() => setShowAddPlayer(true)}>
-                Add First Player
-              </Button>
+              {isAdmin && (
+                <Button size="sm" onClick={() => setShowAddPlayer(true)}>
+                  Add First Player
+                </Button>
+              )}
             </div>
           ) : (
-            players.map((player, i) => (
-              <div key={player.id}>
-                {i > 0 && <Separator />}
-                <div className="flex items-center gap-3 py-3">
-                  <Avatar className="size-9">
-                    <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-                      {getInitials(player.displayName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {player.displayName}
-                      </span>
-                      {player.nickname && (
-                        <span className="text-muted-foreground truncate text-xs">
-                          &ldquo;{player.nickname}&rdquo;
+            players.map((player, i) => {
+              const isOwnProfile = player.userId === authUser?.id
+              const canEdit = isAdmin || isOwnProfile
+              return (
+                <div key={player.id}>
+                  {i > 0 && <Separator />}
+                  <div className="flex items-center gap-3 py-3">
+                    <Avatar className="size-9">
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
+                        {getInitials(player.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {player.displayName}
                         </span>
-                      )}
+                        {player.nickname && (
+                          <span className="text-muted-foreground truncate text-xs">
+                            &ldquo;{player.nickname}&rdquo;
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-muted-foreground text-xs">
+                        HCP {player.groupHandicap}
+                      </span>
                     </div>
-                    <span className="text-muted-foreground text-xs">
-                      HCP {player.groupHandicap}
-                    </span>
+                    <Badge variant="outline" className="text-xs tabular-nums">
+                      {player.groupHandicap}
+                    </Badge>
+                    {canEdit && (
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => setEditingPlayer(player)}
+                      >
+                        <Pencil className="size-3.5" />
+                        <span className="sr-only">
+                          Edit {player.displayName}
+                        </span>
+                      </Button>
+                    )}
                   </div>
-                  <Badge variant="outline" className="text-xs tabular-nums">
-                    {player.groupHandicap}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    onClick={() => setEditingPlayer(player)}
-                  >
-                    <Pencil className="size-3.5" />
-                    <span className="sr-only">Edit {player.displayName}</span>
-                  </Button>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
@@ -181,6 +201,7 @@ export function PlayersPage() {
           }}
           tournamentId={tournament.id}
           player={editingPlayer}
+          canEditHandicap={isAdmin}
         />
       )}
 

@@ -128,3 +128,137 @@
 - [x] "Road to Winner" overview component
 - [x] Add trophy overview to Feed or Leaderboards
 - [x] Tests for trophy computation
+
+---
+
+# v2 Phases
+
+## Phase 12 -- Admin & Roles
+
+- [ ] Add `role: 'admin' | 'player'` to User type + auth store
+- [ ] Create `useIsAdmin()` hook for role checks
+- [ ] Add admin guards to: create tournament, create round, add/edit/remove player, update handicap, invite player, post announcement
+- [ ] Player-facing UI hides admin-only actions (buttons hidden, not just disabled)
+- [ ] Tests for role-based access (6 tests)
+
+## Phase 13 -- Multi-Tournament
+
+- [ ] Tournament list view (admin sees all; player sees active + past)
+- [ ] Tournament switcher/selector in app header or settings
+- [ ] "Set as Active" action (admin only)
+- [ ] Past tournament browser: read-only leaderboards, scorecards, feed history
+- [ ] No-active-tournament state: show past tournaments list
+- [ ] Update all pages to respect active tournament selection
+- [ ] Tests for tournament switching + past tournament views
+
+## Phase 14 -- Round Status & Management
+
+- [ ] Update Round status type: `upcoming | active | completed`
+- [ ] Admin controls: set round status (upcoming → active → completed)
+- [ ] Enforce only one active round per tournament
+- [ ] Edit Round dialog (name, format, date, groups)
+- [ ] Delete round action with confirmation
+- [ ] Round list ordering: active first, upcoming next, completed last
+- [ ] Active round concept: Enter page defaults to it, Leaderboards defaults to Round tab
+- [ ] `useActiveRound()` hook for app-wide access
+- [ ] Tests for status transitions + ordering
+
+## Phase 15 -- Team Configuration
+
+- [ ] Team setup UI after round creation (assign 2-player teams within groups)
+- [ ] Team name: defaults to "Player A & Player B", custom name editable
+- [ ] Team name editable by team members or admin
+- [ ] Team name changes during active round appear in feed
+- [ ] Team scorecard model: single scorecard per team (not per player) for Scramble/Best Ball
+- [ ] Update scoring store to support team scorecards
+- [ ] Tests for team creation, naming, scorecard linking
+
+## Phase 16 -- Enter Page Redesign
+
+- [ ] Remove "Total" entry mode (hole-by-hole only)
+- [ ] Default to active round (no manual round selection needed when one is active)
+- [ ] Group selector: pick your group, persisted in localStorage as default
+- [ ] Grid layout: hole rows × player/team columns (spreadsheet style)
+  - [ ] Tap cell → number pad input → auto-advance to next cell
+  - [ ] Show hole number, par, stroke index per row
+  - [ ] Color-coded cells (eagle/birdie/par/bogey/double+)
+  - [ ] Side event icons visible on cells (birdie bird, snake, etc.)
+- [ ] Team format: single column per team (labeled with team name)
+- [ ] Side events integrated in same view:
+  - [ ] Per-hole quick-action row (expandable) beneath each hole row, or side panel
+  - [ ] Scoped to group players only
+- [ ] Front 9 / Back 9 split with subtotals
+- [ ] Running totals row at bottom (gross, net, stableford, points)
+- [ ] Tests for grid entry + team column behavior
+
+## Phase 17 -- Feed Page Redesign
+
+- [ ] Remove player count stat card
+- [ ] Add active round leaders card (top 3–5 current standings)
+- [ ] Keep "Your Points" summary
+- [ ] Announcement cards for notable events:
+  - [ ] Eagle, birdie, hole-in-one, albatross, nearest to pin
+  - [ ] Large colorful card with slide-in animation (auto-dismiss ~5s)
+  - [ ] Queue system: one announcement at a time, stack if multiple
+- [ ] Admin announcement posting (text input + send button, admin only)
+- [ ] Announcement model in feed store
+- [ ] Handicap change events in feed
+- [ ] Tests for announcement rendering + auto-dismiss
+
+## Phase 18 -- Leaderboards Enhancement
+
+- [ ] Default to Round tab when active round exists; Total tab otherwise
+- [ ] Player scorecard detail: tap player row → expand inline or sheet
+  - [ ] Full 18-hole scorecard with strokes per hole
+  - [ ] Side event icons per hole (birdie, eagle, snake, snopp, GIR, etc.)
+  - [ ] Gross/net/stableford summary
+- [ ] Side event icons on leaderboard rows (small badges)
+- [ ] Tests for scorecard detail rendering
+
+## Phase 19 -- Betting Improvements
+
+- [ ] Bet list organized into sections:
+  - [ ] Round bets (current active round)
+  - [ ] Tournament bets
+  - [ ] Settled bets (won/lost/paid, collapsed by default)
+- [ ] Visual differentiation between sections (headers, dividers)
+- [ ] Tests for section filtering
+
+## Phase 20 -- Rounds & Course View Polish
+
+- [ ] Course card redesign: cleaner grid layout, better alignment
+  - [ ] Proper table with Front 9 / Back 9 sections
+  - [ ] Hole numbers, par, stroke index in aligned columns
+  - [ ] Out/In subtotals
+- [ ] Round cards: more compact, clearer status prominence
+- [ ] Round ordering: active → upcoming → completed
+- [ ] Tests for sort order
+
+## Phase 21 -- Player & Invite Refinements
+
+- [ ] Admin-only: add player, edit player, invite player buttons
+- [ ] Handicap change creates feed event (show old → new value)
+- [ ] Player-invite linking: create player with email, invite same email, auto-link on acceptance
+- [ ] Player profile: editable by self (name, nickname) but not handicap
+- [ ] Tests for handicap feed events + invite linking
+
+## Phase 22 -- Updated Demo Data & Final Polish (v2)
+
+- [ ] Update `seedDemoData()` in `src/lib/demo-data.ts` for full v2 demo:
+  - [ ] Multiple tournaments (one active "Spain 2026", one past "Portugal 2025")
+  - [ ] 12–16 players with varied handicaps
+  - [ ] 3 rounds with different statuses (completed, active, upcoming)
+  - [ ] Teams configured for scramble/best ball rounds
+  - [ ] Scores entered for completed + partially for active round
+  - [ ] Side events spread across rounds (birdies, eagles, snakes, snopp, NTP, etc.)
+  - [ ] Penalties, bets (pending, accepted, resolved, paid), announcements
+  - [ ] Trophy-worthy data (clear leaders in each category)
+- [ ] `clearDemoData()` resets all stores cleanly
+- [ ] `isDemoSeeded()` check still works
+- [ ] Dev-only seed/clear buttons remain on Feed page
+- [ ] Verify all admin/player guards work end-to-end
+- [ ] Empty states for no-active-tournament, no-active-round
+- [ ] Accessibility pass on new components
+- [ ] Performance pass (grid rendering, large feeds)
+- [ ] Update README + QUICKSTART for v2 features
+- [ ] Final test count verification + docs update

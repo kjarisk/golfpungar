@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import {
   Card,
   CardContent,
@@ -17,6 +18,7 @@ import { useRoundsStore } from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
 import { usePlayersStore } from '@/features/players'
 import { Upload, Plus, Calendar, MapPin, Users } from 'lucide-react'
+import { useIsAdmin } from '@/hooks/use-is-admin'
 import type { RoundFormat, RoundStatus } from '@/features/rounds'
 
 const FORMAT_LABELS: Record<RoundFormat, string> = {
@@ -41,6 +43,7 @@ const STATUS_LABEL: Record<RoundStatus, string> = {
 
 export function RoundsPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
+  const isAdmin = useIsAdmin()
   const getCoursesByTournament = useCoursesStore(
     (s) => s.getCoursesByTournament
   )
@@ -61,8 +64,11 @@ export function RoundsPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-bold tracking-tight">Rounds</h1>
         <p className="text-muted-foreground text-sm">
-          Create a tournament first to manage rounds.
+          No active tournament. Select or create one to manage rounds.
         </p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link to="/tournaments">View Tournaments</Link>
+        </Button>
       </div>
     )
   }
@@ -81,26 +87,28 @@ export function RoundsPage() {
             Manage courses and rounds for {tournament.name}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowImport(true)}
-            aria-label="Import Course"
-          >
-            <Upload className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">Import Course</span>
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => setShowCreateRound(true)}
-            disabled={courses.length === 0}
-            aria-label="New Round"
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">New Round</span>
-          </Button>
-        </div>
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImport(true)}
+              aria-label="Import Course"
+            >
+              <Upload className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">Import Course</span>
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowCreateRound(true)}
+              disabled={courses.length === 0}
+              aria-label="New Round"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">New Round</span>
+            </Button>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="rounds">
@@ -123,21 +131,22 @@ export function RoundsPage() {
                       : 'Create your first round to get started'}
                   </p>
                 </div>
-                {courses.length === 0 ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowImport(true)}
-                  >
-                    <Upload className="size-4" />
-                    Import Course
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={() => setShowCreateRound(true)}>
-                    <Plus className="size-4" />
-                    Create Round
-                  </Button>
-                )}
+                {isAdmin &&
+                  (courses.length === 0 ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowImport(true)}
+                    >
+                      <Upload className="size-4" />
+                      Import Course
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => setShowCreateRound(true)}>
+                      <Plus className="size-4" />
+                      Create Round
+                    </Button>
+                  ))}
               </CardContent>
             </Card>
           ) : (
@@ -246,14 +255,16 @@ export function RoundsPage() {
                     Upload a CSV file to import a course
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowImport(true)}
-                >
-                  <Upload className="size-4" />
-                  Import Course
-                </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowImport(true)}
+                  >
+                    <Upload className="size-4" />
+                    Import Course
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (

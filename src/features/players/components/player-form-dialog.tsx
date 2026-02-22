@@ -19,6 +19,8 @@ interface PlayerFormDialogProps {
   tournamentId: string
   /** If set, we're editing an existing player */
   player?: Player
+  /** If false, the handicap field is hidden (non-admin editing own profile) */
+  canEditHandicap?: boolean
 }
 
 export function PlayerFormDialog({
@@ -26,6 +28,7 @@ export function PlayerFormDialog({
   onOpenChange,
   tournamentId,
   player,
+  canEditHandicap = true,
 }: PlayerFormDialogProps) {
   const addPlayer = usePlayersStore((s) => s.addPlayer)
   const updatePlayer = usePlayersStore((s) => s.updatePlayer)
@@ -100,19 +103,21 @@ export function PlayerFormDialog({
             />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="groupHandicap">Group Handicap</Label>
-            <Input
-              id="groupHandicap"
-              type="number"
-              min={0}
-              max={54}
-              placeholder="e.g. 18"
-              value={groupHandicap}
-              onChange={(e) => setGroupHandicap(e.target.value)}
-              required
-            />
-          </div>
+          {canEditHandicap && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="groupHandicap">Group Handicap</Label>
+              <Input
+                id="groupHandicap"
+                type="number"
+                min={0}
+                max={54}
+                placeholder="e.g. 18"
+                value={groupHandicap}
+                onChange={(e) => setGroupHandicap(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="submit" disabled={!displayName.trim()}>

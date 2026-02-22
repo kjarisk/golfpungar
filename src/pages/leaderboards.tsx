@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -186,8 +188,11 @@ export function LeaderboardsPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-bold tracking-tight">Leaderboards</h1>
         <p className="text-muted-foreground text-sm">
-          Create a tournament first to see leaderboards.
+          No active tournament. Select or create one to see leaderboards.
         </p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link to="/tournaments">View Tournaments</Link>
+        </Button>
       </div>
     )
   }

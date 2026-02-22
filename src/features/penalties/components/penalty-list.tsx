@@ -7,6 +7,7 @@ import { AddPenaltyDialog } from './add-penalty-dialog'
 import type { Player } from '@/features/players/types'
 import type { Round } from '@/features/rounds/types'
 import { AlertTriangle, Plus, Trash2 } from 'lucide-react'
+import { useIsAdmin } from '@/hooks/use-is-admin'
 
 interface PenaltyListProps {
   tournamentId: string
@@ -23,6 +24,7 @@ export function PenaltyList({
     (s) => s.getEntriesByTournament
   )
   const removePenalty = usePenaltiesStore((s) => s.removePenalty)
+  const isAdmin = useIsAdmin()
   const [showDialog, setShowDialog] = useState(false)
 
   const entries = getEntriesByTournament(tournamentId)
@@ -48,10 +50,12 @@ export function PenaltyList({
               <AlertTriangle className="size-4 text-amber-500" />
               Penalties
             </CardTitle>
-            <Button size="sm" onClick={() => setShowDialog(true)}>
-              <Plus className="size-4" />
-              Add
-            </Button>
+            {isAdmin && (
+              <Button size="sm" onClick={() => setShowDialog(true)}>
+                <Plus className="size-4" />
+                Add
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -95,15 +99,17 @@ export function PenaltyList({
                     >
                       {entry.amount}
                     </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-destructive size-7 p-0"
-                      onClick={() => removePenalty(entry.id)}
-                      aria-label={`Remove penalty for ${getPlayerName(entry.playerId)}`}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-destructive size-7 p-0"
+                        onClick={() => removePenalty(entry.id)}
+                        aria-label={`Remove penalty for ${getPlayerName(entry.playerId)}`}
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    )}
                   </div>
                 )
               })}

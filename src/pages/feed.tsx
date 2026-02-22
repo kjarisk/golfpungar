@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Link } from 'react-router'
 import {
   Card,
   CardContent,
@@ -9,9 +9,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/features/auth'
+import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useTournamentStore } from '@/features/tournament'
 import { TournamentStatusBadge } from '@/features/tournament/components/tournament-status-badge'
-import { CreateTournamentDialog } from '@/features/tournament/components/create-tournament-dialog'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useScoringStore } from '@/features/scoring'
@@ -24,7 +24,6 @@ import { seedDemoData, clearDemoData, isDemoSeeded } from '@/lib/demo-data'
 import {
   MapPin,
   Calendar,
-  Plus,
   Users,
   Flag,
   Bird,
@@ -113,6 +112,7 @@ const IS_DEV = import.meta.env.DEV
 
 export function FeedPage() {
   const user = useAuthStore((s) => s.user)
+  const isAdmin = useIsAdmin()
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
@@ -124,9 +124,10 @@ export function FeedPage() {
   const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
   const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
   const getRecentFeedEvents = useFeedStore((s) => s.getRecentEvents)
-  const [showCreate, setShowCreate] = useState(false)
   const roundCount$ = useRoundsStore((s) => s.rounds.length)
   const seeded = roundCount$ > 0
+  const setRole = useAuthStore((s) => s.setRole)
+  const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
 
   const handleSeed = () => {
     if (!isDemoSeeded()) {
@@ -283,11 +284,13 @@ export function FeedPage() {
             {getGreeting()}, {user?.displayName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            No active tournament. Create one to get started.
+            No active tournament.{isAdmin ? ' Create one to get started.' : ''}
           </p>
-          <Button onClick={() => setShowCreate(true)} className="w-fit">
-            <Plus className="size-4" aria-hidden="true" />
-            Create Tournament
+          <Button asChild variant="outline" className="w-fit">
+            <Link to="/tournaments">
+              <Flag className="size-4" aria-hidden="true" />
+              {isAdmin ? 'Manage Tournaments' : 'View Tournaments'}
+            </Link>
           </Button>
         </div>
       )}
@@ -331,10 +334,10 @@ export function FeedPage() {
         </div>
       )}
 
-      {/* Demo data controls (dev only) */}
-      {tournament && IS_DEV && (
-        <div className="flex items-center gap-2">
-          {!seeded ? (
+      {/* Dev controls (dev only) */}
+      {IS_DEV && (
+        <div className="flex flex-wrap items-center gap-2">
+          {tournament && !seeded && (
             <Button
               variant="outline"
               size="sm"
@@ -344,7 +347,8 @@ export function FeedPage() {
               <Database className="size-3.5" aria-hidden="true" />
               Seed Demo Data
             </Button>
-          ) : (
+          )}
+          {tournament && seeded && (
             <Button
               variant="outline"
               size="sm"
@@ -355,9 +359,21 @@ export function FeedPage() {
               Clear Demo Data
             </Button>
           )}
-          <span className="text-muted-foreground text-[10px]">
-            {seeded ? 'Demo data loaded' : 'No rounds yet'}
-          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setRole(currentRole === 'admin' ? 'player' : 'admin')
+            }
+            className="gap-1.5 text-xs"
+          >
+            Role: {currentRole}
+          </Button>
+          {tournament && (
+            <span className="text-muted-foreground text-[10px]">
+              {seeded ? 'Demo data loaded' : 'No rounds yet'}
+            </span>
+          )}
         </div>
       )}
 
@@ -436,8 +452,6 @@ export function FeedPage() {
           </CardContent>
         </Card>
       )}
-
-      <CreateTournamentDialog open={showCreate} onOpenChange={setShowCreate} />
     </div>
   )
 }

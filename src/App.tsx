@@ -7,6 +7,7 @@ import {
   LeaderboardsPage,
   RoundsPage,
   PlayersPage,
+  TournamentsPage,
 } from '@/pages'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
           <Route path="leaderboards" element={<LeaderboardsPage />} />
           <Route path="rounds" element={<RoundsPage />} />
           <Route path="players" element={<PlayersPage />} />
+          <Route path="tournaments" element={<TournamentsPage />} />
         </Route>
       </Routes>
       <Toaster position="top-center" richColors />

@@ -1,4 +1,4 @@
-# Golf Trip Tournament App – Outline (Scope Lock v1 – Portugal Edition)
+# Golf Trip Tournament App – Outline (Scope Lock v2)
 
 ## 1) One-sentence goal
 
@@ -14,8 +14,9 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
 - No OS push notifications (in-app only)
 - No GPS shot tracking
 - No payment processing (bets are tracked, not transferred)
-- No offline-first mode in v1
-- No external course API integration in v1
+- No offline-first mode
+- No external course API integration
+- No Supabase/backend integration yet (mock data in Zustand; Supabase deferred)
 
 ---
 
@@ -30,77 +31,131 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
 
 ## 4) Core flows
 
-1. Invite & Login (Magic Link)
-   - Admin invites via email
-   - Player joins via secure link
-   - Roles: admin / player
+### 4.1 Invite & Login (Magic Link)
 
-2. Create Tournament
-   - Name, dates, location (optional)
-   - Default points table (editable per round)
-   - Enable side competitions
-   - Set tournament status
+- Admin invites via email
+- Player joins via secure link
+- Roles: admin / player
+- Create player + invite with same email → linked on acceptance
 
-3. Import Course (CSV)
-   Required columns:
-   - holeNumber
-   - par
-   - strokeIndex
+### 4.2 Create Tournament (admin only)
 
-4. Create Rounds
-   - Select course
-   - Format:
-     - Scramble
-     - Stableford
-     - Best Ball
-     - Handicap (individual)
-   - Assign groups
-   - Optional team setup
-   - Configure round points model
+- Name, dates, location (optional)
+- Default points table (editable per round)
+- Enable side competitions
+- Set tournament status (draft / live / done)
+- Admin can create multiple tournaments
+- Admin sets one tournament as "active" — this is what players see
+- Players see only the active tournament
+- Past tournaments browsable with read-only leaderboards
 
-5. Score Entry
-   - Per-hole strokes
-   - Whole-round totals
-   - Edit anytime
-   - Auto recalculation
+### 4.3 Import Course (CSV)
 
-6. Log Side Events (Fast Actions)
-   - Birdie
-   - Eagle
-   - Hole in one
-   - Albatross
-   - Bunker save
-   - Snake (3-putt)
-   - Snöpp (anger event; unlimited per hole)
-   - Group longest drive (Par 5)
-   - Longest drive (meters + photo)
-   - Longest putt (meters)
-   - Nearest to pin (meters)
-   - Green in regulation (manual toggle per hole)
+Required columns:
 
-7. Betting
-   - Create bet:
-     - Round bet
-     - Tournament bet
-   - Bet target:
-     - Most points
-     - Most birdies
-     - Head-to-head
-     - Custom metric
-   - Bet amount
-   - Invite one or multiple players
-   - Mark bet as paid:
-     - Both parties must confirm payment
+- holeNumber
+- par
+- strokeIndex
 
-8. Leaderboards & Live Feed
-   - Round leaderboard
-   - Total points leaderboard
-   - Gross leaderboard (without handicap)
-   - Net leaderboard (with handicap)
-   - Side competition leaderboards
-   - Betting overview
-   - Trophy overview ("Road to winner")
-   - Live in-app animated feed
+### 4.4 Create & Manage Rounds (admin only)
+
+- Select course
+- Format:
+  - Scramble (team)
+  - Stableford
+  - Best Ball (team)
+  - Handicap (individual)
+- Assign groups (4 players per group)
+- Optional team setup (2 players per team within a group)
+  - Team name defaults to "Player A & Player B"
+  - Custom team name allowed (editable by team members or admin)
+  - Team name changes during active round appear in feed
+- Configure round points model (default top-10, customizable)
+- Round status: upcoming → active → completed
+  - Only one round can be active at a time
+  - Admin controls status transitions
+  - Active round is the default across the app (Enter, Leaderboards)
+- Edit round after creation (name, format, groups, teams, status)
+- Completed rounds sort to bottom of round list
+
+### 4.5 Score Entry
+
+- Group-based entry: grid with hole rows × player/team columns
+  - Tap a cell, enter strokes via number pad
+  - See all group members at once
+  - Side events integrated in the same view (inline per hole)
+  - Side events scoped to your group only
+- For team formats (Scramble/Best Ball): single column per team
+- Default to current active round
+- Select your group → persisted as default for next app open
+- Per-hole strokes only (no whole-round total entry)
+- Edit anytime
+- Auto-recalculation (net, stableford, points)
+- Side event icons visible on score cells (birdie, eagle, snake, etc.)
+
+### 4.6 Log Side Events (Fast Actions)
+
+- Integrated into score entry view
+- Scoped to your group only
+- Event types:
+  - Birdie
+  - Eagle
+  - Hole in one
+  - Albatross
+  - Bunker save
+  - Snake (3-putt)
+  - Snöpp (anger event; unlimited per hole)
+  - Group longest drive (Par 5)
+  - Longest drive (meters + photo)
+  - Longest putt (meters)
+  - Nearest to pin (meters)
+  - Green in regulation (manual toggle per hole)
+
+### 4.7 Betting
+
+- Create bet:
+  - Round bet
+  - Tournament bet
+- Bet target:
+  - Most points
+  - Most birdies
+  - Head-to-head
+  - Custom metric
+- Bet amount
+- Invite one or multiple players
+- Mark bet as paid:
+  - Both parties must confirm payment
+- Bet list organized by:
+  - Round bets (current round)
+  - Tournament bets
+  - Settled/completed bets (separate section)
+
+### 4.8 Feed Page
+
+- Tournament hero (name, dates, location, greeting)
+- Active round leaders card (top 3–5 from current active round)
+- Points summary (your tournament points)
+- Announcement cards for notable events:
+  - Eagle, birdie, hole-in-one, albatross, closest to pin
+  - Large colorful card with slide-in animation
+  - Auto-dismisses after a few seconds
+- Live chronological feed (side events, penalties, bets, admin announcements)
+- Admin can post announcements to the feed
+
+### 4.9 Leaderboards
+
+- Default to Round tab when an active round exists; otherwise Total tab
+- Round leaderboard (standings for a single round)
+- Total points leaderboard (overall tournament)
+- Gross leaderboard (without handicap)
+- Net leaderboard (with handicap)
+- Side competition leaderboards
+- Betting overview
+- Trophy overview ("Road to Winner")
+- Player scorecard detail view:
+  - Tap a player on any leaderboard to expand
+  - Shows full 18-hole scorecard with scores + side event icons per hole
+  - Visible for any round
 
 ---
 
@@ -115,7 +170,7 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
 
 ### Handicap
 
-- Group-defined handicap per player
+- Group-defined handicap per player (admin can update; changes appear in feed)
 - Uses par + stroke index
 - Produces:
   - Gross total
@@ -146,13 +201,13 @@ Winner logic:
 
 ### Penalties
 
-- Manual entry
+- Manual entry (admin or self)
 - Accumulated per player
 - "Penalty King" = highest total
 
 ### Bets
 
-- Created by player
+- Created by any player
 - Type:
   - Round-specific
   - Tournament-wide
@@ -173,6 +228,7 @@ Winner logic:
 - id
 - email
 - displayName
+- role (admin | player)
 - createdAt
 
 ### Tournament
@@ -182,7 +238,7 @@ Winner logic:
 - location
 - startDate
 - endDate
-- status
+- status (draft | live | done)
 - createdByUserId
 
 ### Player
@@ -217,7 +273,7 @@ Winner logic:
 - name
 - format
 - holesPlayed
-- status
+- status (upcoming | active | completed)
 
 ### Group
 
@@ -230,14 +286,14 @@ Winner logic:
 
 - id
 - roundId
-- name
+- name (default "Player A & Player B", customizable)
 - playerIds[]
 
 ### Scorecard
 
 - id
 - roundId
-- participantId (player/team)
+- participantId (player or team)
 - holeStrokes[]
 - grossTotal
 - netTotal
@@ -301,6 +357,7 @@ Winner logic:
 - roundId (optional)
 - amount
 - status
+- creatorPaidConfirmed (bool)
 - createdAt
 
 ### BetParticipant
@@ -319,9 +376,17 @@ Winner logic:
 - sourceType (points | sideEvent | ledger | bet)
 - sourceKey
 
+### Announcement
+
+- id
+- tournamentId
+- createdByUserId
+- message
+- createdAt
+
 ---
 
-## 7) Leaderboards (v1 must support)
+## 7) Leaderboards (must support)
 
 - Round placing
 - Total tournament points
@@ -340,14 +405,39 @@ Winner logic:
 
 ---
 
-## 8) Definition of Done (v1)
+## 8) Roles & Permissions
 
-- [x] Invite-only magic link auth works
+### Admin
+
+- Create and manage tournaments (set active)
+- Create and manage rounds (set status: upcoming/active/completed)
+- Add, edit, remove players
+- Update player handicaps (changes appear in feed)
+- Invite players via email
+- Post announcements to feed
+- Edit all scorecards and data
+- Configure teams and points models
+
+### Player
+
+- View active tournament only (plus past tournaments read-only)
+- Enter scores for their group
+- Log side events for their group
+- Create and manage their own bets
+- Edit their own profile data
+- Update their team name (team formats)
+
+---
+
+## 9) Definition of Done (v2)
+
+### v1 (completed)
+
 - [x] Tournament CRUD works
 - [x] Course CSV import works
-- [x] Round creation + team support works
+- [x] Round creation + group assignment works
 - [x] Score entry per hole works
-- [x] Points auto recalculation works
+- [x] Points auto-recalculation works
 - [x] Gross + net totals calculated
 - [x] All defined side events loggable
 - [x] Distance events support value + image
@@ -356,24 +446,42 @@ Winner logic:
 - [x] Penalty ledger works
 - [x] Bet creation + acceptance works
 - [x] Bet paid confirmation requires both parties
-- [x] Leaderboards update live
+- [x] Leaderboards update reactively
 - [x] In-app feed/toast animations work
 - [x] Responsive for mobile + desktop
-- [x] Tests for:
-  - points logic
-  - side-event aggregation
-  - bet resolution
-  - snake/snöpp counting
+- [x] Tests for points, side-events, bets, snakes
+
+### v2 (in progress)
+
+- [ ] Admin/player role enforcement in UI
+- [ ] Multi-tournament with active selection
+- [ ] Past tournament browser (read-only leaderboards)
+- [ ] Round status management (upcoming/active/completed)
+- [ ] Active round as default across app
+- [ ] Group-based score entry grid (hole rows × player columns)
+- [ ] Team score entry (single column per team)
+- [ ] Team configuration after round creation
+- [ ] Team naming (default + custom, editable, feed event on change)
+- [ ] Edit round after creation
+- [ ] Side events integrated in score entry view
+- [ ] Side event icons on scorecard cells
+- [ ] Player scorecard detail view (tap-to-expand)
+- [ ] Feed: announcement cards with animation for notable events
+- [ ] Feed: active round leaders card
+- [ ] Feed: admin announcement posting
+- [ ] Betting: round vs tournament vs settled sections
+- [ ] Course view layout polish
+- [ ] Handicap change feed events
+- [ ] Completed rounds sort to bottom
+- [ ] Updated demo data for full v2 demo
 
 ---
 
-## 9) v1 Constraints
+## 10) Constraints
 
-- Max 20 players
-- Single active tournament
+- Max 20 players per tournament
 - No external course API
 - No payment integration
 - No offline mode
 - No public sharing
-
-Scope locked for v1.
+- No Supabase yet (Zustand mock data; backend deferred)

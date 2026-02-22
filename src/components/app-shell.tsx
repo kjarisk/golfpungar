@@ -1,9 +1,17 @@
 import { Suspense } from 'react'
-import { Outlet, NavLink, useLocation } from 'react-router'
-import { Newspaper, PenLine, Trophy, Flag, Users } from 'lucide-react'
+import { Outlet, NavLink, useLocation, Link } from 'react-router'
+import {
+  Newspaper,
+  PenLine,
+  Trophy,
+  Flag,
+  Users,
+  ChevronRight,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
+import { useTournamentStore } from '@/features/tournament'
 
 const navItems = [
   { to: '/feed', label: 'Feed', icon: Newspaper },
@@ -15,9 +23,22 @@ const navItems = [
 
 export function AppShell() {
   const location = useLocation()
+  const tournament = useTournamentStore((s) => s.activeTournament())
 
   return (
     <div className="bg-background flex min-h-svh flex-col">
+      {/* Tournament header — shows active tournament name, links to /tournaments */}
+      <header className="border-border border-b px-4 py-2">
+        <div className="mx-auto flex max-w-lg items-center justify-between md:max-w-2xl">
+          <Link
+            to="/tournaments"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium transition-colors"
+          >
+            {tournament ? tournament.name : 'No active tournament'}
+            <ChevronRight className="size-3" aria-hidden="true" />
+          </Link>
+        </div>
+      </header>
       {/* Page content area — scrollable, with bottom padding for nav */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-20">
         <div className="mx-auto w-full max-w-lg md:max-w-2xl">

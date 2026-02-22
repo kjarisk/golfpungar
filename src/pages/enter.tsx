@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import { SideEventLogger } from '@/features/side-events'
 import { PenaltyList } from '@/features/penalties'
 import { BetList } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
+import { useIsAdmin } from '@/hooks/use-is-admin'
 import { Trophy, ClipboardList, Hash } from 'lucide-react'
 
 export function EnterPage() {
@@ -34,6 +36,7 @@ export function EnterPage() {
   const recalculatePoints = useScoringStore((s) => s.recalculatePoints)
   const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
   const authUser = useAuthStore((s) => s.user)
+  const isAdmin = useIsAdmin()
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
@@ -95,8 +98,11 @@ export function EnterPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-2xl font-bold tracking-tight">Enter</h1>
         <p className="text-muted-foreground text-sm">
-          Create a tournament first to enter scores.
+          No active tournament. Select or create one to enter scores.
         </p>
+        <Button asChild variant="outline" className="w-fit">
+          <Link to="/tournaments">View Tournaments</Link>
+        </Button>
       </div>
     )
   }
@@ -239,10 +245,16 @@ export function EnterPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Standings</CardTitle>
-                <Button size="sm" variant="outline" onClick={handleRecalculate}>
-                  <Trophy className="size-3.5" />
-                  Recalculate
-                </Button>
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRecalculate}
+                  >
+                    <Trophy className="size-3.5" />
+                    Recalculate
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent>
