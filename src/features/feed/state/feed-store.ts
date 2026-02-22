@@ -43,6 +43,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       message: input.message,
       playerId: input.playerId,
       roundId: input.roundId,
+      teamId: input.teamId,
       createdAt: new Date().toISOString(),
     }
 

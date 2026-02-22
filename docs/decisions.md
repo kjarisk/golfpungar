@@ -27,6 +27,7 @@ Keep this short: what we decided, and why.
 - 2026-02-22: v2 — Admin can post in-app announcements to the feed (no push notifications, feed messages only).
 - 2026-02-22: v2 — Supabase remains deferred. All v2 features use Zustand mock data. Real-time behavior is client-reactive only.
 - 2026-02-22: v2 — Demo data (`seedDemoData()`) will be expanded in Phase 22 to cover multi-tournament, teams, round statuses, announcements, and full v2 feature set. Same seed/clear pattern preserved.
+- 2026-02-22: Phase 16 — Enter page redesigned as group-based spreadsheet grid (GroupScoreGrid). "Total" manual entry mode removed. Group selector with localStorage persistence added. Side event quick-actions (birdie, eagle, snake, snopp, GIR, bunker, HIO) integrated inline in the number pad panel; distance events (LD, NTP, longest putt) remain in SideEventLogger card below grid.
 
 ## UI system choice (per project)
 

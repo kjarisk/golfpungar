@@ -8,6 +8,7 @@ export type FeedEventType =
   | 'round_started'
   | 'round_completed'
   | 'tournament_update'
+  | 'team_name_changed'
 
 export interface FeedEvent {
   id: string
@@ -19,6 +20,8 @@ export interface FeedEvent {
   playerId?: string
   /** Round involved (if applicable) */
   roundId?: string
+  /** Team involved (if applicable) */
+  teamId?: string
   /** ISO timestamp */
   createdAt: string
 }
@@ -29,4 +32,5 @@ export interface CreateFeedEventInput {
   message: string
   playerId?: string
   roundId?: string
+  teamId?: string
 }

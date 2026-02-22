@@ -15,24 +15,44 @@ import { useRoundsStore } from '@/features/rounds'
 import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useScoringStore } from '@/features/scoring'
-import { ScoreEntryGrid } from '@/features/scoring/components/score-entry-grid'
-import { RoundTotalEntry } from '@/features/scoring/components/round-total-entry'
+import { GroupScoreGrid } from '@/features/scoring/components/group-score-grid'
 import { SideEventLogger } from '@/features/side-events'
 import { PenaltyList } from '@/features/penalties'
 import { BetList } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveRound } from '@/hooks/use-active-round'
-import { Trophy, ClipboardList, Hash } from 'lucide-react'
+import { Trophy, ClipboardList, Users } from 'lucide-react'
+
+/** localStorage key for persisting the user's group selection */
+const GROUP_STORAGE_KEY = 'golfpungar:selectedGroupId'
+
+function getPersistedGroupId(): string {
+  try {
+    return localStorage.getItem(GROUP_STORAGE_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function persistGroupId(groupId: string) {
+  try {
+    localStorage.setItem(GROUP_STORAGE_KEY, groupId)
+  } catch {
+    // localStorage unavailable
+  }
+}
 
 export function EnterPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
+  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
+  const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
   const createScorecard = useScoringStore((s) => s.createScorecard)
   const recalculatePoints = useScoringStore((s) => s.recalculatePoints)
   const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
@@ -49,7 +69,8 @@ export function EnterPage() {
   const currentPlayerId = currentPlayer?.id ?? ''
 
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
-  const [entryMode, setEntryMode] = useState<'holes' | 'total'>('holes')
+  const [selectedGroupId, setSelectedGroupId] =
+    useState<string>(getPersistedGroupId)
 
   // Default to active round, then first round as fallback
   const defaultRoundId =
@@ -60,31 +81,82 @@ export function EnterPage() {
   const holes = selectedRound ? getHoles(selectedRound.courseId) : []
   const coursePar = holes.reduce((s, h) => s + h.par, 0)
   const groups = selectedRound ? getGroupsByRound(selectedRound.id) : []
+  const teams = selectedRound ? getTeamsByRound(selectedRound.id) : []
   const scorecards = selectedRound ? getScorecardsByRound(selectedRound.id) : []
   const roundPoints = selectedRound ? getPointsByRound(selectedRound.id) : []
 
-  // Get all player IDs from this round's groups
+  const isTeamFormat =
+    selectedRound?.format === 'scramble' || selectedRound?.format === 'bestball'
+  const useTeamScorecards = isTeamFormat && teams.length > 0
+
+  // --- Group selection logic ---
+  // Auto-detect current player's group, or use persisted, or first group
+  const currentPlayerGroup = groups.find((g) =>
+    g.playerIds.includes(currentPlayerId)
+  )
+  const persistedGroup = groups.find((g) => g.id === selectedGroupId)
+  const effectiveGroup =
+    persistedGroup ??
+    currentPlayerGroup ??
+    (groups.length > 0 ? groups[0] : undefined)
+
+  // Players in the selected group
+  const groupPlayerIds = effectiveGroup?.playerIds ?? []
+  const groupPlayers = players.filter((p) => groupPlayerIds.includes(p.id))
+
+  // Teams in the selected group (teams whose players overlap with group)
+  const groupTeams = teams.filter((t) =>
+    t.playerIds.some((pid) => groupPlayerIds.includes(pid))
+  )
+
+  // All player IDs from this round's groups (for standings)
   const roundPlayerIds = groups.flatMap((g) => g.playerIds)
   const roundPlayers = players.filter((p) => roundPlayerIds.includes(p.id))
 
-  // Ensure scorecards exist for all players in the round (on-demand, not in effect)
+  // Ensure scorecards exist for all participants in the round (on-demand)
   function ensureScorecards() {
     if (!selectedRound) return
-    for (const player of roundPlayers) {
-      const existing = getScorecardForPlayer(selectedRound.id, player.id)
-      if (!existing) {
-        createScorecard(selectedRound.id, selectedRound.holesPlayed, player.id)
+    if (useTeamScorecards) {
+      for (const team of teams) {
+        const existing = getScorecardForTeam(selectedRound.id, team.id)
+        if (!existing) {
+          createScorecard(
+            selectedRound.id,
+            selectedRound.holesPlayed,
+            undefined,
+            team.id
+          )
+        }
+      }
+    } else {
+      for (const player of roundPlayers) {
+        const existing = getScorecardForPlayer(selectedRound.id, player.id)
+        if (!existing) {
+          createScorecard(
+            selectedRound.id,
+            selectedRound.holesPlayed,
+            player.id
+          )
+        }
       }
     }
   }
 
-  // Create scorecards lazily when we have a round with players
-  if (selectedRound && roundPlayers.length > 0 && scorecards.length === 0) {
+  // Create scorecards lazily when we have a round with participants
+  const hasParticipants = useTeamScorecards
+    ? teams.length > 0
+    : roundPlayers.length > 0
+  if (selectedRound && hasParticipants && scorecards.length === 0) {
     ensureScorecards()
   }
 
   function handleRoundChange(roundId: string) {
     setSelectedRoundId(roundId)
+  }
+
+  function handleGroupChange(groupId: string) {
+    setSelectedGroupId(groupId)
+    persistGroupId(groupId)
   }
 
   function handleRecalculate() {
@@ -95,6 +167,12 @@ export function EnterPage() {
   function getPlayerName(playerId: string) {
     const player = players.find((p) => p.id === playerId)
     return player?.displayName ?? 'Unknown'
+  }
+
+  function getParticipantName(participantId: string) {
+    const team = teams.find((t) => t.id === participantId)
+    if (team) return team.name
+    return getPlayerName(participantId)
   }
 
   if (!tournament) {
@@ -133,20 +211,19 @@ export function EnterPage() {
   return (
     <div className="flex flex-col gap-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Enter Scores</h1>
-          <p className="text-muted-foreground text-sm">
-            {activeRound
-              ? `Active: ${activeRound.name}`
-              : 'Enter hole-by-hole or round totals'}
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Enter Scores</h1>
+        <p className="text-muted-foreground text-sm">
+          {activeRound
+            ? `Active: ${activeRound.name}`
+            : 'Select a round to enter scores'}
+        </p>
       </div>
 
-      {/* Round selector */}
+      {/* Round selector + Group selector */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-1 flex-col gap-1.5">
+        {/* Round */}
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
           <label className="text-xs font-medium" id="round-select-label">
             Round
           </label>
@@ -167,29 +244,49 @@ export function EnterPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-1.5" role="group" aria-label="Entry mode">
-          <Button
-            variant={entryMode === 'holes' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setEntryMode('holes')}
-            aria-pressed={entryMode === 'holes'}
-          >
-            <Hash className="size-3.5" aria-hidden="true" />
-            Holes
-          </Button>
-          <Button
-            variant={entryMode === 'total' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setEntryMode('total')}
-            aria-pressed={entryMode === 'total'}
-          >
-            <ClipboardList className="size-3.5" aria-hidden="true" />
-            Total
-          </Button>
-        </div>
+
+        {/* Group selector */}
+        {groups.length > 0 && (
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <label className="text-xs font-medium" id="group-select-label">
+              <Users className="mr-1 inline size-3" aria-hidden="true" />
+              Group
+            </label>
+            <Select
+              value={effectiveGroup?.id ?? ''}
+              onValueChange={handleGroupChange}
+            >
+              <SelectTrigger
+                className="w-full"
+                aria-labelledby="group-select-label"
+              >
+                <SelectValue placeholder="Select group" />
+              </SelectTrigger>
+              <SelectContent>
+                {groups.map((g) => {
+                  const names = g.playerIds
+                    .map(
+                      (pid) =>
+                        players.find((p) => p.id === pid)?.displayName ??
+                        'Unknown'
+                    )
+                    .join(', ')
+                  return (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}{' '}
+                      <span className="text-muted-foreground text-xs">
+                        ({names})
+                      </span>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
-      {/* Round info */}
+      {/* Round info badges */}
       {selectedRound && (
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary" className="text-xs">
@@ -201,53 +298,45 @@ export function EnterPage() {
           <Badge variant="secondary" className="text-xs">
             Par {coursePar}
           </Badge>
-          <Badge variant="secondary" className="text-xs">
-            {roundPlayers.length} players
-          </Badge>
+          {effectiveGroup && (
+            <Badge variant="secondary" className="text-xs">
+              {effectiveGroup.name} &middot; {groupPlayers.length} players
+            </Badge>
+          )}
+          {useTeamScorecards && groupTeams.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {groupTeams.length} teams
+            </Badge>
+          )}
         </div>
       )}
 
-      {/* Score entry per player */}
-      {selectedRound && roundPlayers.length > 0 && (
+      {/* Score entry grid for the selected group */}
+      {selectedRound && effectiveGroup && hasParticipants && (
         <div className="flex flex-col gap-4">
-          {roundPlayers.map((player) => {
-            const sc = getScorecardForPlayer(selectedRound.id, player.id)
-            if (!sc) return null
+          <GroupScoreGrid
+            roundId={selectedRound.id}
+            tournamentId={tournament.id}
+            holes={holes}
+            format={selectedRound.format}
+            players={useTeamScorecards ? undefined : groupPlayers}
+            teams={useTeamScorecards ? groupTeams : undefined}
+            allPlayers={players}
+            scorecards={scorecards}
+            currentPlayerId={currentPlayerId}
+          />
 
-            if (entryMode === 'holes') {
-              return (
-                <ScoreEntryGrid
-                  key={player.id}
-                  scorecard={sc}
-                  holes={holes}
-                  groupHandicap={player.groupHandicap}
-                  format={selectedRound.format}
-                  playerName={player.displayName}
-                />
-              )
-            }
-
-            return (
-              <RoundTotalEntry
-                key={player.id}
-                scorecard={sc}
-                playerName={player.displayName}
-                coursePar={coursePar}
-              />
-            )
-          })}
-
-          {/* Side Event Logger */}
+          {/* Side Event Logger — scoped to group players */}
           <SideEventLogger
             tournamentId={tournament.id}
             roundId={selectedRound.id}
-            players={roundPlayers}
+            players={groupPlayers}
             holes={holes}
-            groupPlayerIds={groups[0]?.playerIds}
+            groupPlayerIds={groupPlayerIds}
             holesPlayed={selectedRound.holesPlayed}
           />
 
-          {/* Standings section */}
+          {/* Standings section — shows full round standings */}
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -286,7 +375,7 @@ export function EnterPage() {
                             {rp.placing}
                           </span>
                           <span className="flex-1 truncate text-sm">
-                            {getPlayerName(rp.participantId)}
+                            {getParticipantName(rp.participantId)}
                           </span>
                           {sc && (
                             <span className="text-muted-foreground text-xs tabular-nums">
@@ -311,15 +400,19 @@ export function EnterPage() {
         </div>
       )}
 
-      {/* No players assigned */}
-      {selectedRound && roundPlayers.length === 0 && (
+      {/* No group selected / no participants */}
+      {selectedRound && !effectiveGroup && groups.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
             <p className="text-muted-foreground text-sm">
-              No players assigned to this round
+              {isTeamFormat
+                ? 'No teams configured for this round'
+                : 'No players assigned to this round'}
             </p>
             <p className="text-muted-foreground/60 text-xs">
-              Go to Rounds tab and add players to groups
+              {isTeamFormat
+                ? 'Go to Rounds tab and configure teams'
+                : 'Go to Rounds tab and add players to groups'}
             </p>
           </CardContent>
         </Card>

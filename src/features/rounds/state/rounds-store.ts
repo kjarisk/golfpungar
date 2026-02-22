@@ -14,6 +14,11 @@ export interface UpdateRoundInput {
   holesPlayed?: Round['holesPlayed']
 }
 
+export interface AddTeamInput {
+  name: string
+  playerIds: string[]
+}
+
 interface RoundsState {
   rounds: Round[]
   groups: Group[]
@@ -24,12 +29,17 @@ interface RoundsState {
   getGroupsByRound: (roundId: string) => Group[]
   getTeamsByRound: (roundId: string) => Team[]
   getActiveRound: (tournamentId: string) => Round | undefined
+  getTeamForPlayer: (roundId: string, playerId: string) => Team | undefined
 
   // Actions
   createRound: (tournamentId: string, input: CreateRoundInput) => Round
   updateRound: (roundId: string, input: UpdateRoundInput) => void
   setRoundStatus: (roundId: string, status: RoundStatus) => void
   removeRound: (id: string) => void
+  addTeamsToRound: (roundId: string, teams: AddTeamInput[]) => Team[]
+  updateTeamName: (teamId: string, name: string) => void
+  removeTeam: (teamId: string) => void
+  removeTeamsByRound: (roundId: string) => void
 }
 
 let nextRoundId = 1
@@ -53,6 +63,11 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
   getActiveRound: (tournamentId) =>
     get().rounds.find(
       (r) => r.tournamentId === tournamentId && r.status === 'active'
+    ),
+
+  getTeamForPlayer: (roundId, playerId) =>
+    get().teams.find(
+      (t) => t.roundId === roundId && t.playerIds.includes(playerId)
     ),
 
   createRound: (tournamentId, input) => {
@@ -132,6 +147,39 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
       rounds: state.rounds.filter((r) => r.id !== id),
       groups: state.groups.filter((g) => g.roundId !== id),
       teams: state.teams.filter((t) => t.roundId !== id),
+    }))
+  },
+
+  addTeamsToRound: (roundId, teamInputs) => {
+    const newTeams: Team[] = teamInputs.map((t) => ({
+      id: `team-${String(nextTeamId++).padStart(3, '0')}`,
+      roundId,
+      name: t.name,
+      playerIds: t.playerIds,
+    }))
+
+    set((state) => ({
+      teams: [...state.teams, ...newTeams],
+    }))
+
+    return newTeams
+  },
+
+  updateTeamName: (teamId, name) => {
+    set((state) => ({
+      teams: state.teams.map((t) => (t.id === teamId ? { ...t, name } : t)),
+    }))
+  },
+
+  removeTeam: (teamId) => {
+    set((state) => ({
+      teams: state.teams.filter((t) => t.id !== teamId),
+    }))
+  },
+
+  removeTeamsByRound: (roundId) => {
+    set((state) => ({
+      teams: state.teams.filter((t) => t.roundId !== roundId),
     }))
   },
 }))

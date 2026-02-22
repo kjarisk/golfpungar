@@ -246,4 +246,51 @@ describe('Scoring Store', () => {
     expect(found).toBeDefined()
     expect(found?.teamId).toBe('team-1')
   })
+
+  it('creates a team scorecard with no playerId', () => {
+    const sc = useScoringStore
+      .getState()
+      .createScorecard('round-1', 18, undefined, 'team-1')
+
+    expect(sc.teamId).toBe('team-1')
+    expect(sc.playerId).toBeUndefined()
+    expect(sc.holeStrokes).toHaveLength(18)
+  })
+
+  it('team scorecards participate in points calculation', () => {
+    // Create two team scorecards
+    const sc1 = useScoringStore
+      .getState()
+      .createScorecard('round-1', 9, undefined, 'team-1')
+    const sc2 = useScoringStore
+      .getState()
+      .createScorecard('round-1', 9, undefined, 'team-2')
+
+    // Enter scores for team 1 (better)
+    for (let i = 0; i < 9; i++) {
+      useScoringStore
+        .getState()
+        .setHoleStroke(sc1.id, i, HOLES_9[i].par, HOLES_9, 0, 'scramble')
+    }
+    // Enter scores for team 2 (worse)
+    for (let i = 0; i < 9; i++) {
+      useScoringStore
+        .getState()
+        .setHoleStroke(sc2.id, i, HOLES_9[i].par + 1, HOLES_9, 0, 'scramble')
+    }
+
+    useScoringStore.getState().recalculatePoints('round-1', 'scramble')
+
+    const points = useScoringStore.getState().getPointsByRound('round-1')
+    expect(points).toHaveLength(2)
+
+    // team-1 should place 1st (lower gross), team-2 should place 2nd
+    const team1Points = points.find((p) => p.participantId === 'team-1')
+    const team2Points = points.find((p) => p.participantId === 'team-2')
+    expect(team1Points?.placing).toBe(1)
+    expect(team2Points?.placing).toBe(2)
+    expect(team1Points!.pointsAwarded).toBeGreaterThan(
+      team2Points!.pointsAwarded
+    )
+  })
 })

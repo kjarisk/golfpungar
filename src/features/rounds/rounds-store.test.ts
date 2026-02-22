@@ -401,3 +401,192 @@ describe('Rounds Store — Phase 14 (Status & Management)', () => {
     })
   })
 })
+
+describe('Rounds Store — Phase 15 (Team Configuration)', () => {
+  beforeEach(() => {
+    useRoundsStore.setState({
+      rounds: [],
+      groups: [],
+      teams: [],
+    })
+  })
+
+  const SCRAMBLE_INPUT: CreateRoundInput = {
+    courseId: 'course-001',
+    name: 'Scramble Round',
+    format: 'scramble',
+    holesPlayed: 18,
+    groups: [
+      {
+        name: 'Group 1',
+        playerIds: ['player-001', 'player-002', 'player-003', 'player-004'],
+      },
+    ],
+  }
+
+  describe('addTeamsToRound', () => {
+    it('adds teams to an existing round', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+
+      const teams = useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Alpha', playerIds: ['player-001', 'player-002'] },
+        { name: 'Bravo', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      expect(teams).toHaveLength(2)
+      expect(teams[0].name).toBe('Alpha')
+      expect(teams[0].roundId).toBe(round.id)
+      expect(teams[1].name).toBe('Bravo')
+
+      const storedTeams = useRoundsStore.getState().getTeamsByRound(round.id)
+      expect(storedTeams).toHaveLength(2)
+    })
+
+    it('assigns unique IDs to teams', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+
+      const teams = useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Alpha', playerIds: ['player-001', 'player-002'] },
+        { name: 'Bravo', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      expect(teams[0].id).not.toBe(teams[1].id)
+    })
+  })
+
+  describe('updateTeamName', () => {
+    it('updates a team name', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      const teams = useRoundsStore
+        .getState()
+        .addTeamsToRound(round.id, [
+          { name: 'Old Name', playerIds: ['player-001', 'player-002'] },
+        ])
+
+      useRoundsStore.getState().updateTeamName(teams[0].id, 'New Name')
+
+      const updated = useRoundsStore
+        .getState()
+        .teams.find((t) => t.id === teams[0].id)
+      expect(updated?.name).toBe('New Name')
+    })
+
+    it('does not affect other teams', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      const teams = useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Team A', playerIds: ['player-001', 'player-002'] },
+        { name: 'Team B', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      useRoundsStore.getState().updateTeamName(teams[0].id, 'Changed')
+
+      const other = useRoundsStore
+        .getState()
+        .teams.find((t) => t.id === teams[1].id)
+      expect(other?.name).toBe('Team B')
+    })
+  })
+
+  describe('removeTeam', () => {
+    it('removes a single team', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      const teams = useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Team A', playerIds: ['player-001', 'player-002'] },
+        { name: 'Team B', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      useRoundsStore.getState().removeTeam(teams[0].id)
+
+      const remaining = useRoundsStore.getState().getTeamsByRound(round.id)
+      expect(remaining).toHaveLength(1)
+      expect(remaining[0].name).toBe('Team B')
+    })
+  })
+
+  describe('removeTeamsByRound', () => {
+    it('removes all teams for a round', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Team A', playerIds: ['player-001', 'player-002'] },
+        { name: 'Team B', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      useRoundsStore.getState().removeTeamsByRound(round.id)
+
+      expect(useRoundsStore.getState().getTeamsByRound(round.id)).toHaveLength(
+        0
+      )
+    })
+
+    it('does not affect teams from other rounds', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      const r2 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', { ...SCRAMBLE_INPUT, name: 'Round 2' })
+
+      useRoundsStore
+        .getState()
+        .addTeamsToRound(r1.id, [
+          { name: 'R1 Team', playerIds: ['player-001', 'player-002'] },
+        ])
+      useRoundsStore
+        .getState()
+        .addTeamsToRound(r2.id, [
+          { name: 'R2 Team', playerIds: ['player-003', 'player-004'] },
+        ])
+
+      useRoundsStore.getState().removeTeamsByRound(r1.id)
+
+      expect(useRoundsStore.getState().getTeamsByRound(r1.id)).toHaveLength(0)
+      expect(useRoundsStore.getState().getTeamsByRound(r2.id)).toHaveLength(1)
+    })
+  })
+
+  describe('getTeamForPlayer', () => {
+    it('finds the team a player belongs to', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      const teams = useRoundsStore.getState().addTeamsToRound(round.id, [
+        { name: 'Alpha', playerIds: ['player-001', 'player-002'] },
+        { name: 'Bravo', playerIds: ['player-003', 'player-004'] },
+      ])
+
+      const team = useRoundsStore
+        .getState()
+        .getTeamForPlayer(round.id, 'player-003')
+      expect(team?.id).toBe(teams[1].id)
+      expect(team?.name).toBe('Bravo')
+    })
+
+    it('returns undefined if player is not in any team', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SCRAMBLE_INPUT)
+      useRoundsStore
+        .getState()
+        .addTeamsToRound(round.id, [
+          { name: 'Alpha', playerIds: ['player-001', 'player-002'] },
+        ])
+
+      const team = useRoundsStore
+        .getState()
+        .getTeamForPlayer(round.id, 'player-005')
+      expect(team).toBeUndefined()
+    })
+  })
+})

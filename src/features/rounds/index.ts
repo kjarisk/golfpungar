@@ -1,4 +1,5 @@
 export { useRoundsStore } from './state/rounds-store'
+export type { UpdateRoundInput, AddTeamInput } from './state/rounds-store'
 export { CreateRoundDialog } from './components/create-round-dialog'
 export type {
   Round,

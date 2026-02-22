@@ -17,6 +17,7 @@ import { ImportCourseDialog } from '@/features/courses/components/import-course-
 import { useRoundsStore } from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
 import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
+import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
 import { usePlayersStore } from '@/features/players'
 import {
   Upload,
@@ -81,6 +82,7 @@ export function RoundsPage() {
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroups = useRoundsStore((s) => s.getGroupsByRound)
+  const getTeams = useRoundsStore((s) => s.getTeamsByRound)
   const setRoundStatus = useRoundsStore((s) => s.setRoundStatus)
   const removeRound = useRoundsStore((s) => s.removeRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
@@ -94,6 +96,8 @@ export function RoundsPage() {
   const [showCreateRound, setShowCreateRound] = useState(false)
   const [editingRound, setEditingRound] = useState<Round | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [configuringTeamsRound, setConfiguringTeamsRound] =
+    useState<Round | null>(null)
 
   if (!tournament) {
     return (
@@ -206,6 +210,9 @@ export function RoundsPage() {
             rounds.map((round) => {
               const course = courses.find((c) => c.id === round.courseId)
               const groups = getGroups(round.id)
+              const teams = getTeams(round.id)
+              const isTeamFormat =
+                round.format === 'scramble' || round.format === 'bestball'
               const isDeleting = confirmDelete === round.id
 
               return (
@@ -256,39 +263,85 @@ export function RoundsPage() {
                       )}
                     </div>
 
-                    {/* Groups */}
+                    {/* Groups & Teams */}
                     {groups.length > 0 ? (
                       <div className="flex flex-col gap-2">
                         <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
                           <Users className="size-3" />
                           {groups.length} group{groups.length !== 1 ? 's' : ''}
+                          {isTeamFormat && teams.length > 0 && (
+                            <span>
+                              {' '}
+                              &middot; {teams.length} team
+                              {teams.length !== 1 ? 's' : ''}
+                            </span>
+                          )}
                         </p>
                         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {groups.map((group) => (
-                            <div
-                              key={group.id}
-                              className="bg-muted/50 rounded-md px-2.5 py-1.5"
-                            >
-                              <p className="mb-1 text-xs font-medium">
-                                {group.name}
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {group.playerIds.map((pid) => (
-                                  <span
-                                    key={pid}
-                                    className="text-muted-foreground text-xs"
-                                  >
-                                    {getPlayerName(pid)}
-                                    {pid !==
-                                      group.playerIds[
-                                        group.playerIds.length - 1
-                                      ] && ','}
-                                  </span>
-                                ))}
+                          {groups.map((group) => {
+                            // Find teams within this group
+                            const groupTeams = teams.filter((t) =>
+                              t.playerIds.some((pid) =>
+                                group.playerIds.includes(pid)
+                              )
+                            )
+
+                            return (
+                              <div
+                                key={group.id}
+                                className="bg-muted/50 rounded-md px-2.5 py-1.5"
+                              >
+                                <p className="mb-1 text-xs font-medium">
+                                  {group.name}
+                                </p>
+                                {isTeamFormat && groupTeams.length > 0 ? (
+                                  <div className="flex flex-col gap-1">
+                                    {groupTeams.map((team) => (
+                                      <div
+                                        key={team.id}
+                                        className="flex items-center gap-1.5"
+                                      >
+                                        <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs font-medium">
+                                          {team.name}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-wrap gap-1">
+                                    {group.playerIds.map((pid) => (
+                                      <span
+                                        key={pid}
+                                        className="text-muted-foreground text-xs"
+                                      >
+                                        {getPlayerName(pid)}
+                                        {pid !==
+                                          group.playerIds[
+                                            group.playerIds.length - 1
+                                          ] && ','}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
+
+                        {/* Configure Teams button for team formats */}
+                        {isAdmin && isTeamFormat && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setConfiguringTeamsRound(round)}
+                            className="mt-1 w-fit gap-1.5"
+                          >
+                            <Users className="size-3.5" />
+                            {teams.length > 0
+                              ? 'Edit Teams'
+                              : 'Configure Teams'}
+                          </Button>
+                        )}
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-xs">
@@ -444,6 +497,16 @@ export function RoundsPage() {
             if (!open) setEditingRound(null)
           }}
           round={editingRound}
+        />
+      )}
+      {configuringTeamsRound && (
+        <ConfigureTeamsDialog
+          open={!!configuringTeamsRound}
+          onOpenChange={(open) => {
+            if (!open) setConfiguringTeamsRound(null)
+          }}
+          round={configuringTeamsRound}
+          tournamentId={tournament.id}
         />
       )}
     </div>

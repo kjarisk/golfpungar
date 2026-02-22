@@ -165,31 +165,32 @@
 
 ## Phase 15 -- Team Configuration
 
-- [ ] Team setup UI after round creation (assign 2-player teams within groups)
-- [ ] Team name: defaults to "Player A & Player B", custom name editable
-- [ ] Team name editable by team members or admin
-- [ ] Team name changes during active round appear in feed
-- [ ] Team scorecard model: single scorecard per team (not per player) for Scramble/Best Ball
-- [ ] Update scoring store to support team scorecards
-- [ ] Tests for team creation, naming, scorecard linking
+- [x] Team setup UI after round creation (assign 2-player teams within groups)
+- [x] Team name: defaults to "Player A & Player B", custom name editable
+- [x] Team name editable by team members or admin
+- [x] Team name changes during active round appear in feed
+- [x] Team scorecard model: single scorecard per team (not per player) for Scramble/Best Ball
+- [x] Update scoring store to support team scorecards
+- [x] Tests for team creation, naming, scorecard linking
 
 ## Phase 16 -- Enter Page Redesign
 
-- [ ] Remove "Total" entry mode (hole-by-hole only)
-- [ ] Default to active round (no manual round selection needed when one is active)
-- [ ] Group selector: pick your group, persisted in localStorage as default
-- [ ] Grid layout: hole rows × player/team columns (spreadsheet style)
-  - [ ] Tap cell → number pad input → auto-advance to next cell
-  - [ ] Show hole number, par, stroke index per row
-  - [ ] Color-coded cells (eagle/birdie/par/bogey/double+)
-  - [ ] Side event icons visible on cells (birdie bird, snake, etc.)
-- [ ] Team format: single column per team (labeled with team name)
-- [ ] Side events integrated in same view:
-  - [ ] Per-hole quick-action row (expandable) beneath each hole row, or side panel
-  - [ ] Scoped to group players only
-- [ ] Front 9 / Back 9 split with subtotals
-- [ ] Running totals row at bottom (gross, net, stableford, points)
-- [ ] Tests for grid entry + team column behavior
+- [x] Remove "Total" entry mode (hole-by-hole only)
+- [x] Default to active round (no manual round selection needed when one is active)
+- [x] Group selector: pick your group, persisted in localStorage as default
+- [x] Grid layout: hole rows × player/team columns (spreadsheet style)
+  - [x] Tap cell → number pad input → auto-advance to next cell
+  - [x] Show hole number, par, stroke index per row
+  - [x] Color-coded cells (eagle/birdie/par/bogey/double+)
+  - [x] Side event icons visible on cells (birdie bird, snake, etc.)
+- [x] Team format: single column per team (labeled with team name)
+- [x] Side events integrated in same view:
+  - [x] Inline quick-action buttons in number pad panel (birdie, eagle, snake, snopp, GIR, bunker, HIO)
+  - [x] Full SideEventLogger card below grid for distance events (LD, NTP, longest putt)
+  - [x] Scoped to group players only
+- [x] Front 9 / Back 9 split with subtotals
+- [x] Running totals row at bottom (gross, net, stableford, points)
+- [x] Tests for grid entry + team column behavior (13 tests)
 
 ## Phase 17 -- Feed Page Redesign
 
