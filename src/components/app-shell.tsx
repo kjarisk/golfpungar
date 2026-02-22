@@ -58,7 +58,7 @@ export function AppShell() {
       {/* Bottom navigation */}
       <nav
         aria-label="Main navigation"
-        className="bg-card border-border fixed inset-x-0 bottom-0 z-50 border-t"
+        className="bg-card border-border fixed inset-x-0 bottom-0 z-50 border-t pb-[env(safe-area-inset-bottom)]"
       >
         <div className="mx-auto flex max-w-lg items-center justify-around md:max-w-2xl">
           {navItems.map(({ to, label, icon: Icon }) => (

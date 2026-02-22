@@ -8,6 +8,7 @@ import {
   RoundsPage,
   PlayersPage,
   TournamentsPage,
+  NotFoundPage,
 } from '@/pages'
 import { seedDemoData, isDemoSeeded } from '@/lib/demo-data'
 
@@ -28,6 +29,7 @@ function App() {
           <Route path="rounds" element={<RoundsPage />} />
           <Route path="players" element={<PlayersPage />} />
           <Route path="tournaments" element={<TournamentsPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
       <Toaster position="top-center" richColors />

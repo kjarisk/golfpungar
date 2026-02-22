@@ -1,30 +1,7 @@
 import type { Hole } from '@/features/courses'
 import type { HoleStroke } from '../types'
 import type { SideEventLog } from '@/features/side-events'
-import { Bird, Zap, Skull, Flame, CircleDot, Target, Star } from 'lucide-react'
-
-/** Side event icon config for scorecard cells */
-const SIDE_EVENT_ICONS: Record<
-  string,
-  {
-    icon: React.ComponentType<{ className?: string }>
-    className: string
-    label: string
-  }
-> = {
-  birdie: { icon: Bird, className: 'text-green-500', label: 'Birdie' },
-  eagle: { icon: Zap, className: 'text-yellow-500', label: 'Eagle' },
-  hio: { icon: Star, className: 'text-amber-500', label: 'Hole in One' },
-  albatross: { icon: Zap, className: 'text-purple-500', label: 'Albatross' },
-  snake: { icon: Skull, className: 'text-red-500', label: 'Snake' },
-  snopp: { icon: Flame, className: 'text-red-700', label: 'Snopp' },
-  gir: { icon: CircleDot, className: 'text-emerald-500', label: 'GIR' },
-  bunker_save: {
-    icon: Target,
-    className: 'text-orange-500',
-    label: 'Bunker Save',
-  },
-}
+import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 
 function getScoreColor(strokes: number | null, par: number): string {
   if (strokes == null) return ''

@@ -31,16 +31,7 @@ import {
   MapPin,
   Calendar,
   Flag,
-  Bird,
-  Zap,
-  Skull,
-  Target,
-  Ruler,
-  Star,
   Trophy,
-  Flame,
-  CircleDot,
-  Crosshair,
   CircleDollarSign,
   Database,
   Trash2,
@@ -48,49 +39,7 @@ import {
   ArrowUpDown,
   Medal,
 } from 'lucide-react'
-
-/** Map side event types to display config */
-const SIDE_EVENT_CONFIG: Record<
-  string,
-  { label: string; icon: typeof Bird; color: string }
-> = {
-  birdie: { label: 'BIRDIE', icon: Bird, color: 'text-green-500' },
-  eagle: { label: 'EAGLE', icon: Zap, color: 'text-yellow-500' },
-  hio: { label: 'HOLE IN ONE', icon: Star, color: 'text-amber-500' },
-  albatross: { label: 'ALBATROSS', icon: Bird, color: 'text-purple-500' },
-  bunker_save: {
-    label: 'BUNKER SAVE',
-    icon: Target,
-    color: 'text-orange-500',
-  },
-  snake: { label: 'SNAKE', icon: Skull, color: 'text-red-500' },
-  snopp: { label: 'SNOPP', icon: Flame, color: 'text-red-700' },
-  group_longest_drive: {
-    label: 'GROUP LD',
-    icon: Trophy,
-    color: 'text-blue-500',
-  },
-  longest_drive_meters: {
-    label: 'DRIVE',
-    icon: Ruler,
-    color: 'text-indigo-500',
-  },
-  longest_putt: {
-    label: 'LONGEST PUTT',
-    icon: Ruler,
-    color: 'text-cyan-500',
-  },
-  nearest_to_pin: {
-    label: 'NEAREST PIN',
-    icon: Crosshair,
-    color: 'text-teal-500',
-  },
-  gir: {
-    label: 'GIR',
-    icon: CircleDot,
-    color: 'text-emerald-500',
-  },
-}
+import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start)
@@ -224,7 +173,7 @@ export function FeedPage() {
   const unifiedFeed: UnifiedFeedItem[] = [
     ...sideEvents.map((e) => {
       const player = players.find((p) => p.id === e.playerId)
-      const config = SIDE_EVENT_CONFIG[e.type]
+      const config = SIDE_EVENT_ICONS[e.type]
       const holeStr = e.holeNumber ? ` on ${e.holeNumber}` : ''
       const valueStr =
         (e.type === 'longest_drive_meters' ||
@@ -496,7 +445,7 @@ export function FeedPage() {
               >
                 {unifiedFeed.slice(0, 30).map((item) => {
                   const config = item.sideEventType
-                    ? SIDE_EVENT_CONFIG[item.sideEventType]
+                    ? SIDE_EVENT_ICONS[item.sideEventType]
                     : null
                   const Icon = config?.icon
                   const isAnnouncement =
@@ -515,7 +464,7 @@ export function FeedPage() {
                     >
                       {Icon ? (
                         <Icon
-                          className={`mt-0.5 size-4 shrink-0 ${config.color}`}
+                          className={`mt-0.5 size-4 shrink-0 ${config.className}`}
                         />
                       ) : isAnnouncement ? (
                         <Megaphone className="mt-0.5 size-4 shrink-0 text-blue-500" />

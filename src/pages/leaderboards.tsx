@@ -35,6 +35,8 @@ import {
   computeNetLeaderboard,
 } from '@/lib/leaderboard-calc'
 import { useActiveRound } from '@/hooks/use-active-round'
+import { useCurrentPlayerId } from '@/hooks/use-current-player-id'
+import { cn } from '@/lib/utils'
 import {
   Trophy,
   Bird,
@@ -78,6 +80,7 @@ export function LeaderboardsPage() {
   const getBettingTotals = useBettingStore((s) => s.getTotalsForTournament)
 
   const activeRound = useActiveRound()
+  const currentPlayerId = useCurrentPlayerId()
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null)
 
@@ -277,6 +280,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -332,6 +336,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -383,6 +388,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -439,6 +445,7 @@ export function LeaderboardsPage() {
                           getScorecardsByRound={getScorecardsByRound}
                           getEventsByRound={getEventsByRound}
                           getPlayerName={getPlayerName}
+                          currentPlayerId={currentPlayerId}
                         >
                           <PlacingBadge placing={entry.placing} />
                           <span className="flex-1 truncate text-sm font-medium">
@@ -524,7 +531,11 @@ export function LeaderboardsPage() {
                           <div key={entry.participantId}>
                             <button
                               type="button"
-                              className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50"
+                              className={cn(
+                                'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50',
+                                entry.participantId === currentPlayerId &&
+                                  'bg-primary/10'
+                              )}
                               onClick={() => toggleExpand(entry.participantId)}
                               aria-expanded={isExpanded}
                               aria-label={`${getPlayerName(entry.participantId)} scorecard`}
@@ -592,6 +603,7 @@ export function LeaderboardsPage() {
             entries={birdieBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Eagles */}
@@ -601,6 +613,7 @@ export function LeaderboardsPage() {
             entries={eagleBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Snakes */}
@@ -611,6 +624,7 @@ export function LeaderboardsPage() {
             getPlayerName={getPlayerName}
             unit=""
             invertColor
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Bunker Saves */}
@@ -620,6 +634,7 @@ export function LeaderboardsPage() {
             entries={bunkerBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Group Longest Drives */}
@@ -629,6 +644,7 @@ export function LeaderboardsPage() {
             entries={groupLDBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Snopp */}
@@ -639,6 +655,7 @@ export function LeaderboardsPage() {
             getPlayerName={getPlayerName}
             unit=""
             invertColor
+            currentPlayerId={currentPlayerId}
           />
 
           {/* GIR */}
@@ -648,6 +665,7 @@ export function LeaderboardsPage() {
             entries={girBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Longest Drive (meters) */}
@@ -666,7 +684,10 @@ export function LeaderboardsPage() {
                   {longestDriveBoard.map((entry) => (
                     <div
                       key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-2 py-2',
+                        entry.playerId === currentPlayerId && 'bg-primary/10'
+                      )}
                     >
                       <PlacingBadge placing={entry.placing} />
                       <span className="flex-1 truncate text-sm font-medium">
@@ -707,7 +728,10 @@ export function LeaderboardsPage() {
                   {longestPuttBoard.map((entry) => (
                     <div
                       key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-2 py-2',
+                        entry.playerId === currentPlayerId && 'bg-primary/10'
+                      )}
                     >
                       <PlacingBadge placing={entry.placing} />
                       <span className="flex-1 truncate text-sm font-medium">
@@ -742,7 +766,10 @@ export function LeaderboardsPage() {
                   {nearestToPinBoard.map((entry) => (
                     <div
                       key={entry.playerId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
+                      className={cn(
+                        'flex items-center gap-3 rounded-md px-2 py-2',
+                        entry.playerId === currentPlayerId && 'bg-primary/10'
+                      )}
                     >
                       <PlacingBadge placing={entry.placing} />
                       <span className="flex-1 truncate text-sm font-medium">
@@ -769,6 +796,7 @@ export function LeaderboardsPage() {
             getPlayerName={getPlayerName}
             unit=""
             invertColor
+            currentPlayerId={currentPlayerId}
           />
 
           {/* Biggest Bettor */}
@@ -778,6 +806,7 @@ export function LeaderboardsPage() {
             entries={bettingBoard}
             getPlayerName={getPlayerName}
             unit=""
+            currentPlayerId={currentPlayerId}
           />
         </TabsContent>
       </Tabs>
@@ -821,6 +850,7 @@ interface SideCompetitionCardProps {
   getPlayerName: (id: string) => string
   unit: string
   invertColor?: boolean
+  currentPlayerId?: string | null
 }
 
 function SideCompetitionCard({
@@ -829,6 +859,7 @@ function SideCompetitionCard({
   entries,
   getPlayerName,
   invertColor,
+  currentPlayerId,
 }: SideCompetitionCardProps) {
   return (
     <Card>
@@ -846,7 +877,10 @@ function SideCompetitionCard({
             {entries.map((entry) => (
               <div
                 key={entry.playerId}
-                className="flex items-center gap-3 rounded-md px-2 py-2"
+                className={cn(
+                  'flex items-center gap-3 rounded-md px-2 py-2',
+                  entry.playerId === currentPlayerId && 'bg-primary/10'
+                )}
               >
                 <PlacingBadge placing={entry.placing} />
                 <span className="flex-1 truncate text-sm font-medium">
@@ -885,6 +919,7 @@ interface ExpandableRowProps {
     roundId: string
   ) => import('@/features/side-events').SideEventLog[]
   getPlayerName: (id: string) => string
+  currentPlayerId: string | null
   children: React.ReactNode
 }
 
@@ -898,6 +933,7 @@ function ExpandableRow({
   getScorecardsByRound,
   getEventsByRound,
   getPlayerName,
+  currentPlayerId,
   children,
 }: ExpandableRowProps) {
   const round = rounds.find((r) => r.id === roundId)
@@ -908,12 +944,16 @@ function ExpandableRow({
       )
     : undefined
   const roundEvents = roundId ? getEventsByRound(roundId) : []
+  const isCurrentUser = playerId === currentPlayerId
 
   return (
     <div>
       <button
         type="button"
-        className="flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50"
+        className={cn(
+          'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left transition-colors hover:bg-muted/50',
+          isCurrentUser && 'bg-primary/10'
+        )}
         onClick={() => onToggle(playerId)}
         aria-expanded={isExpanded}
         aria-label={`${getPlayerName(playerId)} scorecard`}

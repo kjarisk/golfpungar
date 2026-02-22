@@ -17,19 +17,8 @@ import type { RoundFormat, Team } from '@/features/rounds'
 import type { Player } from '@/features/players/types'
 import type { SideEventLog, SideEventType } from '@/features/side-events'
 import { stablefordPointsForHole } from '@/features/scoring/lib/scoring-calc'
-import {
-  Minus,
-  Plus,
-  X,
-  Bird,
-  Skull,
-  Flame,
-  Zap,
-  Star,
-  CircleDot,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react'
+import { Minus, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 
 // --- Types ---
 
@@ -58,20 +47,6 @@ interface GroupScoreGridProps {
 }
 
 // --- Helpers ---
-
-/** Side event icons to show on score cells */
-const SIDE_EVENT_ICONS: Record<
-  string,
-  { icon: typeof Bird; className: string }
-> = {
-  birdie: { icon: Bird, className: 'text-green-600' },
-  eagle: { icon: Zap, className: 'text-yellow-500' },
-  hio: { icon: Star, className: 'text-amber-400' },
-  albatross: { icon: Bird, className: 'text-purple-500' },
-  snake: { icon: Skull, className: 'text-red-500' },
-  snopp: { icon: Flame, className: 'text-red-700' },
-  gir: { icon: CircleDot, className: 'text-emerald-500' },
-}
 
 function getScoreCellClass(strokes: HoleStroke, par: number): string {
   if (strokes === null) return 'bg-muted/50 text-muted-foreground'
