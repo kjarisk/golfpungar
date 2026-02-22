@@ -3,6 +3,11 @@ import { render, screen } from '@testing-library/react'
 import App from './App'
 
 describe('App', () => {
+  beforeEach(() => {
+    // Set URL to match BrowserRouter basename for GitHub Pages
+    window.history.pushState({}, '', '/golfpungar/feed')
+  })
+
   it('renders the app shell with bottom navigation', () => {
     render(<App />)
     expect(screen.getByRole('navigation')).toBeInTheDocument()

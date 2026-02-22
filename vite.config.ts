@@ -5,6 +5,7 @@ import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/golfpungar/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

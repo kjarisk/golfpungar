@@ -12,7 +12,7 @@ import {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/golfpungar">
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/feed" replace />} />
