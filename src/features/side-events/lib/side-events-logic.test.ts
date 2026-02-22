@@ -6,6 +6,8 @@ import {
   aggregateTotals,
   longestDriveLeaderboard,
   groupLongestDriveLeaderboard,
+  longestPuttLeaderboard,
+  nearestToPinLeaderboard,
 } from './side-events-logic'
 
 // --- Helpers ---
@@ -165,8 +167,12 @@ describe('aggregateTotals', () => {
       albatrosses: 0,
       bunkerSaves: 0,
       snakes: 0,
+      snopp: 0,
       groupLongestDrives: 0,
       longestDriveMeters: null,
+      longestPuttMeters: null,
+      nearestToPinMeters: null,
+      gir: 0,
     })
   })
 
@@ -182,6 +188,8 @@ describe('aggregateTotals', () => {
       makeEvent({ playerId: 'p1', type: 'snake' }),
       makeEvent({ playerId: 'p1', type: 'snake' }),
       makeEvent({ playerId: 'p1', type: 'snake' }),
+      makeEvent({ playerId: 'p1', type: 'snopp' }),
+      makeEvent({ playerId: 'p1', type: 'snopp' }),
       makeEvent({ playerId: 'p1', type: 'group_longest_drive' }),
       makeEvent({
         playerId: 'p1',
@@ -193,6 +201,13 @@ describe('aggregateTotals', () => {
         type: 'longest_drive_meters',
         value: 310,
       }),
+      makeEvent({ playerId: 'p1', type: 'longest_putt', value: 8 }),
+      makeEvent({ playerId: 'p1', type: 'longest_putt', value: 14 }),
+      makeEvent({ playerId: 'p1', type: 'nearest_to_pin', value: 3.2 }),
+      makeEvent({ playerId: 'p1', type: 'nearest_to_pin', value: 1.8 }),
+      makeEvent({ playerId: 'p1', type: 'gir' }),
+      makeEvent({ playerId: 'p1', type: 'gir' }),
+      makeEvent({ playerId: 'p1', type: 'gir' }),
     ]
 
     const totals = aggregateTotals(events, 'tourn-1', ['p1'])
@@ -204,8 +219,12 @@ describe('aggregateTotals', () => {
       albatrosses: 1,
       bunkerSaves: 2,
       snakes: 3,
+      snopp: 2,
       groupLongestDrives: 1,
-      longestDriveMeters: 310, // best of 280 and 310
+      longestDriveMeters: 310,
+      longestPuttMeters: 14,
+      nearestToPinMeters: 1.8, // min of 3.2 and 1.8
+      gir: 3,
     })
   })
 
@@ -317,5 +336,171 @@ describe('groupLongestDriveLeaderboard', () => {
       { playerId: 'p1', count: 2 },
       { playerId: 'p2', count: 1 },
     ])
+  })
+})
+
+// --- longestPuttLeaderboard ---
+
+describe('longestPuttLeaderboard', () => {
+  it('returns empty array when no putts', () => {
+    const result = longestPuttLeaderboard([], 'tourn-1')
+    expect(result).toEqual([])
+  })
+
+  it('returns best putt per player sorted descending (longest wins)', () => {
+    const events: SideEventLog[] = [
+      makeEvent({
+        id: 'e1',
+        playerId: 'p1',
+        type: 'longest_putt',
+        value: 8,
+      }),
+      makeEvent({
+        id: 'e2',
+        playerId: 'p1',
+        type: 'longest_putt',
+        value: 14,
+      }),
+      makeEvent({
+        id: 'e3',
+        playerId: 'p2',
+        type: 'longest_putt',
+        value: 11,
+      }),
+      makeEvent({
+        id: 'e4',
+        playerId: 'p3',
+        type: 'longest_putt',
+        value: 18,
+      }),
+    ]
+
+    const result = longestPuttLeaderboard(events, 'tourn-1')
+    expect(result).toHaveLength(3)
+    expect(result[0]).toEqual({ playerId: 'p3', meters: 18, eventId: 'e4' })
+    expect(result[1]).toEqual({ playerId: 'p1', meters: 14, eventId: 'e2' })
+    expect(result[2]).toEqual({ playerId: 'p2', meters: 11, eventId: 'e3' })
+  })
+
+  it('ignores putts without a value', () => {
+    const events: SideEventLog[] = [
+      makeEvent({
+        id: 'e1',
+        playerId: 'p1',
+        type: 'longest_putt',
+        value: undefined,
+      }),
+    ]
+
+    const result = longestPuttLeaderboard(events, 'tourn-1')
+    expect(result).toEqual([])
+  })
+
+  it('ignores events from other tournaments', () => {
+    const events: SideEventLog[] = [
+      makeEvent({
+        id: 'e1',
+        playerId: 'p1',
+        type: 'longest_putt',
+        value: 10,
+        tournamentId: 'tourn-2',
+      }),
+    ]
+
+    const result = longestPuttLeaderboard(events, 'tourn-1')
+    expect(result).toEqual([])
+  })
+})
+
+// --- nearestToPinLeaderboard ---
+
+describe('nearestToPinLeaderboard', () => {
+  it('returns empty array when no NTP events', () => {
+    const result = nearestToPinLeaderboard([], 'tourn-1')
+    expect(result).toEqual([])
+  })
+
+  it('returns best (closest) NTP per player sorted ascending (shortest wins)', () => {
+    const events: SideEventLog[] = [
+      makeEvent({
+        id: 'e1',
+        playerId: 'p1',
+        type: 'nearest_to_pin',
+        value: 5.2,
+      }),
+      makeEvent({
+        id: 'e2',
+        playerId: 'p1',
+        type: 'nearest_to_pin',
+        value: 2.1,
+      }),
+      makeEvent({
+        id: 'e3',
+        playerId: 'p2',
+        type: 'nearest_to_pin',
+        value: 3.5,
+      }),
+      makeEvent({
+        id: 'e4',
+        playerId: 'p3',
+        type: 'nearest_to_pin',
+        value: 0.8,
+      }),
+    ]
+
+    const result = nearestToPinLeaderboard(events, 'tourn-1')
+    expect(result).toHaveLength(3)
+    expect(result[0]).toEqual({ playerId: 'p3', meters: 0.8, eventId: 'e4' })
+    expect(result[1]).toEqual({ playerId: 'p1', meters: 2.1, eventId: 'e2' })
+    expect(result[2]).toEqual({ playerId: 'p2', meters: 3.5, eventId: 'e3' })
+  })
+
+  it('ignores NTP events without a value', () => {
+    const events: SideEventLog[] = [
+      makeEvent({
+        id: 'e1',
+        playerId: 'p1',
+        type: 'nearest_to_pin',
+        value: undefined,
+      }),
+    ]
+
+    const result = nearestToPinLeaderboard(events, 'tourn-1')
+    expect(result).toEqual([])
+  })
+})
+
+// --- snopp aggregation ---
+
+describe('snopp aggregation via aggregateTotals', () => {
+  it('counts snopp events per player (unlimited per hole)', () => {
+    const events: SideEventLog[] = [
+      makeEvent({ playerId: 'p1', type: 'snopp', holeNumber: 3 }),
+      makeEvent({ playerId: 'p1', type: 'snopp', holeNumber: 3 }),
+      makeEvent({ playerId: 'p1', type: 'snopp', holeNumber: 5 }),
+      makeEvent({ playerId: 'p2', type: 'snopp', holeNumber: 7 }),
+    ]
+
+    const totals = aggregateTotals(events, 'tourn-1', ['p1', 'p2'])
+    expect(totals[0].snopp).toBe(3) // p1: 2 on hole 3 + 1 on hole 5
+    expect(totals[1].snopp).toBe(1) // p2: 1 on hole 7
+  })
+})
+
+// --- GIR aggregation ---
+
+describe('GIR aggregation via aggregateTotals', () => {
+  it('counts GIR events per player', () => {
+    const events: SideEventLog[] = [
+      makeEvent({ playerId: 'p1', type: 'gir', holeNumber: 1 }),
+      makeEvent({ playerId: 'p1', type: 'gir', holeNumber: 4 }),
+      makeEvent({ playerId: 'p1', type: 'gir', holeNumber: 8 }),
+      makeEvent({ playerId: 'p2', type: 'gir', holeNumber: 2 }),
+      makeEvent({ playerId: 'p2', type: 'gir', holeNumber: 5 }),
+    ]
+
+    const totals = aggregateTotals(events, 'tourn-1', ['p1', 'p2'])
+    expect(totals[0].gir).toBe(3)
+    expect(totals[1].gir).toBe(2)
   })
 })

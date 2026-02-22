@@ -16,8 +16,11 @@ import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
+import { usePenaltiesStore } from '@/features/penalties'
+import { useBettingStore } from '@/features/betting'
 import { useFeedStore } from '@/features/feed'
 import { computeTotalPointsLeaderboard } from '@/lib/leaderboard-calc'
+import { seedDemoData, clearDemoData, isDemoSeeded } from '@/lib/demo-data'
 import {
   MapPin,
   Calendar,
@@ -31,6 +34,12 @@ import {
   Ruler,
   Star,
   Trophy,
+  Flame,
+  CircleDot,
+  Crosshair,
+  CircleDollarSign,
+  Database,
+  Trash2,
 } from 'lucide-react'
 
 /** Map side event types to display config */
@@ -44,6 +53,7 @@ const SIDE_EVENT_CONFIG: Record<
   albatross: { label: 'ALBATROSS', icon: Bird, color: 'text-purple-500' },
   bunker_save: { label: 'BUNKER SAVE', icon: Target, color: 'text-orange-500' },
   snake: { label: 'SNAKE', icon: Skull, color: 'text-red-500' },
+  snopp: { label: 'SNOPP', icon: Flame, color: 'text-red-700' },
   group_longest_drive: {
     label: 'GROUP LD',
     icon: Trophy,
@@ -54,6 +64,21 @@ const SIDE_EVENT_CONFIG: Record<
     icon: Ruler,
     color: 'text-indigo-500',
   },
+  longest_putt: {
+    label: 'LONGEST PUTT',
+    icon: Ruler,
+    color: 'text-cyan-500',
+  },
+  nearest_to_pin: {
+    label: 'NEAREST PIN',
+    icon: Crosshair,
+    color: 'text-teal-500',
+  },
+  gir: {
+    label: 'GIR',
+    icon: CircleDot,
+    color: 'text-emerald-500',
+  },
 }
 
 function formatDateRange(start: string, end: string) {
@@ -61,6 +86,13 @@ function formatDateRange(start: string, end: string) {
   const e = new Date(end)
   const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
   return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`
+}
+
+function getGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 18) return 'Good afternoon'
+  return 'Good evening'
 }
 
 function timeAgo(dateString: string): string {
@@ -76,6 +108,9 @@ function timeAgo(dateString: string): string {
   return `${days}d ago`
 }
 
+/** Dev-only toggle: hold Shift and click the stats area 3 times to reveal demo controls */
+const IS_DEV = import.meta.env.DEV
+
 export function FeedPage() {
   const user = useAuthStore((s) => s.user)
   const tournament = useTournamentStore((s) => s.activeTournament())
@@ -85,8 +120,23 @@ export function FeedPage() {
   const getEventsByTournament = useSideEventsStore(
     (s) => s.getEventsByTournament
   )
+  const getPenaltyEntries = usePenaltiesStore((s) => s.getEntriesByTournament)
+  const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
+  const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
   const getRecentFeedEvents = useFeedStore((s) => s.getRecentEvents)
   const [showCreate, setShowCreate] = useState(false)
+  const roundCount$ = useRoundsStore((s) => s.rounds.length)
+  const seeded = roundCount$ > 0
+
+  const handleSeed = () => {
+    if (!isDemoSeeded()) {
+      seedDemoData()
+    }
+  }
+
+  const handleClear = () => {
+    clearDemoData()
+  }
 
   const players = tournament ? getActivePlayers(tournament.id) : []
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
@@ -105,16 +155,19 @@ export function FeedPage() {
     totalLeaderboard.find((e) => e.playerId === currentPlayer?.id)
       ?.totalPoints ?? 0
 
-  // Combine side events + feed events into a unified feed
+  // Combine side events + penalties + bets + feed events into a unified feed
   const sideEvents = tournament ? getEventsByTournament(tournament.id) : []
+  const penaltyEntries = tournament ? getPenaltyEntries(tournament.id) : []
+  const bets = tournament ? getBetsByTournament(tournament.id) : []
   const feedEvents = tournament ? getRecentFeedEvents(tournament.id, 50) : []
 
   type UnifiedFeedItem = {
     id: string
     message: string
     createdAt: string
-    type: 'side_event' | 'feed'
+    type: 'side_event' | 'feed' | 'penalty' | 'bet'
     sideEventType?: string
+    betStatus?: string
     playerName?: string
   }
 
@@ -124,7 +177,12 @@ export function FeedPage() {
       const config = SIDE_EVENT_CONFIG[e.type]
       const holeStr = e.holeNumber ? ` on ${e.holeNumber}` : ''
       const valueStr =
-        e.type === 'longest_drive_meters' && e.value ? ` — ${e.value}m` : ''
+        (e.type === 'longest_drive_meters' ||
+          e.type === 'longest_putt' ||
+          e.type === 'nearest_to_pin') &&
+        e.value
+          ? ` — ${e.value}m`
+          : ''
       return {
         id: e.id,
         message: `${player?.displayName ?? 'Unknown'} — ${config?.label ?? e.type}${holeStr}${valueStr}`,
@@ -134,28 +192,76 @@ export function FeedPage() {
         playerName: player?.displayName,
       }
     }),
+    ...penaltyEntries.map((e) => {
+      const player = players.find((p) => p.id === e.playerId)
+      const noteStr = e.note ? `: ${e.note}` : ''
+      return {
+        id: e.id,
+        message: `${player?.displayName ?? 'Unknown'} — PENALTY (${e.amount})${noteStr}`,
+        createdAt: e.createdAt,
+        type: 'penalty' as const,
+        playerName: player?.displayName,
+      }
+    }),
     ...feedEvents.map((e) => ({
       id: e.id,
       message: e.message,
       createdAt: e.createdAt,
       type: 'feed' as const,
     })),
+    ...bets.map((bet) => {
+      const creator = players.find((p) => p.id === bet.createdByPlayerId)
+      const betParticipants = getBetParticipants(bet.id)
+      const opponentNames = betParticipants
+        .map(
+          (bp) =>
+            players.find((p) => p.id === bp.playerId)?.displayName ?? 'Unknown'
+        )
+        .join(', ')
+      const metricLabel =
+        bet.metricKey === 'custom' && bet.customDescription
+          ? bet.customDescription
+          : bet.metricKey === 'most_points'
+            ? 'most points'
+            : bet.metricKey === 'most_birdies'
+              ? 'most birdies'
+              : 'head-to-head'
+      const winnerName = bet.winnerId
+        ? (players.find((p) => p.id === bet.winnerId)?.displayName ?? 'Unknown')
+        : null
+
+      const statusMessages: Record<string, string> = {
+        pending: `${creator?.displayName ?? 'Unknown'} challenged ${opponentNames} — ${metricLabel} (${bet.amount} units)`,
+        accepted: `Bet accepted: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames} — ${metricLabel}`,
+        rejected: `Bet rejected: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames}`,
+        won: `${winnerName} won the bet: ${metricLabel} (${bet.amount} units)`,
+        lost: `${winnerName} won the bet: ${metricLabel} (${bet.amount} units)`,
+        paid: `Bet settled: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames} — ${metricLabel} (${bet.amount} units)`,
+      }
+
+      return {
+        id: `bet-feed-${bet.id}`,
+        message: statusMessages[bet.status] ?? `Bet update: ${bet.status}`,
+        createdAt: bet.createdAt,
+        type: 'bet' as const,
+        betStatus: bet.status,
+        playerName: creator?.displayName,
+      }
+    }),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Tournament header */}
+      {/* Tournament hero */}
       {tournament ? (
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {tournament.name}
-            </h1>
-            <TournamentStatusBadge status={tournament.status} />
-          </div>
-          <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+        <div className="from-primary/10 via-primary/5 to-background -mx-4 -mt-4 rounded-b-2xl bg-gradient-to-b px-4 pt-6 pb-5">
+          <TournamentStatusBadge status={tournament.status} />
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
+            {tournament.name}
+          </h1>
+          <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {tournament.location && (
               <span className="flex items-center gap-1">
                 <MapPin className="size-3.5" aria-hidden="true" />
@@ -167,14 +273,14 @@ export function FeedPage() {
               {formatDateRange(tournament.startDate, tournament.endDate)}
             </span>
           </div>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Welcome back, {user?.displayName}
+          <p className="text-muted-foreground mt-3 text-sm">
+            {getGreeting()}, {user?.displayName}
           </p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           <h1 className="text-2xl font-bold tracking-tight">
-            Good morning, {user?.displayName}
+            {getGreeting()}, {user?.displayName}
           </h1>
           <p className="text-muted-foreground text-sm">
             No active tournament. Create one to get started.
@@ -225,6 +331,36 @@ export function FeedPage() {
         </div>
       )}
 
+      {/* Demo data controls (dev only) */}
+      {tournament && IS_DEV && (
+        <div className="flex items-center gap-2">
+          {!seeded ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeed}
+              className="gap-1.5 text-xs"
+            >
+              <Database className="size-3.5" aria-hidden="true" />
+              Seed Demo Data
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              className="gap-1.5 text-xs text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              Clear Demo Data
+            </Button>
+          )}
+          <span className="text-muted-foreground text-[10px]">
+            {seeded ? 'Demo data loaded' : 'No rounds yet'}
+          </span>
+        </div>
+      )}
+
       {/* Live feed */}
       {tournament && (
         <Card>
@@ -265,6 +401,8 @@ export function FeedPage() {
                         <Icon
                           className={`mt-0.5 size-4 shrink-0 ${config.color}`}
                         />
+                      ) : item.type === 'bet' ? (
+                        <CircleDollarSign className="mt-0.5 size-4 shrink-0 text-violet-500" />
                       ) : (
                         <div className="bg-muted mt-0.5 size-4 shrink-0 rounded-full" />
                       )}
@@ -280,6 +418,14 @@ export function FeedPage() {
                           className="shrink-0 text-[10px]"
                         >
                           {config?.label}
+                        </Badge>
+                      )}
+                      {item.type === 'bet' && (
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 text-[10px]"
+                        >
+                          BET
                         </Badge>
                       )}
                     </div>

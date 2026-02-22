@@ -1,57 +1,51 @@
-# Golf Trip Tournament App – Outline (Scope Lock v1)
+# Golf Trip Tournament App – Outline (Scope Lock v1 – Portugal Edition)
 
 ## 1) One-sentence goal
 
-An invite-only golf trip tournament app (email magic link login) for 12–20 players that tracks rounds, points, and side-competitions (birdies, snakes, bunker saves, longest drives, group-longest-drive on par 5s) with live leaderboards, quick in-app event logging, and photo evidence for longest-drive-in-meters — designed to complement GameBook.
+An invite-only golf trip tournament app (email magic link login) for 12–20 players that manages rounds, points, side-competitions, penalties, and peer-to-peer bets with live leaderboards and simple event logging — designed to complement GameBook.
 
 ---
 
 ## 2) Non-goals (explicitly NOT doing)
 
-- No replacement of GameBook’s full scoring experience
-- No payments (Vipps etc.) in v1
+- No replacement of GameBook scoring engine
+- No official slope/rating/tee calculations
 - No public tournaments or open registration
-- No slope/rating/tee management (group handicap only)
-- No GPS / shot tracking / automatic distance measurement
-- No OS-level push notifications (in-app feed/toast only)
-- No advanced analytics (strokes gained etc.)
-- No complex moderation/approval workflow for evidence
-- No multi-language support in v1
+- No OS push notifications (in-app only)
+- No GPS shot tracking
+- No payment processing (bets are tracked, not transferred)
+- No offline-first mode in v1
+- No external course API integration in v1
 
 ---
 
 ## 3) Target user
 
-- Primary: Private golf buddy group (12–16 typical, max ~20 players)
-- Context: Yearly golf trips (e.g. Spain 2026, Portugal 2027) where:
-  - Everyone plays the same format per round
-  - Morning and afternoon rounds can have different formats
-  - Group wants live overview of points + side competitions
-  - Players log events quickly during play
+- Private golf group (12–16 typical, max 20)
+- Annual tournament trips (Portugal, Spain, etc.)
+- Competitive but fun atmosphere
+- Wants live overview + structured bookkeeping
 
 ---
 
 ## 4) Core flows
 
 1. Invite & Login (Magic Link)
-   - Admin creates tournament
-   - Admin invites players via email
-   - Players join via email magic link (no password)
+   - Admin invites via email
+   - Player joins via secure link
    - Roles: admin / player
 
 2. Create Tournament
-   - Name, dates, optional location
+   - Name, dates, location (optional)
    - Default points table (editable per round)
    - Enable side competitions
-   - Set status (draft → live → done)
+   - Set tournament status
 
 3. Import Course (CSV)
-   - Upload CSV file
-   - Required columns:
-     - `holeNumber`
-     - `par`
-     - `strokeIndex`
-   - Creates Course + 9/18 holes
+   Required columns:
+   - holeNumber
+   - par
+   - strokeIndex
 
 4. Create Rounds
    - Select course
@@ -60,18 +54,15 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
      - Stableford
      - Best Ball
      - Handicap (individual)
-   - Assign players to groups
-   - Optional: create teams (scramble / ryder-style)
-   - Configure points model for this round:
-     - Individual placing (e.g. top 10)
-     - Team placing (scramble/ryder)
+   - Assign groups
+   - Optional team setup
+   - Configure round points model
 
-5. Enter & Update Scores
-   - Enter per-hole strokes
-   - Or enter whole-round total
-   - Support missing holes
-   - Allow later edits
-   - Auto-recalculate standings and totals
+5. Score Entry
+   - Per-hole strokes
+   - Whole-round totals
+   - Edit anytime
+   - Auto recalculation
 
 6. Log Side Events (Fast Actions)
    - Birdie
@@ -80,100 +71,138 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
    - Albatross
    - Bunker save
    - Snake (3-putt)
-   - Group-longest-drive (Par 5 only)
+   - Snöpp (anger event; unlimited per hole)
+   - Group longest drive (Par 5)
    - Longest drive (meters + photo)
+   - Longest putt (meters)
+   - Nearest to pin (meters)
+   - Green in regulation (manual toggle per hole)
 
-7. Leaderboards & Live Feed
+7. Betting
+   - Create bet:
+     - Round bet
+     - Tournament bet
+   - Bet target:
+     - Most points
+     - Most birdies
+     - Head-to-head
+     - Custom metric
+   - Bet amount
+   - Invite one or multiple players
+   - Mark bet as paid:
+     - Both parties must confirm payment
+
+8. Leaderboards & Live Feed
    - Round leaderboard
    - Total points leaderboard
+   - Gross leaderboard (without handicap)
+   - Net leaderboard (with handicap)
    - Side competition leaderboards
-   - In-app live feed with toast/animation
-   - Event format example:
-     - "Kjartan – BIRDIE on 7"
-     - "Thomas – 312m DRIVE"
+   - Betting overview
+   - Trophy overview ("Road to winner")
+   - Live in-app animated feed
 
 ---
 
 ## 5) Rules & Competition Logic
 
-### Points System
-- Default: Top 10 get points
+### Points
+
+- Default top 10 points table
 - Editable per round
-- Supports:
-  - Individual placement
-  - Team placement (scramble/ryder-style)
-- Recalculated automatically after score updates
+- Supports team placement
+- Automatic recalculation
 
 ### Handicap
-- Uses group-defined handicap value per player
-- Requires:
-  - Par per hole
-  - Stroke index per hole
-- No slope/rating/tee support
+
+- Group-defined handicap per player
+- Uses par + stroke index
+- Produces:
+  - Gross total
+  - Net total
 
 ### Snakes
-- Trigger: 3 putts on a hole
-- Each 3-putt = 1 snake
-- “Last snake in group”:
-  - Derived automatically from latest snake timestamp within each group
 
-### Group Longest Drive (Par 5 only)
-- Per eligible hole
-- Log which player won in their group
-- Totals accumulated across all rounds
+- 3 putts = 1 snake
+- Last snake in group derived by timestamp
 
-### Longest Drive (Meters)
-- Manual input of distance (meters)
-- Requires at least 1 image upload
-- All images visible in gallery
-- Winner = highest recorded meters
-- No approval workflow
+### Snöpp
+
+- Manual anger event
+- Can happen multiple times per hole
+- Counted as total per tournament
+
+### Distance Events
+
+- Longest drive (meters, requires image)
+- Group longest drive (Par 5 only)
+- Longest putt (meters)
+- Nearest to pin (meters)
+
+Winner logic:
+
+- max(value) for distance competitions
+- sum(count) for count competitions
+
+### Penalties
+
+- Manual entry
+- Accumulated per player
+- "Penalty King" = highest total
+
+### Bets
+
+- Created by player
+- Type:
+  - Round-specific
+  - Tournament-wide
+- Metric-based or head-to-head
+- States:
+  - pending
+  - accepted
+  - rejected
+  - won/lost
+  - paid (requires confirmation from both sides)
 
 ---
 
-## 6) Data model (minimal)
+## 6) Data Model (minimal but extensible)
 
 ### User
+
 - id
 - email
 - displayName
 - createdAt
 
-### Invite
-- id
-- tournamentId
-- email
-- role (admin/player)
-- token
-- expiresAt
-- acceptedAt
-
 ### Tournament
+
 - id
 - name
-- location (optional)
+- location
 - startDate
 - endDate
-- status (draft/live/done)
+- status
 - createdByUserId
 
 ### Player
+
 - id
 - tournamentId
 - userId
 - displayName
-- nickname (optional)
-- groupHandicap (number)
-- active (boolean)
+- groupHandicap
+- active
 
 ### Course
+
 - id
 - tournamentId
 - name
-- source (csv/manual)
-- createdAt
+- source
 
 ### Hole
+
 - id
 - courseId
 - holeNumber
@@ -181,155 +210,170 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
 - strokeIndex
 
 ### Round
+
 - id
 - tournamentId
 - courseId
 - name
-- dateTime (optional)
-- format (scramble/stableford/bestball/handicap)
-- holesPlayed (9/18)
+- format
+- holesPlayed
 - status
 
 ### Group
+
 - id
 - roundId
 - name
 - playerIds[]
 
-### Team (optional per round)
+### Team
+
 - id
 - roundId
 - name
 - playerIds[]
 
 ### Scorecard
+
 - id
 - roundId
-- playerId OR teamId
-- holeStrokes[] (nullable per hole)
+- participantId (player/team)
+- holeStrokes[]
 - grossTotal
-- netTotal (optional)
-- stablefordPoints (optional)
+- netTotal
+- stablefordPoints
 - isComplete
 
 ### RoundPoints
+
 - id
 - roundId
-- participantId (playerId/teamId)
+- participantId
 - placing
 - pointsAwarded
 
-### SideEventLog
+### SideEventDefinition
+
 - id
 - tournamentId
-- roundId (optional)
-- holeNumber (optional)
+- key
+- displayName
+- mode (count | max | min | sum)
+- requiresValue (bool)
+- requiresEvidence (bool)
+
+### SideEventLog
+
+- id
+- tournamentId
+- roundId
+- holeNumber
 - playerId
-- type:
-  - birdie
-  - eagle
-  - hio
-  - albatross
-  - bunker_save
-  - snake
-  - group_longest_drive
-  - longest_drive_meters
-- value (number optional)
+- definitionKey
+- value (optional number)
 - createdAt
-- createdByPlayerId
 
 ### EvidenceImage
+
 - id
 - sideEventLogId
 - imageUrl
 - createdAt
 
-### FeedEvent
+### LedgerEntry
+
 - id
 - tournamentId
-- type
-- message
 - playerId
-- roundId (optional)
+- kind (penalty)
+- amount
+- note
+- roundId
 - createdAt
 
----
+### Bet
 
-## 7) UI Notes
+- id
+- tournamentId
+- createdByPlayerId
+- scope (round | tournament)
+- metricKey
+- roundId (optional)
+- amount
+- status
+- createdAt
 
-- Mobile-first design
-- Bottom navigation:
-  - Feed
-  - Enter
-  - Leaderboards
-  - Rounds
-  - Players
-- Large quick-action buttons for side events
-- Fast hole selector (1–18 grid)
-- Leaderboard optimized for outdoor readability
-- Evidence gallery for longest drives
-- In-app animated toast (no OS push)
+### BetParticipant
 
----
+- id
+- betId
+- playerId
+- accepted (bool)
+- paidConfirmed (bool)
 
-## 8) CSV Import Spec
+### Trophy
 
-Required headers:
-
-- holeNumber
-- par
-- strokeIndex
-
-Optional:
-
-- courseName
-
-Example:
-
-holeNumber,par,strokeIndex  
-1,4,11  
-2,5,3  
-3,3,17  
+- id
+- tournamentId
+- name
+- sourceType (points | sideEvent | ledger | bet)
+- sourceKey
 
 ---
 
-## 9) Definition of Done (v1)
+## 7) Leaderboards (v1 must support)
 
-- [ ] Invite-only email magic link authentication works
-- [ ] Tournament CRUD works
-- [ ] Player CRUD works
-- [ ] Course import via CSV works
-- [ ] Round creation with format + groups works
-- [ ] Team support for scramble works
-- [ ] Score entry per hole and per round works
-- [ ] Missing holes supported
-- [ ] Standings recalculate automatically
-- [ ] Points awarding supports:
-      - individual top 10
-      - team placement
-- [ ] Side-event logging works for all defined types
-- [ ] Snake logic + last-snake derivation works
-- [ ] Longest drive meters supports image upload
-- [ ] Side competition totals calculated correctly
-- [ ] Round leaderboard works
-- [ ] Total leaderboard works
-- [ ] Live feed/toast works
-- [ ] Responsive desktop + mobile
-- [ ] Tests for:
-      - points calculation
-      - side-event aggregation
-      - snake last logic
-- [ ] README with run instructions + CSV format
+- Round placing
+- Total tournament points
+- Gross total winner
+- Net total winner
+- Most birdies
+- Most snakes
+- Most snöpp
+- Longest drive (meters)
+- Longest putt
+- Nearest to pin
+- Most GIR
+- Penalty king
+- Biggest bettor (total bet volume)
+- Custom trophy standings
 
 ---
 
-## 10) Explicit v1 Constraints
+## 8) Definition of Done (v1)
+
+- [x] Invite-only magic link auth works
+- [x] Tournament CRUD works
+- [x] Course CSV import works
+- [x] Round creation + team support works
+- [x] Score entry per hole works
+- [x] Points auto recalculation works
+- [x] Gross + net totals calculated
+- [x] All defined side events loggable
+- [x] Distance events support value + image
+- [x] Snakes + last snake logic works
+- [x] Snöpp logging works
+- [x] Penalty ledger works
+- [x] Bet creation + acceptance works
+- [x] Bet paid confirmation requires both parties
+- [x] Leaderboards update live
+- [x] In-app feed/toast animations work
+- [x] Responsive for mobile + desktop
+- [x] Tests for:
+  - points logic
+  - side-event aggregation
+  - bet resolution
+  - snake/snöpp counting
+
+---
+
+## 9) v1 Constraints
 
 - Max 20 players
-- Single tournament active at a time
+- Single active tournament
 - No external course API
-- No GameBook integration
-- No push notifications
+- No payment integration
 - No offline mode
+- No public sharing
 
 Scope locked for v1.

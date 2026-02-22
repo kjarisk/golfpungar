@@ -9,8 +9,12 @@ export type SideEventType =
   | 'albatross'
   | 'bunker_save'
   | 'snake' // 3-putt
+  | 'snopp' // anger event, unlimited per hole
   | 'group_longest_drive' // par 5 only, winner per group
   | 'longest_drive_meters' // distance in meters + photo evidence
+  | 'longest_putt' // distance in meters
+  | 'nearest_to_pin' // distance in meters (lower is better)
+  | 'gir' // green in regulation (manual toggle per hole)
 
 /** A logged side event */
 export interface SideEventLog {
@@ -68,9 +72,16 @@ export interface SideEventTotals {
   albatrosses: number
   bunkerSaves: number
   snakes: number
+  snopp: number
   groupLongestDrives: number
   /** Best longest drive in meters (null if none) */
   longestDriveMeters: number | null
+  /** Best longest putt in meters (null if none) */
+  longestPuttMeters: number | null
+  /** Best nearest to pin in meters (null if none — lower is better) */
+  nearestToPinMeters: number | null
+  /** Count of greens in regulation */
+  gir: number
 }
 
 /** Snake info for a group — who holds the "last snake" */

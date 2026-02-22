@@ -4,7 +4,7 @@
  * Pure functions that compute leaderboard standings from scoring and side-event data.
  * Used by the Leaderboards page to derive all leaderboard views.
  */
-import type { RoundPoints } from '@/features/scoring'
+import type { RoundPoints, Scorecard } from '@/features/scoring'
 import type { SideEventTotals } from '@/features/side-events'
 
 // --- Total Points Leaderboard ---
@@ -145,6 +145,150 @@ export function computeLongestDriveLeaderboard(
   let currentPlacing = 1
   return sorted.map((entry, index) => {
     if (index > 0 && entry.meters < sorted[index - 1].meters) {
+      currentPlacing = index + 1
+    }
+    return { ...entry, placing: currentPlacing }
+  })
+}
+
+// --- Longest Putt Leaderboard ---
+
+export interface LongestPuttEntry {
+  playerId: string
+  meters: number
+  eventId: string
+  placing: number
+}
+
+/**
+ * Longest putt leaderboard with placings (longest wins).
+ */
+export function computeLongestPuttLeaderboard(
+  putts: { playerId: string; meters: number; eventId: string }[]
+): LongestPuttEntry[] {
+  const sorted = [...putts].sort((a, b) => b.meters - a.meters)
+
+  let currentPlacing = 1
+  return sorted.map((entry, index) => {
+    if (index > 0 && entry.meters < sorted[index - 1].meters) {
+      currentPlacing = index + 1
+    }
+    return { ...entry, placing: currentPlacing }
+  })
+}
+
+// --- Nearest to Pin Leaderboard ---
+
+export interface NearestToPinEntry {
+  playerId: string
+  meters: number
+  eventId: string
+  placing: number
+}
+
+/**
+ * Nearest to pin leaderboard with placings (closest wins — ascending).
+ */
+export function computeNearestToPinLeaderboard(
+  shots: { playerId: string; meters: number; eventId: string }[]
+): NearestToPinEntry[] {
+  const sorted = [...shots].sort((a, b) => a.meters - b.meters)
+
+  let currentPlacing = 1
+  return sorted.map((entry, index) => {
+    if (index > 0 && entry.meters > sorted[index - 1].meters) {
+      currentPlacing = index + 1
+    }
+    return { ...entry, placing: currentPlacing }
+  })
+}
+
+// --- Gross Tournament Leaderboard ---
+
+export interface GrossLeaderboardEntry {
+  playerId: string
+  /** Sum of grossTotal across all rounds */
+  grossTotal: number
+  /** Number of rounds with scorecards */
+  roundsPlayed: number
+  /** 1-based placing (lowest total wins) */
+  placing: number
+}
+
+/**
+ * Compute the gross total tournament leaderboard.
+ * Sums each player's grossTotal across all their individual scorecards
+ * (team scorecards are excluded). Lowest total wins.
+ * Players with 0 rounds played are excluded from the leaderboard.
+ */
+export function computeGrossLeaderboard(
+  scorecards: Scorecard[],
+  playerIds: string[]
+): GrossLeaderboardEntry[] {
+  const entries = playerIds
+    .map((playerId) => {
+      const playerCards = scorecards.filter(
+        (sc) => sc.playerId === playerId && sc.grossTotal > 0
+      )
+      return {
+        playerId,
+        grossTotal: playerCards.reduce((sum, sc) => sum + sc.grossTotal, 0),
+        roundsPlayed: playerCards.length,
+      }
+    })
+    .filter((e) => e.roundsPlayed > 0)
+    .sort((a, b) => a.grossTotal - b.grossTotal)
+
+  // Assign placings with ties (same total = same placing)
+  let currentPlacing = 1
+  return entries.map((entry, index) => {
+    if (index > 0 && entry.grossTotal > entries[index - 1].grossTotal) {
+      currentPlacing = index + 1
+    }
+    return { ...entry, placing: currentPlacing }
+  })
+}
+
+// --- Net Tournament Leaderboard ---
+
+export interface NetLeaderboardEntry {
+  playerId: string
+  /** Sum of netTotal across all rounds */
+  netTotal: number
+  /** Number of rounds with scorecards that have net totals */
+  roundsPlayed: number
+  /** 1-based placing (lowest total wins) */
+  placing: number
+}
+
+/**
+ * Compute the net total tournament leaderboard.
+ * Sums each player's netTotal across all their individual scorecards
+ * (team scorecards and scorecards without net totals are excluded).
+ * Lowest total wins.
+ */
+export function computeNetLeaderboard(
+  scorecards: Scorecard[],
+  playerIds: string[]
+): NetLeaderboardEntry[] {
+  const entries = playerIds
+    .map((playerId) => {
+      const playerCards = scorecards.filter(
+        (sc) => sc.playerId === playerId && sc.netTotal != null
+      )
+      return {
+        playerId,
+        netTotal: playerCards.reduce((sum, sc) => sum + (sc.netTotal ?? 0), 0),
+        roundsPlayed: playerCards.length,
+      }
+    })
+    .filter((e) => e.roundsPlayed > 0)
+    .sort((a, b) => a.netTotal - b.netTotal)
+
+  // Assign placings with ties (same total = same placing)
+  let currentPlacing = 1
+  return entries.map((entry, index) => {
+    if (index > 0 && entry.netTotal > entries[index - 1].netTotal) {
       currentPlacing = index + 1
     }
     return { ...entry, placing: currentPlacing }

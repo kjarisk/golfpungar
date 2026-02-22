@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { Outlet, NavLink } from 'react-router'
+import { Outlet, NavLink, useLocation } from 'react-router'
 import { Newspaper, PenLine, Trophy, Flag, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ErrorBoundary } from '@/components/error-boundary'
@@ -14,6 +14,8 @@ const navItems = [
 ] as const
 
 export function AppShell() {
+  const location = useLocation()
+
   return (
     <div className="bg-background flex min-h-svh flex-col">
       {/* Page content area — scrollable, with bottom padding for nav */}
@@ -21,7 +23,12 @@ export function AppShell() {
         <div className="mx-auto w-full max-w-lg md:max-w-2xl">
           <ErrorBoundary>
             <Suspense fallback={<PageSkeleton />}>
-              <Outlet />
+              <div
+                key={location.pathname}
+                className="animate-in fade-in duration-200"
+              >
+                <Outlet />
+              </div>
             </Suspense>
           </ErrorBoundary>
         </div>

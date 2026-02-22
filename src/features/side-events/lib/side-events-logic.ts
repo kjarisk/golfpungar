@@ -85,6 +85,20 @@ export function aggregateTotals(
         ? Math.max(...longestDriveEvents.map((e) => e.value!))
         : null
 
+    const longestPuttEvents = playerEvents.filter(
+      (e) => e.type === 'longest_putt' && e.value != null
+    )
+    const bestPutt =
+      longestPuttEvents.length > 0
+        ? Math.max(...longestPuttEvents.map((e) => e.value!))
+        : null
+
+    const ntpEvents = playerEvents.filter(
+      (e) => e.type === 'nearest_to_pin' && e.value != null
+    )
+    const bestNtp =
+      ntpEvents.length > 0 ? Math.min(...ntpEvents.map((e) => e.value!)) : null
+
     return {
       playerId,
       birdies: countType('birdie'),
@@ -93,8 +107,12 @@ export function aggregateTotals(
       albatrosses: countType('albatross'),
       bunkerSaves: countType('bunker_save'),
       snakes: countType('snake'),
+      snopp: countType('snopp'),
       groupLongestDrives: countType('group_longest_drive'),
       longestDriveMeters: bestDrive,
+      longestPuttMeters: bestPutt,
+      nearestToPinMeters: bestNtp,
+      gir: countType('gir'),
     }
   })
 }
@@ -154,4 +172,74 @@ export function groupLongestDriveLeaderboard(
   return Array.from(counts.entries())
     .map(([playerId, count]) => ({ playerId, count }))
     .sort((a, b) => b.count - a.count)
+}
+
+/**
+ * Longest putt leaderboard — best putt per player, sorted descending (longest wins).
+ */
+export function longestPuttLeaderboard(
+  events: SideEventLog[],
+  tournamentId: string
+): { playerId: string; meters: number; eventId: string }[] {
+  const puttEvents = events.filter(
+    (e) =>
+      e.tournamentId === tournamentId &&
+      e.type === 'longest_putt' &&
+      e.value != null
+  )
+
+  const bestByPlayer = new Map<string, { meters: number; eventId: string }>()
+
+  for (const event of puttEvents) {
+    const existing = bestByPlayer.get(event.playerId)
+    if (!existing || event.value! > existing.meters) {
+      bestByPlayer.set(event.playerId, {
+        meters: event.value!,
+        eventId: event.id,
+      })
+    }
+  }
+
+  return Array.from(bestByPlayer.entries())
+    .map(([playerId, data]) => ({
+      playerId,
+      meters: data.meters,
+      eventId: data.eventId,
+    }))
+    .sort((a, b) => b.meters - a.meters)
+}
+
+/**
+ * Nearest to pin leaderboard — best (closest) per player, sorted ascending (shortest wins).
+ */
+export function nearestToPinLeaderboard(
+  events: SideEventLog[],
+  tournamentId: string
+): { playerId: string; meters: number; eventId: string }[] {
+  const ntpEvents = events.filter(
+    (e) =>
+      e.tournamentId === tournamentId &&
+      e.type === 'nearest_to_pin' &&
+      e.value != null
+  )
+
+  const bestByPlayer = new Map<string, { meters: number; eventId: string }>()
+
+  for (const event of ntpEvents) {
+    const existing = bestByPlayer.get(event.playerId)
+    if (!existing || event.value! < existing.meters) {
+      bestByPlayer.set(event.playerId, {
+        meters: event.value!,
+        eventId: event.id,
+      })
+    }
+  }
+
+  return Array.from(bestByPlayer.entries())
+    .map(([playerId, data]) => ({
+      playerId,
+      meters: data.meters,
+      eventId: data.eventId,
+    }))
+    .sort((a, b) => a.meters - b.meters)
 }

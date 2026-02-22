@@ -32,6 +32,12 @@ interface SideEventsState {
   getLongestDriveLeaderboard: (
     tournamentId: string
   ) => { playerId: string; meters: number; eventId: string }[]
+  getLongestPuttLeaderboard: (
+    tournamentId: string
+  ) => { playerId: string; meters: number; eventId: string }[]
+  getNearestToPinLeaderboard: (
+    tournamentId: string
+  ) => { playerId: string; meters: number; eventId: string }[]
 
   // Actions
   logEvent: (input: CreateSideEventInput) => SideEventLog
@@ -74,6 +80,9 @@ export const useSideEventsStore = create<SideEventsState>((set, get) => ({
     return playerIds.map((playerId) => {
       const playerEvents = events.filter((e) => e.playerId === playerId)
 
+      const countType = (type: SideEventType) =>
+        playerEvents.filter((e) => e.type === type).length
+
       const longestDriveEvents = playerEvents.filter(
         (e) => e.type === 'longest_drive_meters' && e.value != null
       )
@@ -82,19 +91,36 @@ export const useSideEventsStore = create<SideEventsState>((set, get) => ({
           ? Math.max(...longestDriveEvents.map((e) => e.value!))
           : null
 
+      const longestPuttEvents = playerEvents.filter(
+        (e) => e.type === 'longest_putt' && e.value != null
+      )
+      const bestPutt =
+        longestPuttEvents.length > 0
+          ? Math.max(...longestPuttEvents.map((e) => e.value!))
+          : null
+
+      const ntpEvents = playerEvents.filter(
+        (e) => e.type === 'nearest_to_pin' && e.value != null
+      )
+      const bestNtp =
+        ntpEvents.length > 0
+          ? Math.min(...ntpEvents.map((e) => e.value!))
+          : null
+
       return {
         playerId,
-        birdies: playerEvents.filter((e) => e.type === 'birdie').length,
-        eagles: playerEvents.filter((e) => e.type === 'eagle').length,
-        holeInOnes: playerEvents.filter((e) => e.type === 'hio').length,
-        albatrosses: playerEvents.filter((e) => e.type === 'albatross').length,
-        bunkerSaves: playerEvents.filter((e) => e.type === 'bunker_save')
-          .length,
-        snakes: playerEvents.filter((e) => e.type === 'snake').length,
-        groupLongestDrives: playerEvents.filter(
-          (e) => e.type === 'group_longest_drive'
-        ).length,
+        birdies: countType('birdie'),
+        eagles: countType('eagle'),
+        holeInOnes: countType('hio'),
+        albatrosses: countType('albatross'),
+        bunkerSaves: countType('bunker_save'),
+        snakes: countType('snake'),
+        snopp: countType('snopp'),
+        groupLongestDrives: countType('group_longest_drive'),
         longestDriveMeters: bestDrive,
+        longestPuttMeters: bestPutt,
+        nearestToPinMeters: bestNtp,
+        gir: countType('gir'),
       }
     })
   },
@@ -159,6 +185,72 @@ export const useSideEventsStore = create<SideEventsState>((set, get) => ({
         eventId: data.eventId,
       }))
       .sort((a, b) => b.meters - a.meters)
+  },
+
+  /**
+   * Get the longest putt leaderboard across the tournament.
+   * Returns entries sorted by meters descending (longest wins).
+   */
+  getLongestPuttLeaderboard: (tournamentId) => {
+    const puttEvents = get().events.filter(
+      (e) =>
+        e.tournamentId === tournamentId &&
+        e.type === 'longest_putt' &&
+        e.value != null
+    )
+
+    const bestByPlayer = new Map<string, { meters: number; eventId: string }>()
+
+    for (const event of puttEvents) {
+      const existing = bestByPlayer.get(event.playerId)
+      if (!existing || event.value! > existing.meters) {
+        bestByPlayer.set(event.playerId, {
+          meters: event.value!,
+          eventId: event.id,
+        })
+      }
+    }
+
+    return Array.from(bestByPlayer.entries())
+      .map(([playerId, data]) => ({
+        playerId,
+        meters: data.meters,
+        eventId: data.eventId,
+      }))
+      .sort((a, b) => b.meters - a.meters)
+  },
+
+  /**
+   * Get the nearest to pin leaderboard across the tournament.
+   * Returns entries sorted by meters ascending (closest wins).
+   */
+  getNearestToPinLeaderboard: (tournamentId) => {
+    const ntpEvents = get().events.filter(
+      (e) =>
+        e.tournamentId === tournamentId &&
+        e.type === 'nearest_to_pin' &&
+        e.value != null
+    )
+
+    const bestByPlayer = new Map<string, { meters: number; eventId: string }>()
+
+    for (const event of ntpEvents) {
+      const existing = bestByPlayer.get(event.playerId)
+      if (!existing || event.value! < existing.meters) {
+        bestByPlayer.set(event.playerId, {
+          meters: event.value!,
+          eventId: event.id,
+        })
+      }
+    }
+
+    return Array.from(bestByPlayer.entries())
+      .map(([playerId, data]) => ({
+        playerId,
+        meters: data.meters,
+        eventId: data.eventId,
+      }))
+      .sort((a, b) => a.meters - b.meters)
   },
 
   // --- Actions ---

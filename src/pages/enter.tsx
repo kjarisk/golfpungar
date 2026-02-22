@@ -17,6 +17,9 @@ import { useScoringStore } from '@/features/scoring'
 import { ScoreEntryGrid } from '@/features/scoring/components/score-entry-grid'
 import { RoundTotalEntry } from '@/features/scoring/components/round-total-entry'
 import { SideEventLogger } from '@/features/side-events'
+import { PenaltyList } from '@/features/penalties'
+import { BetList } from '@/features/betting'
+import { useAuthStore } from '@/features/auth'
 import { Trophy, ClipboardList, Hash } from 'lucide-react'
 
 export function EnterPage() {
@@ -30,9 +33,14 @@ export function EnterPage() {
   const createScorecard = useScoringStore((s) => s.createScorecard)
   const recalculatePoints = useScoringStore((s) => s.recalculatePoints)
   const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
+  const authUser = useAuthStore((s) => s.user)
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
+
+  // Derive current player from auth userId
+  const currentPlayer = players.find((p) => p.userId === authUser?.id)
+  const currentPlayerId = currentPlayer?.id ?? ''
 
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
   const [entryMode, setEntryMode] = useState<'holes' | 'total'>('holes')
@@ -233,15 +241,14 @@ export function EnterPage() {
                 <CardTitle className="text-base">Standings</CardTitle>
                 <Button size="sm" variant="outline" onClick={handleRecalculate}>
                   <Trophy className="size-3.5" />
-                  Calculate Points
+                  Recalculate
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {roundPoints.length === 0 ? (
                 <p className="text-muted-foreground py-4 text-center text-sm">
-                  Enter scores and tap &ldquo;Calculate Points&rdquo; to see
-                  standings
+                  Enter scores to see standings
                 </p>
               ) : (
                 <div className="flex flex-col gap-1">
@@ -297,6 +304,25 @@ export function EnterPage() {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Penalties */}
+      {tournament && (
+        <PenaltyList
+          tournamentId={tournament.id}
+          players={players}
+          rounds={rounds}
+        />
+      )}
+
+      {/* Bets */}
+      {tournament && currentPlayerId && (
+        <BetList
+          tournamentId={tournament.id}
+          currentPlayerId={currentPlayerId}
+          players={players}
+          rounds={rounds}
+        />
       )}
     </div>
   )

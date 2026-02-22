@@ -26,6 +26,9 @@ import {
   Trophy,
   Camera,
   Star,
+  Flame,
+  CircleDot,
+  Crosshair,
 } from 'lucide-react'
 
 interface SideEventLoggerProps {
@@ -47,6 +50,8 @@ const EVENT_BUTTONS: {
   requiresValue?: boolean
   requiresImage?: boolean
   par5Only?: boolean
+  /** Key used for the meters input panel (shared across value-based events) */
+  valueInputKey?: string
 }[] = [
   {
     type: 'birdie',
@@ -85,6 +90,18 @@ const EVENT_BUTTONS: {
     color: 'bg-red-500 hover:bg-red-600 text-white',
   },
   {
+    type: 'snopp',
+    label: 'Snopp',
+    icon: Flame,
+    color: 'bg-red-700 hover:bg-red-800 text-white',
+  },
+  {
+    type: 'gir',
+    label: 'GIR',
+    icon: CircleDot,
+    color: 'bg-emerald-500 hover:bg-emerald-600 text-white',
+  },
+  {
     type: 'group_longest_drive',
     label: 'Group LD',
     icon: Trophy,
@@ -98,6 +115,23 @@ const EVENT_BUTTONS: {
     color: 'bg-indigo-500 hover:bg-indigo-600 text-white',
     requiresValue: true,
     requiresImage: true,
+    valueInputKey: 'longest_drive',
+  },
+  {
+    type: 'longest_putt',
+    label: 'Longest Putt',
+    icon: Ruler,
+    color: 'bg-cyan-500 hover:bg-cyan-600 text-white',
+    requiresValue: true,
+    valueInputKey: 'longest_putt',
+  },
+  {
+    type: 'nearest_to_pin',
+    label: 'Nearest Pin',
+    icon: Crosshair,
+    color: 'bg-teal-500 hover:bg-teal-600 text-white',
+    requiresValue: true,
+    valueInputKey: 'nearest_to_pin',
   },
 ]
 
@@ -106,17 +140,21 @@ export function SideEventLogger({
   roundId,
   players,
   holes,
+  groupPlayerIds,
   holesPlayed,
 }: SideEventLoggerProps) {
   const logEvent = useSideEventsStore((s) => s.logEvent)
   const addImage = useSideEventsStore((s) => s.addImage)
   const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
+  const getLastSnakeInGroup = useSideEventsStore((s) => s.getLastSnakeInGroup)
   const user = useAuthStore((s) => s.user)
 
   const [selectedHole, setSelectedHole] = useState<number | null>(null)
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('')
-  const [driveMeters, setDriveMeters] = useState<string>('')
-  const [showDriveInput, setShowDriveInput] = useState(false)
+  const [valueMeters, setValueMeters] = useState<string>('')
+  /** Which value-input panel is currently open (null = hidden) */
+  const [activeValueInput, setActiveValueInput] =
+    useState<SideEventType | null>(null)
 
   // Get the current user's player record for createdByPlayerId
   const currentPlayer = players.find((p) => p.userId === user?.id)
@@ -140,9 +178,9 @@ export function SideEventLogger({
 
     const eventConfig = EVENT_BUTTONS.find((b) => b.type === eventType)
 
-    // For longest_drive_meters, show the input form instead of logging immediately
+    // For value-based events, show the input form instead of logging immediately
     if (eventConfig?.requiresValue) {
-      setShowDriveInput(true)
+      setActiveValueInput(eventType)
       return
     }
 
@@ -165,9 +203,9 @@ export function SideEventLogger({
     })
   }
 
-  function handleLogDrive() {
-    if (!selectedHole || !effectivePlayerId) return
-    const meters = parseFloat(driveMeters)
+  function handleLogValue() {
+    if (!selectedHole || !effectivePlayerId || !activeValueInput) return
+    const meters = parseFloat(valueMeters)
     if (isNaN(meters) || meters <= 0) return
 
     logEvent({
@@ -175,22 +213,23 @@ export function SideEventLogger({
       roundId,
       holeNumber: selectedHole,
       playerId: effectivePlayerId,
-      type: 'longest_drive_meters',
+      type: activeValueInput,
       value: meters,
       createdByPlayerId,
     })
 
+    const eventConfig = EVENT_BUTTONS.find((b) => b.type === activeValueInput)
     const playerName =
       players.find((p) => p.id === effectivePlayerId)?.displayName ?? 'Player'
-    const message = `${playerName} — ${meters}m DRIVE on ${selectedHole}`
+    const message = `${playerName} — ${meters}m ${eventConfig?.label ?? activeValueInput} on ${selectedHole}`
 
     // Show toast notification
     toast(message, {
       duration: 4000,
     })
 
-    setDriveMeters('')
-    setShowDriveInput(false)
+    setValueMeters('')
+    setActiveValueInput(null)
   }
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -282,57 +321,67 @@ export function SideEventLogger({
           </div>
         </div>
 
-        {/* Longest drive meters input (shown when tapping "Longest Drive") */}
-        {showDriveInput && (
+        {/* Value input panel (shown for longest drive, longest putt, nearest pin) */}
+        {activeValueInput && (
           <div className="bg-muted/50 flex flex-col gap-2 rounded-lg p-3">
-            <label htmlFor="drive-meters" className="text-xs font-medium">
-              Longest Drive — Enter distance
+            <label htmlFor="value-meters" className="text-xs font-medium">
+              {EVENT_BUTTONS.find((b) => b.type === activeValueInput)?.label ??
+                activeValueInput}{' '}
+              — Enter distance
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
-                  id="drive-meters"
+                  id="value-meters"
                   type="number"
-                  placeholder="e.g. 285"
-                  value={driveMeters}
-                  onChange={(e) => setDriveMeters(e.target.value)}
+                  placeholder={
+                    activeValueInput === 'nearest_to_pin'
+                      ? 'e.g. 2.5'
+                      : activeValueInput === 'longest_putt'
+                        ? 'e.g. 12'
+                        : 'e.g. 285'
+                  }
+                  value={valueMeters}
+                  onChange={(e) => setValueMeters(e.target.value)}
                   className="pr-8"
                   min={0}
-                  step={1}
+                  step={activeValueInput === 'nearest_to_pin' ? 0.1 : 1}
                 />
                 <span className="text-muted-foreground absolute top-1/2 right-2 -translate-y-1/2 text-xs">
                   m
                 </span>
               </div>
-              <Button size="sm" onClick={handleLogDrive}>
+              <Button size="sm" onClick={handleLogValue}>
                 Log
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setShowDriveInput(false)}
+                onClick={() => setActiveValueInput(null)}
               >
                 Cancel
               </Button>
             </div>
-            {/* Photo upload */}
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="drive-photo"
-                className="bg-muted hover:bg-muted/80 flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
-              >
-                <Camera className="size-3.5" />
-                Add Photo Evidence
-              </label>
-              <input
-                id="drive-photo"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleImageUpload}
-              />
-            </div>
+            {/* Photo upload — only for longest drive */}
+            {activeValueInput === 'longest_drive_meters' && (
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="drive-photo"
+                  className="bg-muted hover:bg-muted/80 flex cursor-pointer items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+                >
+                  <Camera className="size-3.5" />
+                  Add Photo Evidence
+                </label>
+                <input
+                  id="drive-photo"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -381,6 +430,37 @@ export function SideEventLogger({
             </div>
           </div>
         )}
+
+        {/* Last Snake in Group indicator */}
+        {groupPlayerIds &&
+          groupPlayerIds.length > 0 &&
+          (() => {
+            const lastSnake = getLastSnakeInGroup(
+              roundId,
+              'current-group',
+              groupPlayerIds
+            )
+            if (!lastSnake.playerId) return null
+            const snakePlayer = players.find((p) => p.id === lastSnake.playerId)
+            return (
+              <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 dark:border-red-900 dark:bg-red-950/30">
+                <Skull className="size-4 shrink-0 text-red-500" />
+                <div className="flex flex-1 flex-col">
+                  <span className="text-xs font-medium text-red-700 dark:text-red-400">
+                    Last Snake
+                  </span>
+                  <span className="text-sm font-semibold">
+                    {snakePlayer?.displayName ?? 'Unknown'}
+                    {lastSnake.holeNumber && (
+                      <span className="text-muted-foreground ml-1 text-xs font-normal">
+                        on hole {lastSnake.holeNumber}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </div>
+            )
+          })()}
       </CardContent>
     </Card>
   )

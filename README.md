@@ -1,6 +1,6 @@
 # Golfpungar -- Golf Trip Tournament App
 
-An invite-only golf trip tournament app for 12-20 players that tracks rounds, points, and side-competitions with live leaderboards and quick in-app event logging. Designed to complement GameBook.
+An invite-only golf trip tournament app for 12-20 players that tracks rounds, points, side-competitions, penalties, and peer-to-peer bets with live leaderboards and quick in-app event logging. Designed to complement GameBook.
 
 ## Features
 
@@ -9,8 +9,11 @@ An invite-only golf trip tournament app for 12-20 players that tracks rounds, po
 - **Course import** -- upload CSV files to create courses with hole data
 - **Round creation** -- Scramble, Stableford, Best Ball, Handicap formats with group/team assignment
 - **Score entry** -- hole-by-hole grid or whole-round totals, auto-calculated standings
-- **Side events** -- birdies, eagles, snakes (3-putts), bunker saves, group longest drives, longest drive (meters + photo evidence)
-- **Leaderboards** -- total points, round standings, side competition rankings
+- **Side events** -- birdies, eagles, snakes (3-putts), snopp (anger events), bunker saves, group longest drives, longest drive (meters + photo evidence), longest putt, nearest to pin, GIR
+- **Penalties** -- manual penalty ledger with "Penalty King" leaderboard
+- **Betting** -- peer-to-peer bets (round or tournament scope), accept/reject flow, winner resolution, paid confirmation
+- **Trophies** -- auto-generated trophy standings ("Road to Winner") from points, side events, penalties, and bets
+- **Leaderboards** -- total points, round standings, gross/net totals, side competition rankings, penalty king, biggest bettor
 - **Live feed** -- real-time event stream with toast notifications
 
 ## Getting Started
@@ -28,6 +31,8 @@ npm run dev
 ```
 
 The app starts at `http://localhost:5173` with a test account auto-logged in.
+
+Click **"Seed Demo Data"** on the Feed page to populate sample rounds, scores, side events, penalties, and bets.
 
 ### Commands
 
@@ -50,7 +55,7 @@ The app starts at `http://localhost:5173` with a test account auto-logged in.
 - TanStack Query (server state -- wired to Supabase later)
 - Zustand (client/UI state + mock data stores)
 - React Router v7 (5-tab bottom navigation)
-- Vitest + Testing Library (139 tests)
+- Vitest + Testing Library (221+ tests)
 
 ## Project Structure
 
@@ -66,8 +71,11 @@ src/
     rounds/               # round creation + groups/teams
     scoring/              # score entry, points calc, standings
     side-events/          # side event logging, evidence gallery
+    penalties/            # penalty ledger + "Penalty King"
+    betting/              # peer-to-peer bets, accept/reject/resolve/paid
+    trophies/             # trophy standings, "Road to Winner"
     feed/                 # live feed store
-  lib/                    # shared utils (leaderboard-calc)
+  lib/                    # shared utils (leaderboard-calc, demo-data)
   pages/                  # route pages (feed, enter, leaderboards, rounds, players)
   test/                   # test setup
 docs/
@@ -122,6 +130,6 @@ Sample files available in `docs/csv-examples/`:
 
 ## Current Status
 
-Phases 0-6 complete. All core features built with mock data stores. Backend (Supabase) integration deferred.
+All phases (0-11) complete. All core features built with mock data stores. Backend (Supabase) integration deferred.
 
 See `docs/plan.md` for the full implementation plan.

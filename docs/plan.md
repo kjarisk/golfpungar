@@ -83,3 +83,48 @@
 - [x] Responsive polish (desktop + mobile)
 - [x] README with run instructions + CSV format
 - [x] Final cleanup + docs
+
+## Phase 7 -- Missing Side Events (snopp, longest putt, NTP, GIR)
+
+- [x] Add `snopp`, `longest_putt`, `nearest_to_pin`, `gir` to SideEventType + SideEventTotals
+- [x] Update computePlayerTotals() in side-events-logic for 4 new types
+- [x] Add quick-action buttons to side-event-logger (snopp, GIR, longest putt, NTP)
+- [x] Add SIDE_EVENT_CONFIG entries in feed.tsx for 4 new types
+- [x] Add leaderboard cards (Most Snopp, Longest Putt, Nearest to Pin, Most GIR)
+- [x] Add computeLongestPuttLeaderboard + computeNearestToPinLeaderboard to leaderboard-calc
+- [x] Tests for new aggregations + leaderboards
+
+## Phase 8 -- Penalties / Ledger
+
+- [x] Create src/features/penalties/ feature slice (types, store, components)
+- [x] LedgerEntry type + Zustand store (add/remove/query/totals)
+- [x] Penalty entry dialog (player, amount, note, round)
+- [x] Penalty list view
+- [x] "Penalty King" leaderboard card
+- [x] Feed integration
+- [x] Tests for ledger store + aggregation
+
+## Phase 9 -- Gross & Net Tournament Leaderboards
+
+- [x] computeGrossLeaderboard + computeNetLeaderboard in leaderboard-calc
+- [x] Add Gross and Net leaderboard cards to leaderboards page
+- [x] Tests for gross/net aggregation + tie handling
+
+## Phase 10 -- Betting (simplified v1)
+
+- [x] Create src/features/betting/ feature slice (types, store, components)
+- [x] Bet + BetParticipant types
+- [x] Zustand store (create, accept, reject, resolve, query)
+- [x] Create Bet dialog (scope, target, amount, opponents)
+- [x] Bet list view (pending, active, resolved)
+- [x] Bet acceptance flow + manual winner resolution
+- [x] "Biggest bettor" leaderboard + betting overview
+- [x] Tests for bet state transitions + aggregation
+
+## Phase 11 -- Trophies & Road to Winner
+
+- [x] Create src/features/trophies/ feature slice (types, store, components)
+- [x] Trophy type + auto-generation from points/side events/ledger/bets
+- [x] "Road to Winner" overview component
+- [x] Add trophy overview to Feed or Leaderboards
+- [x] Tests for trophy computation

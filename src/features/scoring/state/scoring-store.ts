@@ -109,6 +109,10 @@ export const useScoringStore = create<ScoringState>((set, get) => ({
     groupHandicap,
     format
   ) => {
+    // Find roundId before state update for auto-recalculation
+    const scorecard = get().scorecards.find((sc) => sc.id === scorecardId)
+    const roundId = scorecard?.roundId
+
     set((state) => ({
       scorecards: state.scorecards.map((sc) => {
         if (sc.id !== scorecardId) return sc
@@ -133,6 +137,11 @@ export const useScoringStore = create<ScoringState>((set, get) => ({
         }
       }),
     }))
+
+    // Auto-recalculate points after every stroke entry
+    if (roundId) {
+      get().recalculatePoints(roundId, format)
+    }
   },
 
   setWholeRoundTotal: (scorecardId, grossTotal) => {

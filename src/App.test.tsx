@@ -23,7 +23,9 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { name: /spain 2026/i })
     ).toBeInTheDocument()
-    // And the welcome message
-    expect(screen.getByText(/welcome back, kjartan/i)).toBeInTheDocument()
+    // And the welcome message (time-of-day greeting)
+    expect(
+      screen.getByText(/good (morning|afternoon|evening), kjartan/i)
+    ).toBeInTheDocument()
   })
 })
