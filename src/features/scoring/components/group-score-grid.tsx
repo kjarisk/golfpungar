@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -181,11 +181,54 @@ export function GroupScoreGrid({
 
   // Scroll to number pad when active
   const padRef = useRef<HTMLDivElement>(null)
+  const gridRef = useRef<HTMLTableElement>(null)
   useEffect(() => {
     if (activeCell !== null && padRef.current) {
       padRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
   }, [activeCell])
+
+  /** Keyboard navigation for the score grid (arrow keys + Enter/Escape) */
+  const handleGridKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (activeCell === null) return
+      const [holeIdx, pIdx] = activeCell
+      let nextHole = holeIdx
+      let nextP = pIdx
+
+      switch (e.key) {
+        case 'ArrowUp':
+          nextHole = Math.max(0, holeIdx - 1)
+          break
+        case 'ArrowDown':
+          nextHole = Math.min(holes.length - 1, holeIdx + 1)
+          break
+        case 'ArrowLeft':
+          nextP = Math.max(0, pIdx - 1)
+          break
+        case 'ArrowRight':
+          nextP = Math.min(participants.length - 1, pIdx + 1)
+          break
+        case 'Enter':
+          e.preventDefault()
+          confirmStroke()
+          return
+        case 'Escape':
+          e.preventDefault()
+          setActiveCell(null)
+          return
+        default:
+          return
+      }
+
+      if (nextHole !== holeIdx || nextP !== pIdx) {
+        e.preventDefault()
+        openCell(nextHole, nextP)
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeCell, holes.length, participants.length]
+  )
 
   function openCell(holeIndex: number, participantIndex: number) {
     setActiveCell([holeIndex, participantIndex])
@@ -315,10 +358,16 @@ export function GroupScoreGrid({
             const uniqueTypes = [...new Set(events.map((e) => e.type))]
 
             return (
-              <td key={p.id} className="p-0">
+              <td key={p.id} className="p-0" role="gridcell">
                 <button
                   type="button"
                   onClick={() => openCell(holeIdx, pIdx)}
+                  tabIndex={
+                    isActive ||
+                    (activeCell === null && holeIdx === 0 && pIdx === 0)
+                      ? 0
+                      : -1
+                  }
                   aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}`}
                   aria-pressed={isActive}
                   className={`relative flex w-full min-w-[2.8rem] items-center justify-center px-1 py-1.5 text-sm font-bold tabular-nums transition-all ${
@@ -330,7 +379,10 @@ export function GroupScoreGrid({
                   {strokes !== null ? strokes : '\u2013'}
                   {/* Side event icons */}
                   {uniqueTypes.length > 0 && (
-                    <span className="absolute right-0.5 top-0 flex gap-px">
+                    <span
+                      className="absolute right-0.5 top-0 flex gap-px"
+                      aria-hidden="true"
+                    >
                       {uniqueTypes.slice(0, 2).map((type) => {
                         const config = SIDE_EVENT_ICONS[type]
                         if (!config) return null
@@ -475,14 +527,30 @@ export function GroupScoreGrid({
         </div>
       </CardHeader>
       <CardContent className="overflow-x-auto px-0 pb-2">
-        <table className="w-full border-collapse text-center">
+        <table
+          ref={gridRef}
+          role="grid"
+          aria-label="Score entry grid"
+          className="w-full border-collapse text-center"
+          onKeyDown={handleGridKeyDown}
+        >
           <thead>
             <tr className="bg-muted border-b">
-              <th className="px-1.5 py-1.5 text-xs font-semibold">#</th>
-              <th className="px-1.5 py-1.5 text-xs font-semibold">Par</th>
-              <th className="px-1.5 py-1.5 text-xs font-semibold">SI</th>
+              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                #
+              </th>
+              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                Par
+              </th>
+              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                SI
+              </th>
               {participants.map((p) => (
-                <th key={p.id} className="px-1 py-1.5 text-xs font-semibold">
+                <th
+                  key={p.id}
+                  scope="col"
+                  className="px-1 py-1.5 text-xs font-semibold"
+                >
                   <div className="flex flex-col items-center">
                     <span className="truncate max-w-[4.5rem]">
                       {shortName(p.name)}

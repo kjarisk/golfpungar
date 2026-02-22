@@ -245,21 +245,21 @@
 
 ## Phase 22 -- Updated Demo Data & Final Polish (v2)
 
-- [ ] Update `seedDemoData()` in `src/lib/demo-data.ts` for full v2 demo:
-  - [ ] Multiple tournaments (one active "Spain 2026", one past "Portugal 2025")
-  - [ ] 12–16 players with varied handicaps
-  - [ ] 3 rounds with different statuses (completed, active, upcoming)
-  - [ ] Teams configured for scramble/best ball rounds
-  - [ ] Scores entered for completed + partially for active round
-  - [ ] Side events spread across rounds (birdies, eagles, snakes, snopp, NTP, etc.)
-  - [ ] Penalties, bets (pending, accepted, resolved, paid), announcements
-  - [ ] Trophy-worthy data (clear leaders in each category)
-- [ ] `clearDemoData()` resets all stores cleanly
-- [ ] `isDemoSeeded()` check still works
-- [ ] Dev-only seed/clear buttons remain on Feed page
-- [ ] Verify all admin/player guards work end-to-end
-- [ ] Empty states for no-active-tournament, no-active-round
-- [ ] Accessibility pass on new components
-- [ ] Performance pass (grid rendering, large feeds)
-- [ ] Update README + QUICKSTART for v2 features
-- [ ] Final test count verification + docs update
+- [x] Update `seedDemoData()` in `src/lib/demo-data.ts` for full v2 demo:
+  - [x] Multiple tournaments (one active "Spain 2026", one past "Portugal 2025")
+  - [x] 12–16 players with varied handicaps
+  - [x] 3 rounds with different statuses (completed, active, upcoming)
+  - [x] Teams configured for scramble/best ball rounds
+  - [x] Scores entered for completed + partially for active round
+  - [x] Side events spread across rounds (birdies, eagles, snakes, snopp, NTP, etc.)
+  - [x] Penalties, bets (pending, accepted, resolved, paid), announcements
+  - [x] Trophy-worthy data (clear leaders in each category)
+- [x] `clearDemoData()` resets all stores cleanly
+- [x] `isDemoSeeded()` check still works
+- [x] Dev-only seed/clear buttons remain on Feed page
+- [x] Verify all admin/player guards work end-to-end
+- [x] Empty states for no-active-tournament, no-active-round
+- [x] Accessibility pass on new components
+- [x] Performance pass (grid rendering, large feeds)
+- [x] Update README + QUICKSTART for v2 features
+- [x] Final test count verification (342 tests, 21 files) + docs update

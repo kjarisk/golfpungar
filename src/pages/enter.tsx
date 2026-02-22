@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -143,12 +143,24 @@ export function EnterPage() {
   }
 
   // Create scorecards lazily when we have a round with participants
+  // Uses a ref to track which rounds have been initialized, avoiding setState during render
+  const initializedRoundsRef = useRef<Set<string>>(new Set())
   const hasParticipants = useTeamScorecards
     ? teams.length > 0
     : roundPlayers.length > 0
-  if (selectedRound && hasParticipants && scorecards.length === 0) {
-    ensureScorecards()
-  }
+
+  useEffect(() => {
+    if (
+      selectedRound &&
+      hasParticipants &&
+      scorecards.length === 0 &&
+      !initializedRoundsRef.current.has(selectedRound.id)
+    ) {
+      initializedRoundsRef.current.add(selectedRound.id)
+      ensureScorecards()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRound?.id, hasParticipants, scorecards.length])
 
   function handleRoundChange(roundId: string) {
     setSelectedRoundId(roundId)

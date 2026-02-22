@@ -56,6 +56,7 @@ import {
 export function LeaderboardsPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
+  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getAllRoundPoints = useScoringStore((s) => s.roundPoints)
   const allScorecards = useScoringStore((s) => s.scorecards)
@@ -200,8 +201,15 @@ export function LeaderboardsPage() {
       })
     : []
 
+  // Teams for the effective round (used to resolve team names in round leaderboard)
+  const roundTeams = effectiveRoundId ? getTeamsByRound(effectiveRoundId) : []
+
   function getPlayerName(playerId: string) {
-    return players.find((p) => p.id === playerId)?.displayName ?? 'Unknown'
+    const player = players.find((p) => p.id === playerId)
+    if (player) return player.displayName
+    const team = roundTeams.find((t) => t.id === playerId)
+    if (team) return team.name
+    return 'Unknown'
   }
 
   if (!tournament) {

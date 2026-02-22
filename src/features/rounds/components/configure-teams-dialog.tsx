@@ -286,8 +286,14 @@ export function ConfigureTeamsDialog({
                     ))}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Label className="sr-only">Team name</Label>
+                    <Label
+                      htmlFor={`team-name-${groupIndex}-${teamIndex}`}
+                      className="sr-only"
+                    >
+                      Team name
+                    </Label>
                     <Input
+                      id={`team-name-${groupIndex}-${teamIndex}`}
                       value={team.name}
                       onChange={(e) =>
                         handleTeamNameChange(

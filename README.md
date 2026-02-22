@@ -4,17 +4,31 @@ An invite-only golf trip tournament app for 12-20 players that tracks rounds, po
 
 ## Features
 
-- **Tournament management** -- create tournaments with name, dates, location
-- **Player management** -- invite players via email, group handicaps
+### Core
+
+- **Multi-tournament support** -- create and manage multiple tournaments; admin sets one as active, past tournaments browsable read-only
+- **Admin/player roles** -- admin controls tournament setup, rounds, players, announcements; players manage their own group data
+- **Player management** -- invite via email, group handicaps (changes logged in feed), auto-link invites to players by email
 - **Course import** -- upload CSV files to create courses with hole data
-- **Round creation** -- Scramble, Stableford, Best Ball, Handicap formats with group/team assignment
-- **Score entry** -- hole-by-hole grid or whole-round totals, auto-calculated standings
-- **Side events** -- birdies, eagles, snakes (3-putts), snopp (anger events), bunker saves, group longest drives, longest drive (meters + photo evidence), longest putt, nearest to pin, GIR
+
+### Rounds & Scoring
+
+- **Round management** -- Scramble, Stableford, Best Ball, Handicap formats; status flow (upcoming/active/completed); only one active round at a time
+- **Team configuration** -- 2-player teams within groups for Scramble/Best Ball; custom team names (changes appear in feed)
+- **Group-based score entry** -- spreadsheet grid (hole rows x player/team columns), tap cell for number pad, color-coded cells, side event icons inline
+- **Auto-calculated standings** -- gross, net, stableford points, placings, all recalculated on every score change
+
+### Side Events & Competitions
+
+- **Side events** -- birdies, eagles, snakes (3-putts), snopp (anger events), bunker saves, group longest drives, longest drive (meters + photo), longest putt, nearest to pin, GIR
 - **Penalties** -- manual penalty ledger with "Penalty King" leaderboard
-- **Betting** -- peer-to-peer bets (round or tournament scope), accept/reject flow, winner resolution, paid confirmation
+- **Betting** -- peer-to-peer bets (round or tournament scope), accept/reject flow, winner resolution, dual-party paid confirmation; organized into round/tournament/settled sections
 - **Trophies** -- auto-generated trophy standings ("Road to Winner") from points, side events, penalties, and bets
-- **Leaderboards** -- total points, round standings, gross/net totals, side competition rankings, penalty king, biggest bettor
-- **Live feed** -- real-time event stream with toast notifications
+
+### Leaderboards & Feed
+
+- **Leaderboards** -- total points, round standings, gross/net totals, side competition rankings, penalty king, biggest bettor; tap any player to expand full scorecard with side event icons
+- **Live feed** -- chronological event stream with animated announcement cards for notable events (birdie, eagle, hole-in-one), admin announcement posting, active round leaders card
 
 ## Getting Started
 
@@ -32,7 +46,13 @@ npm run dev
 
 The app starts at `http://localhost:5173` with a test account auto-logged in.
 
-Click **"Seed Demo Data"** on the Feed page to populate sample rounds, scores, side events, penalties, and bets.
+Click **"Seed Demo Data"** on the Feed page to populate a full v2 demo:
+
+- 2 tournaments ("Spain 2026" active, "Portugal 2025" past)
+- 14 players with varied handicaps
+- 3 rounds (completed, active with partial scores, upcoming) + teams for scramble rounds
+- Side events, penalties, bets, announcements, and feed events
+- Use the role switcher (admin/player) on the Feed page to see different permission levels
 
 ### Commands
 
@@ -55,7 +75,7 @@ Click **"Seed Demo Data"** on the Feed page to populate sample rounds, scores, s
 - TanStack Query (server state -- wired to Supabase later)
 - Zustand (client/UI state + mock data stores)
 - React Router v7 (5-tab bottom navigation)
-- Vitest + Testing Library (221+ tests)
+- Vitest + Testing Library (342 tests)
 
 ## Project Structure
 
@@ -64,17 +84,17 @@ src/
   components/ui/          # shadcn/ui primitives
   components/             # shared components (app-shell, error-boundary)
   features/
-    auth/                 # mock auth (test account)
-    tournament/           # tournament CRUD + store
-    players/              # player CRUD + invite logic
+    auth/                 # auth with admin/player roles
+    tournament/           # multi-tournament CRUD + active selection
+    players/              # player CRUD + invite linking
     courses/              # CSV parser + course store
-    rounds/               # round creation + groups/teams
-    scoring/              # score entry, points calc, standings
+    rounds/               # rounds, groups, teams, status management
+    scoring/              # group-based score grid, points calc, scorecard detail
     side-events/          # side event logging, evidence gallery
     penalties/            # penalty ledger + "Penalty King"
-    betting/              # peer-to-peer bets, accept/reject/resolve/paid
+    betting/              # peer-to-peer bets (round/tournament/settled sections)
     trophies/             # trophy standings, "Road to Winner"
-    feed/                 # live feed store
+    feed/                 # live feed, announcements, notable event banners
   lib/                    # shared utils (leaderboard-calc, demo-data)
   pages/                  # route pages (feed, enter, leaderboards, rounds, players)
   test/                   # test setup
@@ -130,6 +150,6 @@ Sample files available in `docs/csv-examples/`:
 
 ## Current Status
 
-All phases (0-11) complete. All core features built with mock data stores. Backend (Supabase) integration deferred.
+All phases (0-22) complete. v2 features include admin/player roles, multi-tournament, round status management, group-based score entry grid, team configuration, feed announcements with animated banners, scorecard detail views, and comprehensive demo data. All data is in Zustand mock stores. Backend (Supabase) integration deferred.
 
-See `docs/plan.md` for the full implementation plan.
+342 tests across 21 test files. See `docs/plan.md` for the full implementation plan.

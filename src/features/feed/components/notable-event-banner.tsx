@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useFeedStore } from '../state/feed-store'
 import type { NotableEvent } from '../types'
-import { Bird, Zap, Star, Crosshair } from 'lucide-react'
+import { Bird, Zap, Star, Crosshair, X } from 'lucide-react'
 
 const EVENT_CONFIG: Record<
   string,
@@ -48,6 +48,7 @@ const SLIDE_OUT_MS = 300
  *
  * Uses DOM manipulation for animation state to avoid setState-in-effect lint issues.
  * The banner ref is animated via className toggling directly.
+ * Respects prefers-reduced-motion by skipping animation delays.
  */
 export function NotableEventBanner() {
   const notableEvents = useFeedStore((s) => s.notableEvents)
@@ -60,6 +61,20 @@ export function NotableEventBanner() {
     timersRef.current.forEach(clearTimeout)
     timersRef.current = []
   }, [])
+
+  /** Manually dismiss the current event */
+  const handleDismiss = useCallback(() => {
+    if (!activeIdRef.current) return
+    clearTimers()
+    const el = bannerRef.current
+    if (el) el.dataset.visible = 'false'
+    const id = activeIdRef.current
+    const t = setTimeout(() => {
+      dismissNotableEvent(id)
+      activeIdRef.current = null
+    }, SLIDE_OUT_MS)
+    timersRef.current.push(t)
+  }, [clearTimers, dismissNotableEvent])
 
   const current: NotableEvent | undefined = notableEvents[0]
   const currentId = current?.id ?? null
@@ -116,11 +131,11 @@ export function NotableEventBanner() {
       role="status"
       aria-live="assertive"
       data-visible="false"
-      className={`overflow-hidden rounded-xl shadow-lg transition-all duration-300 ease-out data-[visible=true]:translate-y-0 data-[visible=true]:scale-100 data-[visible=true]:opacity-100 data-[visible=false]:-translate-y-4 data-[visible=false]:scale-95 data-[visible=false]:opacity-0 ${config.bg}`}
+      className={`overflow-hidden rounded-xl shadow-lg transition-all duration-300 ease-out motion-reduce:transition-none data-[visible=true]:translate-y-0 data-[visible=true]:scale-100 data-[visible=true]:opacity-100 data-[visible=false]:-translate-y-4 data-[visible=false]:scale-95 data-[visible=false]:opacity-0 ${config.bg}`}
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/20">
-          <Icon className={`size-5 ${config.text}`} />
+          <Icon className={`size-5 ${config.text}`} aria-hidden="true" />
         </div>
         <div className="min-w-0 flex-1">
           <p className={`text-xs font-bold tracking-wider ${config.text}`}>
@@ -137,6 +152,14 @@ export function NotableEventBanner() {
             +{notableEvents.length - 1}
           </span>
         )}
+        <button
+          type="button"
+          onClick={handleDismiss}
+          className={`flex size-7 shrink-0 items-center justify-center rounded-full bg-white/20 transition-colors hover:bg-white/30 ${config.text}`}
+          aria-label="Dismiss notification"
+        >
+          <X className="size-4" aria-hidden="true" />
+        </button>
       </div>
     </div>
   )

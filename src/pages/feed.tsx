@@ -142,6 +142,7 @@ export function FeedPage() {
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
+  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
   const getEventsByTournament = useSideEventsStore(
@@ -191,11 +192,15 @@ export function FeedPage() {
     )
     const roundSCs = getScorecardsByRound(activeRound.id)
     const leaderboard = computeRoundLeaderboard(roundRPs, roundSCs)
+    const teams = getTeamsByRound(activeRound.id)
     return leaderboard.slice(0, 5).map((entry) => {
       const player = players.find((p) => p.id === entry.participantId)
+      const team = !player
+        ? teams.find((t) => t.id === entry.participantId)
+        : undefined
       return {
         ...entry,
-        displayName: player?.displayName ?? 'Unknown',
+        displayName: player?.displayName ?? team?.name ?? 'Unknown',
       }
     })
   })()
