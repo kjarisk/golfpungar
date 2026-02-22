@@ -12,7 +12,6 @@ interface PlayersState {
   invites: Invite[]
 
   // Derived
-  getPlayersByTournament: (tournamentId: string) => Player[]
   getActivePlayers: (tournamentId: string) => Player[]
   getInvitesByTournament: (tournamentId: string) => Invite[]
   getPlayerByEmail: (tournamentId: string, email: string) => Player | undefined
@@ -134,9 +133,6 @@ function autoLinkInviteToPlayer(invites: Invite[], player: Player): Invite[] {
 export const usePlayersStore = create<PlayersState>((set, get) => ({
   players: MOCK_PLAYERS,
   invites: MOCK_INVITES,
-
-  getPlayersByTournament: (tournamentId) =>
-    get().players.filter((p) => p.tournamentId === tournamentId),
 
   getActivePlayers: (tournamentId) =>
     get().players.filter((p) => p.tournamentId === tournamentId && p.active),

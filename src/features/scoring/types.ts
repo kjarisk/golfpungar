@@ -30,21 +30,3 @@ export interface RoundPoints {
   /** Points awarded based on the round's points config */
   pointsAwarded: number
 }
-
-export interface CreateScorecardInput {
-  roundId: string
-  playerId?: string
-  teamId?: string
-  holesPlayed: 9 | 18
-}
-
-export interface UpdateStrokesInput {
-  scorecardId: string
-  holeNumber: number
-  strokes: number | null
-}
-
-export interface SetTotalInput {
-  scorecardId: string
-  grossTotal: number
-}

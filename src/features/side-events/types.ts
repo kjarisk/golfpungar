@@ -57,12 +57,6 @@ export interface CreateSideEventInput {
   createdByPlayerId: string
 }
 
-/** Input for adding evidence image */
-export interface AddEvidenceInput {
-  sideEventLogId: string
-  imageUrl: string
-}
-
 /** Summary of side event counts per player */
 export interface SideEventTotals {
   playerId: string

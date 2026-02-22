@@ -1,7 +1,6 @@
 // Public API for the side-events feature
 export { useSideEventsStore } from './state/side-events-store'
 export { SideEventLogger } from './components/side-event-logger'
-export { HoleSelector } from './components/hole-selector'
 export { EvidenceGallery } from './components/evidence-gallery'
 export type {
   SideEventLog,

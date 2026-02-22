@@ -39,15 +39,6 @@ describe('Players Store', () => {
     expect(players[0].displayName).toBe('Kjartan')
   })
 
-  it('filters players by tournament', () => {
-    const { getPlayersByTournament } = usePlayersStore.getState()
-    const players = getPlayersByTournament('tournament-001')
-    expect(players).toHaveLength(2)
-
-    const noPlayers = getPlayersByTournament('nonexistent')
-    expect(noPlayers).toHaveLength(0)
-  })
-
   it('returns only active players', () => {
     usePlayersStore.getState().removePlayer('player-002')
     const active = usePlayersStore.getState().getActivePlayers('tournament-001')
