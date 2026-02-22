@@ -1,6 +1,9 @@
+import { Suspense } from 'react'
 import { Outlet, NavLink } from 'react-router'
 import { Newspaper, PenLine, Trophy, Flag, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ErrorBoundary } from '@/components/error-boundary'
+import { PageSkeleton } from '@/components/page-skeleton'
 
 const navItems = [
   { to: '/feed', label: 'Feed', icon: Newspaper },
@@ -15,14 +18,21 @@ export function AppShell() {
     <div className="bg-background flex min-h-svh flex-col">
       {/* Page content area — scrollable, with bottom padding for nav */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-20">
-        <div className="mx-auto w-full max-w-lg">
-          <Outlet />
+        <div className="mx-auto w-full max-w-lg md:max-w-2xl">
+          <ErrorBoundary>
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </div>
       </main>
 
       {/* Bottom navigation */}
-      <nav className="bg-card border-border fixed inset-x-0 bottom-0 z-50 border-t">
-        <div className="mx-auto flex max-w-lg items-center justify-around">
+      <nav
+        aria-label="Main navigation"
+        className="bg-card border-border fixed inset-x-0 bottom-0 z-50 border-t"
+      >
+        <div className="mx-auto flex max-w-lg items-center justify-around md:max-w-2xl">
           {navItems.map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
@@ -36,7 +46,7 @@ export function AppShell() {
                 )
               }
             >
-              <Icon className="size-5" />
+              <Icon className="size-5" aria-hidden="true" />
               <span>{label}</span>
             </NavLink>
           ))}

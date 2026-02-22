@@ -163,66 +163,83 @@ export function LeaderboardsPage() {
 
         {/* --- Round Tab --- */}
         <TabsContent value="round" className="flex flex-col gap-3">
-          {/* Round selector */}
-          {rounds.length > 0 && (
-            <Select value={effectiveRoundId} onValueChange={setSelectedRoundId}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select round" />
-              </SelectTrigger>
-              <SelectContent>
-                {rounds.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Medal className="size-4" />
-                Round Standings
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {roundLeaderboard.length === 0 ? (
-                <EmptyState message="No scores entered for this round yet." />
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {roundLeaderboard.map((entry) => (
-                    <div
-                      key={entry.participantId}
-                      className="flex items-center gap-3 rounded-md px-2 py-2"
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.participantId)}
-                      </span>
-                      <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
-                        {entry.grossTotal > 0 && (
-                          <span>{entry.grossTotal} gross</span>
-                        )}
-                        {entry.netTotal != null && (
-                          <span>{entry.netTotal} net</span>
-                        )}
-                        {entry.stablefordPoints != null && (
-                          <span>{entry.stablefordPoints} stb</span>
-                        )}
-                      </div>
-                      <Badge
-                        variant="default"
-                        className="min-w-[3rem] justify-center tabular-nums text-xs"
-                      >
-                        {entry.pointsAwarded}p
-                      </Badge>
-                    </div>
+          {rounds.length === 0 ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Medal className="size-4" />
+                  Round Standings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <EmptyState message="No rounds created yet. Go to the Rounds tab to create one." />
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Round selector */}
+              <Select
+                value={effectiveRoundId}
+                onValueChange={setSelectedRoundId}
+              >
+                <SelectTrigger className="w-full" aria-label="Select round">
+                  <SelectValue placeholder="Select round" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rounds.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
                   ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                </SelectContent>
+              </Select>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Medal className="size-4" />
+                    Round Standings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {roundLeaderboard.length === 0 ? (
+                    <EmptyState message="No scores entered for this round yet." />
+                  ) : (
+                    <div className="flex flex-col gap-0.5">
+                      {roundLeaderboard.map((entry) => (
+                        <div
+                          key={entry.participantId}
+                          className="flex items-center gap-3 rounded-md px-2 py-2"
+                        >
+                          <PlacingBadge placing={entry.placing} />
+                          <span className="flex-1 truncate text-sm font-medium">
+                            {getPlayerName(entry.participantId)}
+                          </span>
+                          <div className="text-muted-foreground flex items-center gap-2 text-xs tabular-nums">
+                            {entry.grossTotal > 0 && (
+                              <span>{entry.grossTotal} gross</span>
+                            )}
+                            {entry.netTotal != null && (
+                              <span>{entry.netTotal} net</span>
+                            )}
+                            {entry.stablefordPoints != null && (
+                              <span>{entry.stablefordPoints} stb</span>
+                            )}
+                          </div>
+                          <Badge
+                            variant="default"
+                            className="min-w-[3rem] justify-center tabular-nums text-xs"
+                          >
+                            {entry.pointsAwarded}p
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
         </TabsContent>
 
         {/* --- Side Competitions Tab --- */}

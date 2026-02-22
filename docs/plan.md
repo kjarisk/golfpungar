@@ -76,10 +76,10 @@
 
 ## Phase 6 -- Polish + hardening
 
-- [ ] Loading + error states on every screen
-- [ ] Empty states with helpful messages
-- [ ] Accessibility pass (keyboard/focus, labels, ARIA)
-- [ ] Performance pass (avoid unnecessary rerenders)
-- [ ] Responsive polish (desktop + mobile)
-- [ ] README with run instructions + CSV format
-- [ ] Final cleanup + docs
+- [x] Loading + error states on every screen
+- [x] Empty states with helpful messages
+- [x] Accessibility pass (keyboard/focus, labels, ARIA)
+- [x] Performance pass (avoid unnecessary rerenders)
+- [x] Responsive polish (desktop + mobile)
+- [x] README with run instructions + CSV format
+- [x] Final cleanup + docs

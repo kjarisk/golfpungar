@@ -158,12 +158,12 @@ export function FeedPage() {
           <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
             {tournament.location && (
               <span className="flex items-center gap-1">
-                <MapPin className="size-3.5" />
+                <MapPin className="size-3.5" aria-hidden="true" />
                 {tournament.location}
               </span>
             )}
             <span className="flex items-center gap-1">
-              <Calendar className="size-3.5" />
+              <Calendar className="size-3.5" aria-hidden="true" />
               {formatDateRange(tournament.startDate, tournament.endDate)}
             </span>
           </div>
@@ -180,7 +180,7 @@ export function FeedPage() {
             No active tournament. Create one to get started.
           </p>
           <Button onClick={() => setShowCreate(true)} className="w-fit">
-            <Plus className="size-4" />
+            <Plus className="size-4" aria-hidden="true" />
             Create Tournament
           </Button>
         </div>
@@ -191,21 +191,33 @@ export function FeedPage() {
         <div className="grid grid-cols-3 gap-3">
           <Card>
             <CardContent className="flex flex-col items-center pt-4 pb-3">
-              <Users className="text-primary mb-1 size-5" />
+              <Users className="text-primary mb-1 size-5" aria-hidden="true" />
               <p className="text-2xl font-bold">{playerCount}</p>
-              <p className="text-muted-foreground text-xs">Players</p>
+              <p className="text-muted-foreground text-xs">
+                {playerCount === 0 ? (
+                  <span className="text-amber-600">Add players</span>
+                ) : (
+                  'Players'
+                )}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center pt-4 pb-3">
-              <Flag className="text-primary mb-1 size-5" />
+              <Flag className="text-primary mb-1 size-5" aria-hidden="true" />
               <p className="text-2xl font-bold">{roundCount}</p>
-              <p className="text-muted-foreground text-xs">Rounds</p>
+              <p className="text-muted-foreground text-xs">
+                {roundCount === 0 ? (
+                  <span className="text-amber-600">Create a round</span>
+                ) : (
+                  'Rounds'
+                )}
+              </p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center pt-4 pb-3">
-              <Trophy className="text-primary mb-1 size-5" />
+              <Trophy className="text-primary mb-1 size-5" aria-hidden="true" />
               <p className="text-2xl font-bold">{myPoints}</p>
               <p className="text-muted-foreground text-xs">Your Points</p>
             </CardContent>
@@ -228,12 +240,16 @@ export function FeedPage() {
             {unifiedFeed.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-8 text-center">
                 <p className="text-muted-foreground text-sm">No events yet</p>
-                <p className="text-muted-foreground/60 text-xs">
+                <p className="text-muted-foreground text-xs">
                   Birdies, snakes, and longest drives will show up here
                 </p>
               </div>
             ) : (
-              <div className="flex max-h-96 flex-col gap-1 overflow-y-auto">
+              <div
+                aria-live="polite"
+                role="log"
+                className="flex max-h-96 flex-col gap-1 overflow-y-auto"
+              >
                 {unifiedFeed.slice(0, 30).map((item) => {
                   const config = item.sideEventType
                     ? SIDE_EVENT_CONFIG[item.sideEventType]

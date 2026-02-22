@@ -127,9 +127,14 @@ export function EnterPage() {
       {/* Round selector */}
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-1 flex-col gap-1.5">
-          <label className="text-xs font-medium">Round</label>
+          <label className="text-xs font-medium" id="round-select-label">
+            Round
+          </label>
           <Select value={effectiveRoundId} onValueChange={handleRoundChange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger
+              className="w-full"
+              aria-labelledby="round-select-label"
+            >
               <SelectValue placeholder="Select round" />
             </SelectTrigger>
             <SelectContent>
@@ -141,21 +146,23 @@ export function EnterPage() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5" role="group" aria-label="Entry mode">
           <Button
             variant={entryMode === 'holes' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setEntryMode('holes')}
+            aria-pressed={entryMode === 'holes'}
           >
-            <Hash className="size-3.5" />
+            <Hash className="size-3.5" aria-hidden="true" />
             Holes
           </Button>
           <Button
             variant={entryMode === 'total' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setEntryMode('total')}
+            aria-pressed={entryMode === 'total'}
           >
-            <ClipboardList className="size-3.5" />
+            <ClipboardList className="size-3.5" aria-hidden="true" />
             Total
           </Button>
         </div>

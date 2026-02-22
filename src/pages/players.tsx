@@ -59,12 +59,17 @@ export function PlayersPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowInvite(true)}
+            aria-label="Invite players"
           >
-            <Mail className="size-4" />
+            <Mail className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Invite</span>
           </Button>
-          <Button size="sm" onClick={() => setShowAddPlayer(true)}>
-            <Plus className="size-4" />
+          <Button
+            size="sm"
+            onClick={() => setShowAddPlayer(true)}
+            aria-label="Add player"
+          >
+            <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Add</span>
           </Button>
         </div>

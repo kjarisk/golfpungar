@@ -90,6 +90,8 @@ export function ScoreEntryGrid({
               key={hole.holeNumber}
               type="button"
               onClick={() => openHole(idx)}
+              aria-label={`Hole ${hole.holeNumber}, Par ${hole.par}${strokes !== null ? `, ${strokes} strokes` : ', no score'}`}
+              aria-pressed={isActive}
               className={`flex min-w-[2.2rem] flex-1 flex-col items-center rounded-md border px-1 py-1.5 text-xs transition-all ${
                 isActive
                   ? 'ring-primary border-primary ring-2'
@@ -187,10 +189,15 @@ export function ScoreEntryGrid({
                 size="icon"
                 onClick={() => setPendingStrokes((s) => Math.max(1, s - 1))}
                 disabled={pendingStrokes <= 1}
+                aria-label="Decrease strokes"
               >
-                <Minus className="size-5" />
+                <Minus className="size-5" aria-hidden="true" />
               </Button>
-              <span className="w-12 text-center text-3xl font-bold tabular-nums">
+              <span
+                className="w-12 text-center text-3xl font-bold tabular-nums"
+                aria-live="polite"
+                role="status"
+              >
                 {pendingStrokes}
               </span>
               <Button
@@ -198,8 +205,9 @@ export function ScoreEntryGrid({
                 size="icon"
                 onClick={() => setPendingStrokes((s) => Math.min(15, s + 1))}
                 disabled={pendingStrokes >= 15}
+                aria-label="Increase strokes"
               >
-                <Plus className="size-5" />
+                <Plus className="size-5" aria-hidden="true" />
               </Button>
             </div>
 

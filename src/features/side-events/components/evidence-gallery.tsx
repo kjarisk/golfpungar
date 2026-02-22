@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useSideEventsStore } from '../state/side-events-store'
@@ -21,6 +21,22 @@ export function EvidenceGallery({
   const getEventsByType = useSideEventsStore((s) => s.getEventsByType)
   const getImagesForEvent = useSideEventsStore((s) => s.getImagesForEvent)
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  const closeLightbox = useCallback(() => setLightboxUrl(null), [])
+
+  // Focus close button when lightbox opens + handle Escape key
+  useEffect(() => {
+    if (!lightboxUrl) return
+
+    closeButtonRef.current?.focus()
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLightbox()
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [lightboxUrl, closeLightbox])
 
   // Get all longest_drive_meters events with images
   const driveEvents = getEventsByType(tournamentId, 'longest_drive_meters')
@@ -104,18 +120,19 @@ export function EvidenceGallery({
       {lightboxUrl && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
-          onClick={() => setLightboxUrl(null)}
+          onClick={closeLightbox}
           role="dialog"
           aria-modal="true"
           aria-label="Drive evidence photo"
         >
           <button
+            ref={closeButtonRef}
             className="absolute top-4 right-4 rounded-full bg-white/20 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
-            onClick={() => setLightboxUrl(null)}
+            onClick={closeLightbox}
             type="button"
             aria-label="Close"
           >
-            <X className="size-5" />
+            <X className="size-5" aria-hidden="true" />
           </button>
           <img
             src={lightboxUrl}

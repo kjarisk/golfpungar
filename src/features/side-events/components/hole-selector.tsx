@@ -26,7 +26,11 @@ export function HoleSelector({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div
+      className="flex flex-col gap-1.5"
+      role="group"
+      aria-label="Hole selector"
+    >
       {/* Front 9 */}
       <div className="grid grid-cols-9 gap-1">
         {frontNine.map((hole) => (
@@ -35,6 +39,8 @@ export function HoleSelector({
             type="button"
             disabled={isDisabled(hole)}
             onClick={() => onSelectHole(hole)}
+            aria-label={`Hole ${hole}`}
+            aria-pressed={selectedHole === hole}
             className={cn(
               'relative flex h-8 w-full items-center justify-center rounded-md text-xs font-medium transition-colors',
               selectedHole === hole
@@ -46,7 +52,10 @@ export function HoleSelector({
           >
             {hole}
             {markedHoles.includes(hole) && (
-              <span className="bg-primary absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+              <>
+                <span className="bg-primary absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+                <span className="sr-only">(has events)</span>
+              </>
             )}
           </button>
         ))}
@@ -61,6 +70,8 @@ export function HoleSelector({
               type="button"
               disabled={isDisabled(hole)}
               onClick={() => onSelectHole(hole)}
+              aria-label={`Hole ${hole}`}
+              aria-pressed={selectedHole === hole}
               className={cn(
                 'relative flex h-8 w-full items-center justify-center rounded-md text-xs font-medium transition-colors',
                 selectedHole === hole
@@ -72,7 +83,10 @@ export function HoleSelector({
             >
               {hole}
               {markedHoles.includes(hole) && (
-                <span className="bg-primary absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+                <>
+                  <span className="bg-primary absolute -top-0.5 -right-0.5 size-1.5 rounded-full" />
+                  <span className="sr-only">(has events)</span>
+                </>
               )}
             </button>
           ))}

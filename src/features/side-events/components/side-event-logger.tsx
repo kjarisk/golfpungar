@@ -227,7 +227,7 @@ export function SideEventLogger({
       <CardContent className="flex flex-col gap-4">
         {/* Player selector */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium">Player</label>
+          <span className="text-xs font-medium">Player</span>
           <Select value={effectivePlayerId} onValueChange={setSelectedPlayerId}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select player" />
@@ -245,7 +245,7 @@ export function SideEventLogger({
 
         {/* Hole selector */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium">Hole</label>
+          <span className="text-xs font-medium">Hole</span>
           <HoleSelector
             holesPlayed={holesPlayed}
             selectedHole={selectedHole}
@@ -256,7 +256,7 @@ export function SideEventLogger({
 
         {/* Quick action buttons */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-medium">Quick Actions</label>
+          <span className="text-xs font-medium">Quick Actions</span>
           <div className="grid grid-cols-4 gap-2">
             {EVENT_BUTTONS.map((btn) => {
               const Icon = btn.icon
@@ -285,12 +285,13 @@ export function SideEventLogger({
         {/* Longest drive meters input (shown when tapping "Longest Drive") */}
         {showDriveInput && (
           <div className="bg-muted/50 flex flex-col gap-2 rounded-lg p-3">
-            <label className="text-xs font-medium">
+            <label htmlFor="drive-meters" className="text-xs font-medium">
               Longest Drive — Enter distance
             </label>
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Input
+                  id="drive-meters"
                   type="number"
                   placeholder="e.g. 285"
                   value={driveMeters}
@@ -345,9 +346,9 @@ export function SideEventLogger({
         {/* Recent events for this round */}
         {roundEvents.length > 0 && (
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium">
+            <span className="text-xs font-medium">
               Recent Events ({roundEvents.length})
-            </label>
+            </span>
             <div className="flex max-h-32 flex-col gap-0.5 overflow-y-auto">
               {[...roundEvents]
                 .sort(

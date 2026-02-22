@@ -86,16 +86,18 @@ export function RoundsPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowImport(true)}
+            aria-label="Import Course"
           >
-            <Upload className="size-4" />
+            <Upload className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Import Course</span>
           </Button>
           <Button
             size="sm"
             onClick={() => setShowCreateRound(true)}
             disabled={courses.length === 0}
+            aria-label="New Round"
           >
-            <Plus className="size-4" />
+            <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">New Round</span>
           </Button>
         </div>
@@ -185,7 +187,7 @@ export function RoundsPage() {
                     </div>
 
                     {/* Groups */}
-                    {groups.length > 0 && (
+                    {groups.length > 0 ? (
                       <div className="flex flex-col gap-2">
                         <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
                           <Users className="size-3" />
@@ -218,6 +220,10 @@ export function RoundsPage() {
                           ))}
                         </div>
                       </div>
+                    ) : (
+                      <p className="text-muted-foreground text-xs">
+                        No groups assigned to this round yet.
+                      </p>
                     )}
                   </CardContent>
                 </Card>
