@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -163,9 +164,9 @@ export function GroupScoreGrid({
   const setHoleStroke = useScoringStore((s) => s.setHoleStroke)
   const logEvent = useSideEventsStore((s) => s.logEvent)
   const removeEvent = useSideEventsStore((s) => s.removeEvent)
-  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
+  const allSideEvents = useSideEventsStore((s) => s.events)
 
-  const roundEvents = getEventsByRound(roundId)
+  const roundEvents = allSideEvents.filter((e) => e.roundId === roundId)
 
   // Build participant list (players or teams)
   const participants: Participant[] =
@@ -607,9 +608,9 @@ export function GroupScoreGrid({
                 <DialogTitle className="text-center">
                   Hole {overlayHole.holeNumber}
                 </DialogTitle>
-                <p className="text-muted-foreground text-center text-sm">
+                <DialogDescription className="text-center text-sm">
                   Par {overlayHole.par} &middot; SI {overlayHole.strokeIndex}
-                </p>
+                </DialogDescription>
               </DialogHeader>
 
               {/* Player tabs */}

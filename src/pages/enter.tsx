@@ -50,12 +50,12 @@ export function EnterPage() {
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
-  const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
+  const allScorecards = useScoringStore((s) => s.scorecards)
+  const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
   const createScorecard = useScoringStore((s) => s.createScorecard)
   const recalculatePoints = useScoringStore((s) => s.recalculatePoints)
-  const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
   const authUser = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
 
@@ -82,8 +82,12 @@ export function EnterPage() {
   const coursePar = holes.reduce((s, h) => s + h.par, 0)
   const groups = selectedRound ? getGroupsByRound(selectedRound.id) : []
   const teams = selectedRound ? getTeamsByRound(selectedRound.id) : []
-  const scorecards = selectedRound ? getScorecardsByRound(selectedRound.id) : []
-  const roundPoints = selectedRound ? getPointsByRound(selectedRound.id) : []
+  const scorecards = selectedRound
+    ? allScorecards.filter((sc) => sc.roundId === selectedRound.id)
+    : []
+  const roundPoints = selectedRound
+    ? allRoundPoints.filter((rp) => rp.roundId === selectedRound.id)
+    : []
 
   const isTeamFormat =
     selectedRound?.format === 'scramble' || selectedRound?.format === 'bestball'
