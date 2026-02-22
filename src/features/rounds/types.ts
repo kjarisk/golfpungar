@@ -10,6 +10,8 @@ export interface Round {
   format: RoundFormat
   holesPlayed: 9 | 18
   status: RoundStatus
+  /** Soft-deleted rounds are hidden from players but visible to admin */
+  deleted?: boolean
   createdAt: string
 }
 

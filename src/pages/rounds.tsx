@@ -4,6 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { useTournamentStore } from '@/features/tournament'
 import { useCoursesStore } from '@/features/courses'
 import { CourseCard } from '@/features/courses/components/course-card'
@@ -24,6 +29,8 @@ import {
   RotateCcw,
   Pencil,
   Trash2,
+  ChevronDown,
+  Undo2,
 } from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { sortRounds } from '@/features/rounds/lib/sort-rounds'
@@ -61,11 +68,14 @@ export function RoundsPage() {
   const getTeams = useRoundsStore((s) => s.getTeamsByRound)
   const setRoundStatus = useRoundsStore((s) => s.setRoundStatus)
   const removeRound = useRoundsStore((s) => s.removeRound)
+  const getDeletedRounds = useRoundsStore((s) => s.getDeletedRounds)
+  const restoreRound = useRoundsStore((s) => s.restoreRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
 
   const courses = tournament ? getCoursesByTournament(tournament.id) : []
   const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
   const rounds = sortRounds(rawRounds)
+  const deletedRounds = tournament ? getDeletedRounds(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
 
   const [showImport, setShowImport] = useState(false)
@@ -388,6 +398,52 @@ export function RoundsPage() {
                 </Card>
               )
             })
+          )}
+
+          {/* Deleted rounds section (admin only) */}
+          {isAdmin && deletedRounds.length > 0 && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground h-8 w-full justify-start gap-2 text-xs"
+                >
+                  <ChevronDown className="size-3 transition-transform [[data-state=open]_&]:rotate-180" />
+                  <Trash2 className="size-3" />
+                  Deleted rounds ({deletedRounds.length})
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2 flex flex-col gap-2">
+                {deletedRounds.map((round) => {
+                  const course = courses.find((c) => c.id === round.courseId)
+                  return (
+                    <Card key={round.id} className="border-dashed opacity-60">
+                      <CardContent className="flex items-center justify-between py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm font-medium">
+                            {round.name}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            {course?.name ?? 'Unknown course'} &middot;{' '}
+                            {FORMAT_LABELS[round.format]} &middot;{' '}
+                            {round.holesPlayed}H
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => restoreRound(round.id)}
+                          className="h-7 gap-1 text-xs"
+                        >
+                          <Undo2 className="size-3" />
+                          Restore
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </TabsContent>
 

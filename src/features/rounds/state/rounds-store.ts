@@ -12,9 +12,15 @@ export interface UpdateRoundInput {
   dateTime?: string
   format?: Round['format']
   holesPlayed?: Round['holesPlayed']
+  courseId?: string
 }
 
 export interface AddTeamInput {
+  name: string
+  playerIds: string[]
+}
+
+export interface UpdateGroupInput {
   name: string
   playerIds: string[]
 }
@@ -30,12 +36,15 @@ interface RoundsState {
   getTeamsByRound: (roundId: string) => Team[]
   getActiveRound: (tournamentId: string) => Round | undefined
   getTeamForPlayer: (roundId: string, playerId: string) => Team | undefined
+  getDeletedRounds: (tournamentId: string) => Round[]
 
   // Actions
   createRound: (tournamentId: string, input: CreateRoundInput) => Round
   updateRound: (roundId: string, input: UpdateRoundInput) => void
+  updateGroups: (roundId: string, groupInputs: UpdateGroupInput[]) => void
   setRoundStatus: (roundId: string, status: RoundStatus) => void
   removeRound: (id: string) => void
+  restoreRound: (id: string) => void
   addTeamsToRound: (roundId: string, teams: AddTeamInput[]) => Team[]
   updateTeamName: (teamId: string, name: string) => void
   removeTeam: (teamId: string) => void
@@ -52,7 +61,7 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
   teams: [],
 
   getRoundsByTournament: (tournamentId) =>
-    get().rounds.filter((r) => r.tournamentId === tournamentId),
+    get().rounds.filter((r) => r.tournamentId === tournamentId && !r.deleted),
 
   getGroupsByRound: (roundId) =>
     get().groups.filter((g) => g.roundId === roundId),
@@ -62,13 +71,17 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
 
   getActiveRound: (tournamentId) =>
     get().rounds.find(
-      (r) => r.tournamentId === tournamentId && r.status === 'active'
+      (r) =>
+        r.tournamentId === tournamentId && r.status === 'active' && !r.deleted
     ),
 
   getTeamForPlayer: (roundId, playerId) =>
     get().teams.find(
       (t) => t.roundId === roundId && t.playerIds.includes(playerId)
     ),
+
+  getDeletedRounds: (tournamentId) =>
+    get().rounds.filter((r) => r.tournamentId === tournamentId && r.deleted),
 
   createRound: (tournamentId, input) => {
     const roundId = `round-${String(nextRoundId++).padStart(3, '0')}`
@@ -142,11 +155,36 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
     })
   },
 
+  updateGroups: (roundId, groupInputs) => {
+    set((state) => {
+      // Remove old groups for this round
+      const otherGroups = state.groups.filter((g) => g.roundId !== roundId)
+      // Create new groups
+      const newGroups: Group[] = groupInputs.map((g) => ({
+        id: `group-${String(nextGroupId++).padStart(3, '0')}`,
+        roundId,
+        name: g.name,
+        playerIds: g.playerIds,
+      }))
+      return { groups: [...otherGroups, ...newGroups] }
+    })
+  },
+
   removeRound: (id) => {
     set((state) => ({
-      rounds: state.rounds.filter((r) => r.id !== id),
-      groups: state.groups.filter((g) => g.roundId !== id),
-      teams: state.teams.filter((t) => t.roundId !== id),
+      rounds: state.rounds.map((r) =>
+        r.id === id
+          ? { ...r, deleted: true, status: 'upcoming' as RoundStatus }
+          : r
+      ),
+    }))
+  },
+
+  restoreRound: (id) => {
+    set((state) => ({
+      rounds: state.rounds.map((r) =>
+        r.id === id ? { ...r, deleted: false } : r
+      ),
     }))
   },
 

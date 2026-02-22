@@ -1,8 +1,13 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { toast } from 'sonner'
+import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import type { Scorecard, HoleStroke } from '@/features/scoring'
@@ -14,7 +19,6 @@ import { stablefordPointsForHole } from '@/features/scoring/lib/scoring-calc'
 import {
   Minus,
   Plus,
-  Check,
   X,
   Bird,
   Skull,
@@ -22,7 +26,8 @@ import {
   Zap,
   Star,
   CircleDot,
-  Target,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
 // --- Types ---
@@ -67,32 +72,6 @@ const SIDE_EVENT_ICONS: Record<
   gir: { icon: CircleDot, className: 'text-emerald-500' },
 }
 
-/** Inline quick-action buttons shown in the number pad for fast side event logging */
-const INLINE_SIDE_EVENTS: {
-  type: SideEventType
-  label: string
-  icon: typeof Bird
-  className: string
-}[] = [
-  { type: 'birdie', label: 'Birdie', icon: Bird, className: 'text-green-600' },
-  { type: 'eagle', label: 'Eagle', icon: Zap, className: 'text-yellow-500' },
-  { type: 'snake', label: 'Snake', icon: Skull, className: 'text-red-500' },
-  { type: 'snopp', label: 'Snopp', icon: Flame, className: 'text-red-700' },
-  { type: 'gir', label: 'GIR', icon: CircleDot, className: 'text-emerald-500' },
-  {
-    type: 'bunker_save',
-    label: 'Bunker',
-    icon: Target,
-    className: 'text-orange-500',
-  },
-  {
-    type: 'hio',
-    label: 'HIO',
-    icon: Star,
-    className: 'text-amber-400',
-  },
-]
-
 function getScoreCellClass(strokes: HoleStroke, par: number): string {
   if (strokes === null) return 'bg-muted/50 text-muted-foreground'
   const diff = strokes - par
@@ -102,6 +81,31 @@ function getScoreCellClass(strokes: HoleStroke, par: number): string {
   if (diff === 1)
     return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' // bogey
   return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' // double+
+}
+
+/** Human-readable label for a score relative to par */
+function getScoreLabel(strokes: number, par: number): string {
+  const diff = strokes - par
+  if (strokes === 1) return 'Hole in One'
+  if (diff <= -3) return 'Albatross'
+  if (diff === -2) return 'Eagle'
+  if (diff === -1) return 'Birdie'
+  if (diff === 0) return 'Par'
+  if (diff === 1) return 'Bogey'
+  if (diff === 2) return 'Double Bogey'
+  if (diff === 3) return 'Triple Bogey'
+  return `+${diff}`
+}
+
+/** CSS class for score label */
+function getScoreLabelClass(strokes: number, par: number): string {
+  const diff = strokes - par
+  if (strokes === 1) return 'text-amber-500 font-bold'
+  if (diff <= -2) return 'text-yellow-500 font-semibold'
+  if (diff === -1) return 'text-primary font-semibold'
+  if (diff === 0) return 'text-muted-foreground'
+  if (diff === 1) return 'text-orange-600'
+  return 'text-red-600'
 }
 
 function sumStrokes(strokes: HoleStroke[], from: number, to: number): number {
@@ -114,6 +118,33 @@ function sumStrokes(strokes: HoleStroke[], from: number, to: number): number {
 
 function computeSubtotalPar(holes: Hole[], from: number, to: number): number {
   return holes.slice(from, to).reduce((s, h) => s + h.par, 0)
+}
+
+// --- Auto-detection ---
+
+/** Side event types that are automatically derived from score vs par */
+const AUTO_DETECT_TYPES: SideEventType[] = [
+  'birdie',
+  'eagle',
+  'albatross',
+  'hio',
+]
+
+/**
+ * Given strokes and par, determine which auto-detectable side event (if any) applies.
+ * Returns null if the score doesn't qualify for any auto event.
+ */
+function getAutoEventType(
+  strokes: number | null,
+  par: number
+): SideEventType | null {
+  if (strokes === null) return null
+  if (strokes === 1) return 'hio'
+  const diff = strokes - par
+  if (diff <= -3) return 'albatross'
+  if (diff === -2) return 'eagle'
+  if (diff === -1) return 'birdie'
+  return null
 }
 
 // --- Component ---
@@ -130,8 +161,9 @@ export function GroupScoreGrid({
   currentPlayerId,
 }: GroupScoreGridProps) {
   const setHoleStroke = useScoringStore((s) => s.setHoleStroke)
-  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
   const logEvent = useSideEventsStore((s) => s.logEvent)
+  const removeEvent = useSideEventsStore((s) => s.removeEvent)
+  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
 
   const roundEvents = getEventsByRound(roundId)
 
@@ -171,140 +203,127 @@ export function GroupScoreGrid({
           })
           .filter((p) => p.scorecard)
 
-  // Active cell state: [holeIndex, participantIndex]
-  const [activeCell, setActiveCell] = useState<[number, number] | null>(null)
-  const [pendingStrokes, setPendingStrokes] = useState<number>(4)
+  // Overlay state: which hole is being edited, and which participant tab is active
+  const [overlayHoleIdx, setOverlayHoleIdx] = useState<number | null>(null)
+  const [overlayPIdx, setOverlayPIdx] = useState<number>(0)
 
   const totalHoles = holes.length
   const hasFront = totalHoles >= 9
   const hasBack = totalHoles > 9
 
-  // Scroll to number pad when active
-  const padRef = useRef<HTMLDivElement>(null)
   const gridRef = useRef<HTMLTableElement>(null)
-  useEffect(() => {
-    if (activeCell !== null && padRef.current) {
-      padRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-  }, [activeCell])
 
-  /** Keyboard navigation for the score grid (arrow keys + Enter/Escape) */
-  const handleGridKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (activeCell === null) return
-      const [holeIdx, pIdx] = activeCell
-      let nextHole = holeIdx
-      let nextP = pIdx
-
-      switch (e.key) {
-        case 'ArrowUp':
-          nextHole = Math.max(0, holeIdx - 1)
-          break
-        case 'ArrowDown':
-          nextHole = Math.min(holes.length - 1, holeIdx + 1)
-          break
-        case 'ArrowLeft':
-          nextP = Math.max(0, pIdx - 1)
-          break
-        case 'ArrowRight':
-          nextP = Math.min(participants.length - 1, pIdx + 1)
-          break
-        case 'Enter':
-          e.preventDefault()
-          confirmStroke()
-          return
-        case 'Escape':
-          e.preventDefault()
-          setActiveCell(null)
-          return
-        default:
-          return
-      }
-
-      if (nextHole !== holeIdx || nextP !== pIdx) {
-        e.preventDefault()
-        openCell(nextHole, nextP)
-      }
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activeCell, holes.length, participants.length]
-  )
-
-  function openCell(holeIndex: number, participantIndex: number) {
-    setActiveCell([holeIndex, participantIndex])
-    const p = participants[participantIndex]
-    if (!p) return
-    const existing = p.scorecard.holeStrokes[holeIndex]
-    setPendingStrokes(existing ?? holes[holeIndex].par)
+  function openOverlay(holeIndex: number, participantIndex: number) {
+    setOverlayHoleIdx(holeIndex)
+    setOverlayPIdx(participantIndex)
   }
 
-  function confirmStroke() {
-    if (activeCell === null) return
-    const [holeIdx, pIdx] = activeCell
-    const p = participants[pIdx]
-    if (!p) return
-
-    setHoleStroke(
-      p.scorecard.id,
-      holeIdx,
-      pendingStrokes,
-      holes,
-      p.handicap,
-      format
-    )
-
-    // Auto-advance: next participant in same hole, or first participant in next hole
-    const nextPIdx = pIdx + 1
-    if (nextPIdx < participants.length) {
-      openCell(holeIdx, nextPIdx)
-    } else {
-      const nextHole = holeIdx + 1
-      if (nextHole < holes.length) {
-        openCell(nextHole, 0)
-      } else {
-        setActiveCell(null)
-      }
-    }
+  function closeOverlay() {
+    setOverlayHoleIdx(null)
   }
 
-  function clearCell() {
-    if (activeCell === null) return
-    const [holeIdx, pIdx] = activeCell
-    const p = participants[pIdx]
-    if (!p) return
-    setHoleStroke(p.scorecard.id, holeIdx, null, holes, p.handicap, format)
-    setActiveCell(null)
+  /**
+   * Resolve the playerId for side event logging.
+   * For individual formats, it's the participant id.
+   * For team formats, use the first player in the team.
+   */
+  function resolvePlayerId(participantId: string): string {
+    const team = teams?.find((t) => t.id === participantId)
+    return team ? team.playerIds[0] : participantId
   }
 
-  /** Log a side event for the currently active cell's hole + participant */
-  function handleInlineSideEvent(eventType: SideEventType) {
-    if (activeCell === null) return
-    const [holeIdx, pIdx] = activeCell
-    const participant = participants[pIdx]
-    if (!participant) return
+  /**
+   * After a score change, sync auto-detectable side events (birdie/eagle/albatross/HIO).
+   * - Removes existing auto-events that no longer match the new score
+   * - Adds the correct auto-event if the score qualifies
+   */
+  function syncAutoSideEvents(
+    holeIdx: number,
+    participantId: string,
+    newStrokes: number | null
+  ) {
     const hole = holes[holeIdx]
     if (!hole) return
 
-    // For teams, log under the first player in the team
-    const team = teams?.find((t) => t.id === participant.id)
-    const playerId = team ? team.playerIds[0] : participant.id
+    const playerId = resolvePlayerId(participantId)
+    const holeNumber = hole.holeNumber
 
-    logEvent({
-      tournamentId,
-      roundId,
-      holeNumber: hole.holeNumber,
-      playerId,
-      type: eventType,
-      createdByPlayerId: currentPlayerId,
-    })
+    // Get current round events from store (fresh read)
+    const currentEvents = useSideEventsStore
+      .getState()
+      .getEventsByRound(roundId)
 
-    const config = INLINE_SIDE_EVENTS.find((e) => e.type === eventType)
-    toast(
-      `${participant.name} — ${config?.label ?? eventType} on #${hole.holeNumber}`,
-      {
-        duration: 2500,
-      }
+    // Find existing auto-detectable events for this hole + player
+    const existingAutoEvents = currentEvents.filter(
+      (e) =>
+        e.holeNumber === holeNumber &&
+        e.playerId === playerId &&
+        AUTO_DETECT_TYPES.includes(e.type)
     )
+
+    // Determine what auto-event the new score should produce
+    const expectedType = getAutoEventType(newStrokes, hole.par)
+
+    // Check if the correct event already exists
+    const alreadyCorrect = existingAutoEvents.some(
+      (e) => e.type === expectedType
+    )
+
+    if (alreadyCorrect && existingAutoEvents.length === 1) {
+      // Perfect — nothing to do
+      return
+    }
+
+    // Remove all existing auto-events that don't match
+    for (const evt of existingAutoEvents) {
+      if (evt.type !== expectedType) {
+        removeEvent(evt.id)
+      }
+    }
+
+    // Add the new auto-event if needed (and doesn't already exist)
+    if (expectedType && !alreadyCorrect) {
+      logEvent({
+        tournamentId,
+        roundId,
+        holeNumber,
+        playerId,
+        type: expectedType,
+        createdByPlayerId: currentPlayerId,
+      })
+    }
+  }
+
+  /** Auto-save: immediately persist the stroke value + sync side events */
+  function setStroke(holeIdx: number, pIdx: number, value: number | null) {
+    const p = participants[pIdx]
+    if (!p) return
+    setHoleStroke(p.scorecard.id, holeIdx, value, holes, p.handicap, format)
+    syncAutoSideEvents(holeIdx, p.id, value)
+  }
+
+  function incrementStroke(holeIdx: number, pIdx: number) {
+    const p = participants[pIdx]
+    if (!p) return
+    const current = p.scorecard.holeStrokes[holeIdx]
+    const newVal =
+      current !== null ? Math.min(15, current + 1) : holes[holeIdx].par
+    setStroke(holeIdx, pIdx, newVal)
+  }
+
+  function decrementStroke(holeIdx: number, pIdx: number) {
+    const p = participants[pIdx]
+    if (!p) return
+    const current = p.scorecard.holeStrokes[holeIdx]
+    if (current === null) {
+      setStroke(holeIdx, pIdx, holes[holeIdx].par)
+    } else if (current > 1) {
+      setStroke(holeIdx, pIdx, current - 1)
+    }
+  }
+
+  function clearStroke(holeIdx: number, pIdx: number) {
+    setStroke(holeIdx, pIdx, null)
   }
 
   /** Get side event icons for a specific hole + participant */
@@ -312,7 +331,6 @@ export function GroupScoreGrid({
     holeNumber: number,
     participantId: string
   ): SideEventLog[] {
-    // For teams, check events for any player on the team
     const team = teams?.find((t) => t.id === participantId)
     const playerIds = team ? team.playerIds : [participantId]
     return roundEvents.filter(
@@ -323,7 +341,6 @@ export function GroupScoreGrid({
   /** Truncate name for narrow columns */
   function shortName(name: string): string {
     if (name.length <= 8) return name
-    // For team names like "Player A & Player B", use initials
     if (name.includes(' & ')) {
       const parts = name.split(' & ')
       return parts.map((p) => p.charAt(0)).join('&')
@@ -352,8 +369,8 @@ export function GroupScoreGrid({
           {/* Player/team score cells */}
           {participants.map((p, pIdx) => {
             const strokes = p.scorecard.holeStrokes[holeIdx]
-            const isActive =
-              activeCell?.[0] === holeIdx && activeCell?.[1] === pIdx
+            const isHighlighted =
+              overlayHoleIdx === holeIdx && overlayPIdx === pIdx
             const events = getHoleEvents(hole.holeNumber, p.id)
             const uniqueTypes = [...new Set(events.map((e) => e.type))]
 
@@ -361,17 +378,11 @@ export function GroupScoreGrid({
               <td key={p.id} className="p-0" role="gridcell">
                 <button
                   type="button"
-                  onClick={() => openCell(holeIdx, pIdx)}
-                  tabIndex={
-                    isActive ||
-                    (activeCell === null && holeIdx === 0 && pIdx === 0)
-                      ? 0
-                      : -1
-                  }
+                  onClick={() => openOverlay(holeIdx, pIdx)}
+                  tabIndex={holeIdx === 0 && pIdx === 0 ? 0 : -1}
                   aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}`}
-                  aria-pressed={isActive}
                   className={`relative flex w-full min-w-[2.8rem] items-center justify-center px-1 py-1.5 text-sm font-bold tabular-nums transition-all ${
-                    isActive
+                    isHighlighted
                       ? 'ring-primary border-primary ring-2'
                       : 'hover:ring-primary/30 hover:ring-1'
                   } ${getScoreCellClass(strokes, hole.par)}`}
@@ -504,189 +515,273 @@ export function GroupScoreGrid({
     )
   }
 
-  const activeParticipant = activeCell ? participants[activeCell[1]] : null
-  const activeHole = activeCell ? holes[activeCell[0]] : null
+  const overlayParticipant =
+    overlayHoleIdx !== null ? participants[overlayPIdx] : null
+  const overlayHole = overlayHoleIdx !== null ? holes[overlayHoleIdx] : null
 
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Score Entry</CardTitle>
-          <div className="flex gap-1.5">
-            {participants.map((p) => (
-              <Badge
-                key={p.id}
-                variant="outline"
-                className="text-xs tabular-nums"
-              >
-                {shortName(p.name)}:{' '}
-                {p.scorecard.grossTotal > 0 ? p.scorecard.grossTotal : '\u2013'}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="overflow-x-auto px-0 pb-2">
-        <table
-          ref={gridRef}
-          role="grid"
-          aria-label="Score entry grid"
-          className="w-full border-collapse text-center"
-          onKeyDown={handleGridKeyDown}
-        >
-          <thead>
-            <tr className="bg-muted border-b">
-              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
-                #
-              </th>
-              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
-                Par
-              </th>
-              <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
-                SI
-              </th>
+    <>
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Score Entry</CardTitle>
+            <div className="flex gap-1.5">
               {participants.map((p) => (
-                <th
+                <Badge
                   key={p.id}
-                  scope="col"
-                  className="px-1 py-1.5 text-xs font-semibold"
+                  variant="outline"
+                  className="text-xs tabular-nums"
                 >
-                  <div className="flex flex-col items-center">
-                    <span className="truncate max-w-[4.5rem]">
-                      {shortName(p.name)}
-                    </span>
-                    <span className="text-muted-foreground text-[10px] font-normal">
-                      hcp {p.handicap}
-                    </span>
-                  </div>
-                </th>
+                  {shortName(p.name)}:{' '}
+                  {p.scorecard.grossTotal > 0
+                    ? p.scorecard.grossTotal
+                    : '\u2013'}
+                </Badge>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {/* Front 9 */}
-            {hasFront && renderHoleRows(holes.slice(0, 9))}
-            {hasFront && renderSubtotalRow('Out', 0, 9)}
-
-            {/* Back 9 */}
-            {hasBack && renderHoleRows(holes.slice(9, 18))}
-            {hasBack && renderSubtotalRow('In', 9, Math.min(18, totalHoles))}
-
-            {/* Totals */}
-            {renderTotalsRow()}
-          </tbody>
-        </table>
-
-        {/* Number pad input for active cell */}
-        {activeCell !== null && activeParticipant && activeHole && (
-          <div
-            ref={padRef}
-            className="bg-muted/50 mx-3 mt-3 flex flex-col items-center gap-3 rounded-lg border p-4"
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto px-0 pb-2">
+          <table
+            ref={gridRef}
+            role="grid"
+            aria-label="Score entry grid"
+            className="w-full border-collapse text-center"
           >
-            <div className="text-center">
-              <p className="text-sm font-medium">{activeParticipant.name}</p>
-              <p className="text-muted-foreground text-xs">
-                Hole {activeHole.holeNumber} &middot; Par {activeHole.par}{' '}
-                &middot; SI {activeHole.strokeIndex}
-              </p>
-              {format === 'stableford' && (
-                <p className="text-muted-foreground mt-0.5 text-[10px]">
-                  Stableford:{' '}
-                  {stablefordPointsForHole(
-                    pendingStrokes,
-                    activeHole.par,
-                    activeParticipant.handicap,
-                    activeHole.strokeIndex,
-                    totalHoles as 9 | 18
-                  )}{' '}
-                  pts
+            <thead>
+              <tr className="bg-muted border-b">
+                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                  #
+                </th>
+                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                  Par
+                </th>
+                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                  SI
+                </th>
+                {participants.map((p) => (
+                  <th
+                    key={p.id}
+                    scope="col"
+                    className="px-1 py-1.5 text-xs font-semibold"
+                  >
+                    <div className="flex flex-col items-center">
+                      <span className="max-w-[4.5rem] truncate">
+                        {shortName(p.name)}
+                      </span>
+                      <span className="text-muted-foreground text-[10px] font-normal">
+                        hcp {p.handicap}
+                      </span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {/* Front 9 */}
+              {hasFront && renderHoleRows(holes.slice(0, 9))}
+              {hasFront && renderSubtotalRow('Out', 0, 9)}
+
+              {/* Back 9 */}
+              {hasBack && renderHoleRows(holes.slice(9, 18))}
+              {hasBack && renderSubtotalRow('In', 9, Math.min(18, totalHoles))}
+
+              {/* Totals */}
+              {renderTotalsRow()}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      {/* Score Entry Overlay */}
+      <Dialog
+        open={overlayHoleIdx !== null}
+        onOpenChange={(open) => {
+          if (!open) closeOverlay()
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          {overlayHole && overlayParticipant && overlayHoleIdx !== null && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center">
+                  Hole {overlayHole.holeNumber}
+                </DialogTitle>
+                <p className="text-muted-foreground text-center text-sm">
+                  Par {overlayHole.par} &middot; SI {overlayHole.strokeIndex}
                 </p>
-              )}
-            </div>
+              </DialogHeader>
 
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPendingStrokes((s) => Math.max(1, s - 1))}
-                disabled={pendingStrokes <= 1}
-                aria-label="Decrease strokes"
-              >
-                <Minus className="size-5" aria-hidden="true" />
-              </Button>
-              <span
-                className="w-12 text-center text-3xl font-bold tabular-nums"
-                aria-live="polite"
-                role="status"
-              >
-                {pendingStrokes}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setPendingStrokes((s) => Math.min(15, s + 1))}
-                disabled={pendingStrokes >= 15}
-                aria-label="Increase strokes"
-              >
-                <Plus className="size-5" aria-hidden="true" />
-              </Button>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearCell}
-                className="text-muted-foreground"
-              >
-                <X className="size-4" />
-                Clear
-              </Button>
-              <Button size="sm" onClick={confirmStroke}>
-                <Check className="size-4" />
-                Confirm
-              </Button>
-            </div>
-
-            {/* Inline side event quick-actions */}
-            <div className="flex flex-col items-center gap-1.5 border-t pt-3">
-              <span className="text-muted-foreground text-[10px] font-medium uppercase tracking-wider">
-                Side Events
-              </span>
-              <div className="flex flex-wrap justify-center gap-1.5">
-                {INLINE_SIDE_EVENTS.map((evt) => {
-                  const Icon = evt.icon
-                  // Check if this event is already logged for this hole+participant
-                  const existingEvents = getHoleEvents(
-                    activeHole!.holeNumber,
-                    activeParticipant!.id
-                  )
-                  const alreadyLogged = existingEvents.some(
-                    (e) => e.type === evt.type
-                  )
-                  // Snopp can be logged multiple times
-                  const showDot = alreadyLogged && evt.type !== 'snopp'
+              {/* Player tabs */}
+              <div className="flex gap-1 overflow-x-auto rounded-lg border p-1">
+                {participants.map((p, idx) => {
+                  const strokes = p.scorecard.holeStrokes[overlayHoleIdx]
                   return (
-                    <Button
-                      key={evt.type}
-                      variant="outline"
-                      size="sm"
-                      className={`relative h-8 gap-1 px-2 text-xs ${showDot ? 'border-primary/50' : ''}`}
-                      onClick={() => handleInlineSideEvent(evt.type)}
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setOverlayPIdx(idx)}
+                      className={`flex min-w-0 flex-1 flex-col items-center rounded-md px-2 py-1.5 text-xs transition-colors ${
+                        idx === overlayPIdx
+                          ? 'bg-primary text-primary-foreground'
+                          : 'hover:bg-muted'
+                      }`}
                     >
-                      <Icon className={`size-3.5 ${evt.className}`} />
-                      {evt.label}
-                      {showDot && (
-                        <span className="bg-primary absolute -right-0.5 -top-0.5 size-2 rounded-full" />
-                      )}
-                    </Button>
+                      <span className="truncate font-medium">
+                        {shortName(p.name)}
+                      </span>
+                      <span
+                        className={`text-[10px] ${idx === overlayPIdx ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+                      >
+                        {strokes !== null ? `${strokes}` : '\u2013'}
+                      </span>
+                    </button>
                   )
                 })}
               </div>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+
+              {/* Score entry area */}
+              <div className="flex flex-col items-center gap-3 py-2">
+                {/* Score display + label */}
+                {(() => {
+                  const currentStrokes =
+                    overlayParticipant.scorecard.holeStrokes[overlayHoleIdx]
+                  return (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-4">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-12"
+                          onClick={() =>
+                            decrementStroke(overlayHoleIdx, overlayPIdx)
+                          }
+                          disabled={
+                            currentStrokes !== null && currentStrokes <= 1
+                          }
+                          aria-label="Decrease strokes"
+                        >
+                          <Minus className="size-5" aria-hidden="true" />
+                        </Button>
+                        <span
+                          className="w-16 text-center text-4xl font-bold tabular-nums"
+                          aria-live="polite"
+                          role="status"
+                        >
+                          {currentStrokes ?? '\u2013'}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="size-12"
+                          onClick={() =>
+                            incrementStroke(overlayHoleIdx, overlayPIdx)
+                          }
+                          disabled={
+                            currentStrokes !== null && currentStrokes >= 15
+                          }
+                          aria-label="Increase strokes"
+                        >
+                          <Plus className="size-5" aria-hidden="true" />
+                        </Button>
+                      </div>
+
+                      {/* Score label */}
+                      {currentStrokes !== null && (
+                        <span
+                          className={`text-sm ${getScoreLabelClass(currentStrokes, overlayHole.par)}`}
+                        >
+                          {getScoreLabel(currentStrokes, overlayHole.par)}
+                        </span>
+                      )}
+
+                      {/* Stableford points */}
+                      {format === 'stableford' && currentStrokes !== null && (
+                        <span className="text-muted-foreground text-xs">
+                          {stablefordPointsForHole(
+                            currentStrokes,
+                            overlayHole.par,
+                            overlayParticipant.handicap,
+                            overlayHole.strokeIndex,
+                            totalHoles as 9 | 18
+                          )}{' '}
+                          stableford pts
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* Quick number buttons (1-10) for fast entry */}
+                <div className="grid grid-cols-5 gap-1.5">
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+                    const currentStrokes =
+                      overlayParticipant.scorecard.holeStrokes[overlayHoleIdx]
+                    const isSelected = currentStrokes === n
+                    return (
+                      <Button
+                        key={n}
+                        variant={isSelected ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-9 w-9 tabular-nums"
+                        onClick={() =>
+                          setStroke(overlayHoleIdx, overlayPIdx, n)
+                        }
+                      >
+                        {n}
+                      </Button>
+                    )
+                  })}
+                </div>
+
+                {/* Clear button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => clearStroke(overlayHoleIdx, overlayPIdx)}
+                  className="text-muted-foreground"
+                >
+                  <X className="size-4" />
+                  Clear
+                </Button>
+              </div>
+
+              {/* Hole navigation */}
+              <div className="flex items-center justify-between border-t pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (overlayHoleIdx > 0) {
+                      setOverlayHoleIdx(overlayHoleIdx - 1)
+                    }
+                  }}
+                  disabled={overlayHoleIdx <= 0}
+                >
+                  <ChevronLeft className="size-4" />
+                  Prev
+                </Button>
+                <span className="text-muted-foreground text-xs">
+                  {overlayHoleIdx + 1} / {totalHoles}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (overlayHoleIdx < totalHoles - 1) {
+                      setOverlayHoleIdx(overlayHoleIdx + 1)
+                    }
+                  }}
+                  disabled={overlayHoleIdx >= totalHoles - 1}
+                >
+                  Next
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

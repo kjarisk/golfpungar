@@ -138,22 +138,81 @@ describe('Rounds Store', () => {
     expect(completed?.status).toBe('completed')
   })
 
-  it('removes a round and its groups and teams', () => {
-    const input: CreateRoundInput = {
-      ...SAMPLE_INPUT,
-      teams: [{ name: 'Team A', playerIds: ['player-001', 'player-002'] }],
-    }
-
-    const round = useRoundsStore.getState().createRound('tournament-001', input)
-    expect(useRoundsStore.getState().rounds).toHaveLength(1)
-    expect(useRoundsStore.getState().groups.length).toBeGreaterThan(0)
-    expect(useRoundsStore.getState().teams.length).toBeGreaterThan(0)
+  it('soft-deletes a round (sets deleted flag)', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
 
     useRoundsStore.getState().removeRound(round.id)
 
-    expect(useRoundsStore.getState().rounds).toHaveLength(0)
-    expect(useRoundsStore.getState().getGroupsByRound(round.id)).toHaveLength(0)
-    expect(useRoundsStore.getState().getTeamsByRound(round.id)).toHaveLength(0)
+    // Round still exists in state but is marked deleted
+    const deleted = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(deleted?.deleted).toBe(true)
+    // Status reset to upcoming
+    expect(deleted?.status).toBe('upcoming')
+    // Filtered out of getRoundsByTournament
+    expect(
+      useRoundsStore.getState().getRoundsByTournament('tournament-001')
+    ).toHaveLength(0)
+    // Groups and teams still exist (not hard-deleted)
+    expect(
+      useRoundsStore.getState().getGroupsByRound(round.id).length
+    ).toBeGreaterThan(0)
+  })
+
+  it('soft-deleted rounds appear in getDeletedRounds', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    useRoundsStore.getState().removeRound(round.id)
+
+    const deleted = useRoundsStore.getState().getDeletedRounds('tournament-001')
+    expect(deleted).toHaveLength(1)
+    expect(deleted[0].id).toBe(round.id)
+  })
+
+  it('restores a soft-deleted round', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    useRoundsStore.getState().removeRound(round.id)
+    expect(
+      useRoundsStore.getState().getRoundsByTournament('tournament-001')
+    ).toHaveLength(0)
+
+    useRoundsStore.getState().restoreRound(round.id)
+
+    expect(
+      useRoundsStore.getState().getRoundsByTournament('tournament-001')
+    ).toHaveLength(1)
+    const restored = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(restored?.deleted).toBe(false)
+    expect(restored?.status).toBe('upcoming')
+  })
+
+  it('soft-deleting an active round resets status to upcoming', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+    useRoundsStore.getState().setRoundStatus(round.id, 'active')
+
+    useRoundsStore.getState().removeRound(round.id)
+
+    const deleted = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(deleted?.status).toBe('upcoming')
+    expect(deleted?.deleted).toBe(true)
+    // No active round anymore
+    expect(
+      useRoundsStore.getState().getActiveRound('tournament-001')
+    ).toBeUndefined()
   })
 
   it('assigns unique IDs to rounds', () => {
@@ -588,5 +647,75 @@ describe('Rounds Store — Phase 15 (Team Configuration)', () => {
         .getTeamForPlayer(round.id, 'player-005')
       expect(team).toBeUndefined()
     })
+  })
+})
+
+describe('Rounds Store — updateGroups', () => {
+  beforeEach(() => {
+    useRoundsStore.setState({
+      rounds: [],
+      groups: [],
+      teams: [],
+    })
+  })
+
+  it('replaces groups for a round', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    // Initially 2 groups
+    expect(useRoundsStore.getState().getGroupsByRound(round.id)).toHaveLength(2)
+
+    // Replace with 3 groups
+    useRoundsStore.getState().updateGroups(round.id, [
+      { name: 'New Group 1', playerIds: ['player-001', 'player-002'] },
+      { name: 'New Group 2', playerIds: ['player-003', 'player-004'] },
+      { name: 'New Group 3', playerIds: ['player-005', 'player-006'] },
+    ])
+
+    const groups = useRoundsStore.getState().getGroupsByRound(round.id)
+    expect(groups).toHaveLength(3)
+    expect(groups[0].name).toBe('New Group 1')
+    expect(groups[1].name).toBe('New Group 2')
+    expect(groups[2].name).toBe('New Group 3')
+  })
+
+  it('does not affect groups from other rounds', () => {
+    const r1 = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+    const r2 = useRoundsStore.getState().createRound('tournament-001', {
+      ...SAMPLE_INPUT,
+      name: 'Round 2',
+    })
+
+    useRoundsStore
+      .getState()
+      .updateGroups(r1.id, [
+        { name: 'Updated Group', playerIds: ['player-001'] },
+      ])
+
+    // r1 groups updated
+    expect(useRoundsStore.getState().getGroupsByRound(r1.id)).toHaveLength(1)
+    // r2 groups unchanged
+    expect(useRoundsStore.getState().getGroupsByRound(r2.id)).toHaveLength(2)
+  })
+
+  it('assigns new unique IDs to replacement groups', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    const oldGroups = useRoundsStore.getState().getGroupsByRound(round.id)
+    const oldIds = oldGroups.map((g) => g.id)
+
+    useRoundsStore
+      .getState()
+      .updateGroups(round.id, [{ name: 'Replaced', playerIds: ['player-001'] }])
+
+    const newGroups = useRoundsStore.getState().getGroupsByRound(round.id)
+    // New IDs should not overlap with old ones
+    expect(oldIds).not.toContain(newGroups[0].id)
   })
 })
