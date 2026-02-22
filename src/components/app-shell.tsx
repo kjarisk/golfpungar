@@ -7,8 +7,12 @@ import {
   Flag,
   Users,
   ChevronRight,
+  Sun,
+  Moon,
 } from 'lucide-react'
+import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
 import { useTournamentStore } from '@/features/tournament'
@@ -24,6 +28,7 @@ const navItems = [
 export function AppShell() {
   const location = useLocation()
   const tournament = useTournamentStore((s) => s.activeTournament())
+  const { resolvedTheme, setTheme } = useTheme()
 
   return (
     <div className="bg-background flex min-h-svh flex-col">
@@ -37,6 +42,18 @@ export function AppShell() {
             {tournament ? tournament.name : 'No active tournament'}
             <ChevronRight className="size-3" aria-hidden="true" />
           </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            onClick={() =>
+              setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
+            }
+            aria-label="Toggle dark mode"
+          >
+            <Sun className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
+            <Moon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+          </Button>
         </div>
       </header>
       {/* Page content area — scrollable, with bottom padding for nav */}
