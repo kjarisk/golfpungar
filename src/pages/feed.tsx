@@ -134,7 +134,6 @@ function placingSuffix(n: number): string {
 }
 
 /** Dev-only toggle */
-const IS_DEV = import.meta.env.DEV
 
 export function FeedPage() {
   const user = useAuthStore((s) => s.user)
@@ -436,7 +435,7 @@ export function FeedPage() {
         </Card>
       )}
 
-      {/* Role toggle (always visible for demo) */}
+      {/* Demo controls (always visible for testing) */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
@@ -446,40 +445,29 @@ export function FeedPage() {
         >
           Role: {currentRole}
         </Button>
+        {tournament && !seeded && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeed}
+            className="gap-1.5 text-xs"
+          >
+            <Database className="size-3.5" aria-hidden="true" />
+            Seed Demo Data
+          </Button>
+        )}
+        {tournament && seeded && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleClear}
+            className="gap-1.5 text-xs text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            Clear Demo Data
+          </Button>
+        )}
       </div>
-
-      {/* Dev controls (dev only) */}
-      {IS_DEV && (
-        <div className="flex flex-wrap items-center gap-2">
-          {tournament && !seeded && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeed}
-              className="gap-1.5 text-xs"
-            >
-              <Database className="size-3.5" aria-hidden="true" />
-              Seed Demo Data
-            </Button>
-          )}
-          {tournament && seeded && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClear}
-              className="gap-1.5 text-xs text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="size-3.5" aria-hidden="true" />
-              Clear Demo Data
-            </Button>
-          )}
-          {tournament && (
-            <span className="text-muted-foreground text-[10px]">
-              {seeded ? 'Demo data loaded' : 'No rounds yet'}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* Live feed */}
       {tournament && (
