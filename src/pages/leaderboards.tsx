@@ -29,6 +29,7 @@ import {
   computeGrossLeaderboard,
   computeNetLeaderboard,
 } from '@/lib/leaderboard-calc'
+import { useActiveRound } from '@/hooks/use-active-round'
 import {
   Trophy,
   Bird,
@@ -69,11 +70,15 @@ export function LeaderboardsPage() {
   const getPenaltyTotals = usePenaltiesStore((s) => s.getTotalsForTournament)
   const getBettingTotals = useBettingStore((s) => s.getTotalsForTournament)
 
+  const activeRound = useActiveRound()
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
   const playerIds = players.map((p) => p.id)
+
+  // Default tab: 'round' when an active round exists, 'total' otherwise
+  const defaultTab = activeRound ? 'round' : 'total'
 
   // Total points
   const totalPointsLeaderboard = computeTotalPointsLeaderboard(
@@ -85,9 +90,10 @@ export function LeaderboardsPage() {
   const grossLeaderboard = computeGrossLeaderboard(allScorecards, playerIds)
   const netLeaderboard = computeNetLeaderboard(allScorecards, playerIds)
 
-  // Round leaderboard
-  const effectiveRoundId =
-    selectedRoundId || (rounds.length > 0 ? rounds[0].id : '')
+  // Round leaderboard — default to active round, then first round
+  const defaultRoundId =
+    activeRound?.id ?? (rounds.length > 0 ? rounds[0].id : '')
+  const effectiveRoundId = selectedRoundId || defaultRoundId
   const roundPoints = effectiveRoundId ? getPointsByRound(effectiveRoundId) : []
   const roundScorecards = effectiveRoundId
     ? getScorecardsByRound(effectiveRoundId)
@@ -206,7 +212,7 @@ export function LeaderboardsPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="total" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="total">Total</TabsTrigger>
           <TabsTrigger value="round">Round</TabsTrigger>
@@ -374,6 +380,7 @@ export function LeaderboardsPage() {
                   {rounds.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name}
+                      {r.status === 'active' ? ' (Active)' : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>

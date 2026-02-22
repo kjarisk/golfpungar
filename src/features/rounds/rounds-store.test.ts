@@ -125,11 +125,11 @@ describe('Rounds Store', () => {
       .getState()
       .createRound('tournament-001', SAMPLE_INPUT)
 
-    useRoundsStore.getState().setRoundStatus(round.id, 'in_progress')
+    useRoundsStore.getState().setRoundStatus(round.id, 'active')
     const updated = useRoundsStore
       .getState()
       .rounds.find((r) => r.id === round.id)
-    expect(updated?.status).toBe('in_progress')
+    expect(updated?.status).toBe('active')
 
     useRoundsStore.getState().setRoundStatus(round.id, 'completed')
     const completed = useRoundsStore
@@ -182,5 +182,222 @@ describe('Rounds Store', () => {
     const allIds = [...g1.map((g) => g.id), ...g2.map((g) => g.id)]
     const uniqueIds = new Set(allIds)
     expect(uniqueIds.size).toBe(allIds.length)
+  })
+})
+
+describe('Rounds Store — Phase 14 (Status & Management)', () => {
+  beforeEach(() => {
+    useRoundsStore.setState({
+      rounds: [],
+      groups: [],
+      teams: [],
+    })
+  })
+
+  describe('enforce one active round per tournament', () => {
+    it('deactivates previous active round when setting another to active', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+      const r2 = useRoundsStore.getState().createRound('tournament-001', {
+        ...SAMPLE_INPUT,
+        name: 'Day 1 Afternoon',
+      })
+
+      useRoundsStore.getState().setRoundStatus(r1.id, 'active')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r1.id)?.status
+      ).toBe('active')
+
+      // Setting r2 to active should deactivate r1
+      useRoundsStore.getState().setRoundStatus(r2.id, 'active')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r2.id)?.status
+      ).toBe('active')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r1.id)?.status
+      ).toBe('upcoming')
+    })
+
+    it('does not affect rounds in other tournaments', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+      const r2 = useRoundsStore.getState().createRound('tournament-002', {
+        ...SAMPLE_INPUT,
+        name: 'Other Tournament Round',
+      })
+
+      useRoundsStore.getState().setRoundStatus(r1.id, 'active')
+      useRoundsStore.getState().setRoundStatus(r2.id, 'active')
+
+      // Both should be active — they're in different tournaments
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r1.id)?.status
+      ).toBe('active')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r2.id)?.status
+      ).toBe('active')
+    })
+
+    it('handles setting a round to completed without affecting other rounds', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+      const r2 = useRoundsStore.getState().createRound('tournament-001', {
+        ...SAMPLE_INPUT,
+        name: 'Day 1 Afternoon',
+      })
+
+      useRoundsStore.getState().setRoundStatus(r1.id, 'active')
+      useRoundsStore.getState().setRoundStatus(r1.id, 'completed')
+
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r1.id)?.status
+      ).toBe('completed')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === r2.id)?.status
+      ).toBe('upcoming')
+    })
+
+    it('ignores setRoundStatus on non-existent round', () => {
+      useRoundsStore.getState().createRound('tournament-001', SAMPLE_INPUT)
+
+      const before = useRoundsStore.getState().rounds.map((r) => ({ ...r }))
+      useRoundsStore.getState().setRoundStatus('non-existent', 'active')
+      const after = useRoundsStore.getState().rounds
+
+      expect(after).toEqual(before)
+    })
+  })
+
+  describe('getActiveRound', () => {
+    it('returns undefined when no round is active', () => {
+      useRoundsStore.getState().createRound('tournament-001', SAMPLE_INPUT)
+
+      const active = useRoundsStore.getState().getActiveRound('tournament-001')
+      expect(active).toBeUndefined()
+    })
+
+    it('returns the active round for the tournament', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().setRoundStatus(r1.id, 'active')
+
+      const active = useRoundsStore.getState().getActiveRound('tournament-001')
+      expect(active?.id).toBe(r1.id)
+      expect(active?.status).toBe('active')
+    })
+
+    it('returns undefined for a different tournament', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().setRoundStatus(r1.id, 'active')
+
+      const active = useRoundsStore.getState().getActiveRound('tournament-002')
+      expect(active).toBeUndefined()
+    })
+  })
+
+  describe('updateRound', () => {
+    it('updates round name', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().updateRound(round.id, { name: 'New Name' })
+
+      const updated = useRoundsStore
+        .getState()
+        .rounds.find((r) => r.id === round.id)
+      expect(updated?.name).toBe('New Name')
+    })
+
+    it('updates round format', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().updateRound(round.id, { format: 'scramble' })
+
+      const updated = useRoundsStore
+        .getState()
+        .rounds.find((r) => r.id === round.id)
+      expect(updated?.format).toBe('scramble')
+    })
+
+    it('updates multiple fields at once', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().updateRound(round.id, {
+        name: 'Updated Round',
+        holesPlayed: 9,
+        dateTime: '2026-06-20T14:00',
+      })
+
+      const updated = useRoundsStore
+        .getState()
+        .rounds.find((r) => r.id === round.id)
+      expect(updated?.name).toBe('Updated Round')
+      expect(updated?.holesPlayed).toBe(9)
+      expect(updated?.dateTime).toBe('2026-06-20T14:00')
+    })
+
+    it('does not affect other rounds', () => {
+      const r1 = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+      const r2 = useRoundsStore.getState().createRound('tournament-001', {
+        ...SAMPLE_INPUT,
+        name: 'Day 1 Afternoon',
+      })
+
+      useRoundsStore.getState().updateRound(r1.id, { name: 'Changed Name' })
+
+      const other = useRoundsStore.getState().rounds.find((r) => r.id === r2.id)
+      expect(other?.name).toBe('Day 1 Afternoon')
+    })
+  })
+
+  describe('status transitions', () => {
+    it('supports upcoming → active → completed flow', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === round.id)?.status
+      ).toBe('upcoming')
+
+      useRoundsStore.getState().setRoundStatus(round.id, 'active')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === round.id)?.status
+      ).toBe('active')
+
+      useRoundsStore.getState().setRoundStatus(round.id, 'completed')
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === round.id)?.status
+      ).toBe('completed')
+    })
+
+    it('supports completed → upcoming (reopen)', () => {
+      const round = useRoundsStore
+        .getState()
+        .createRound('tournament-001', SAMPLE_INPUT)
+
+      useRoundsStore.getState().setRoundStatus(round.id, 'active')
+      useRoundsStore.getState().setRoundStatus(round.id, 'completed')
+      useRoundsStore.getState().setRoundStatus(round.id, 'upcoming')
+
+      expect(
+        useRoundsStore.getState().rounds.find((r) => r.id === round.id)?.status
+      ).toBe('upcoming')
+    })
   })
 })

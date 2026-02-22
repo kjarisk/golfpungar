@@ -7,6 +7,13 @@ import type {
   RoundStatus,
 } from '../types'
 
+export interface UpdateRoundInput {
+  name?: string
+  dateTime?: string
+  format?: Round['format']
+  holesPlayed?: Round['holesPlayed']
+}
+
 interface RoundsState {
   rounds: Round[]
   groups: Group[]
@@ -16,9 +23,11 @@ interface RoundsState {
   getRoundsByTournament: (tournamentId: string) => Round[]
   getGroupsByRound: (roundId: string) => Group[]
   getTeamsByRound: (roundId: string) => Team[]
+  getActiveRound: (tournamentId: string) => Round | undefined
 
   // Actions
   createRound: (tournamentId: string, input: CreateRoundInput) => Round
+  updateRound: (roundId: string, input: UpdateRoundInput) => void
   setRoundStatus: (roundId: string, status: RoundStatus) => void
   removeRound: (id: string) => void
 }
@@ -40,6 +49,11 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
 
   getTeamsByRound: (roundId) =>
     get().teams.filter((t) => t.roundId === roundId),
+
+  getActiveRound: (tournamentId) =>
+    get().rounds.find(
+      (r) => r.tournamentId === tournamentId && r.status === 'active'
+    ),
 
   createRound: (tournamentId, input) => {
     const roundId = `round-${String(nextRoundId++).padStart(3, '0')}`
@@ -78,12 +92,39 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
     return round
   },
 
-  setRoundStatus: (roundId, status) => {
+  updateRound: (roundId, input) => {
     set((state) => ({
       rounds: state.rounds.map((r) =>
-        r.id === roundId ? { ...r, status } : r
+        r.id === roundId ? { ...r, ...input } : r
       ),
     }))
+  },
+
+  setRoundStatus: (roundId, status) => {
+    set((state) => {
+      const targetRound = state.rounds.find((r) => r.id === roundId)
+      if (!targetRound) return state
+
+      let updatedRounds = state.rounds
+
+      // If setting to 'active', deactivate any other active round in the same tournament
+      if (status === 'active') {
+        updatedRounds = updatedRounds.map((r) =>
+          r.tournamentId === targetRound.tournamentId &&
+          r.id !== roundId &&
+          r.status === 'active'
+            ? { ...r, status: 'upcoming' as RoundStatus }
+            : r
+        )
+      }
+
+      // Update the target round's status
+      updatedRounds = updatedRounds.map((r) =>
+        r.id === roundId ? { ...r, status } : r
+      )
+
+      return { rounds: updatedRounds }
+    })
   },
 
   removeRound: (id) => {

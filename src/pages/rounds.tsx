@@ -16,10 +16,22 @@ import { CourseCard } from '@/features/courses/components/course-card'
 import { ImportCourseDialog } from '@/features/courses/components/import-course-dialog'
 import { useRoundsStore } from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
+import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { usePlayersStore } from '@/features/players'
-import { Upload, Plus, Calendar, MapPin, Users } from 'lucide-react'
+import {
+  Upload,
+  Plus,
+  Calendar,
+  MapPin,
+  Users,
+  Play,
+  CheckCircle,
+  RotateCcw,
+  Pencil,
+  Trash2,
+} from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
-import type { RoundFormat, RoundStatus } from '@/features/rounds'
+import type { Round, RoundFormat, RoundStatus } from '@/features/rounds'
 
 const FORMAT_LABELS: Record<RoundFormat, string> = {
   stableford: 'Stableford',
@@ -31,14 +43,33 @@ const FORMAT_LABELS: Record<RoundFormat, string> = {
 const STATUS_VARIANT: Record<RoundStatus, 'default' | 'secondary' | 'outline'> =
   {
     upcoming: 'outline',
-    in_progress: 'default',
+    active: 'default',
     completed: 'secondary',
   }
 
 const STATUS_LABEL: Record<RoundStatus, string> = {
   upcoming: 'Upcoming',
-  in_progress: 'In Progress',
+  active: 'Active',
   completed: 'Completed',
+}
+
+/** Sort rounds: active first, upcoming next, completed last */
+const STATUS_ORDER: Record<RoundStatus, number> = {
+  active: 0,
+  upcoming: 1,
+  completed: 2,
+}
+
+function sortRounds(rounds: Round[]): Round[] {
+  return [...rounds].sort((a, b) => {
+    const orderDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
+    if (orderDiff !== 0) return orderDiff
+    // Within same status, sort by creation date (newest first for upcoming/active, oldest first for completed)
+    if (a.status === 'completed') {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
 }
 
 export function RoundsPage() {
@@ -50,14 +81,19 @@ export function RoundsPage() {
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroups = useRoundsStore((s) => s.getGroupsByRound)
+  const setRoundStatus = useRoundsStore((s) => s.setRoundStatus)
+  const removeRound = useRoundsStore((s) => s.removeRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
 
   const courses = tournament ? getCoursesByTournament(tournament.id) : []
-  const rounds = tournament ? getRoundsByTournament(tournament.id) : []
+  const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
+  const rounds = sortRounds(rawRounds)
   const players = tournament ? getActivePlayers(tournament.id) : []
 
   const [showImport, setShowImport] = useState(false)
   const [showCreateRound, setShowCreateRound] = useState(false)
+  const [editingRound, setEditingRound] = useState<Round | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   if (!tournament) {
     return (
@@ -76,6 +112,23 @@ export function RoundsPage() {
   function getPlayerName(playerId: string) {
     const player = players.find((p) => p.id === playerId)
     return player?.displayName ?? 'Unknown'
+  }
+
+  function handleSetActive(roundId: string) {
+    setRoundStatus(roundId, 'active')
+  }
+
+  function handleComplete(roundId: string) {
+    setRoundStatus(roundId, 'completed')
+  }
+
+  function handleReopen(roundId: string) {
+    setRoundStatus(roundId, 'upcoming')
+  }
+
+  function handleDelete(roundId: string) {
+    removeRound(roundId)
+    setConfirmDelete(null)
   }
 
   return (
@@ -153,9 +206,17 @@ export function RoundsPage() {
             rounds.map((round) => {
               const course = courses.find((c) => c.id === round.courseId)
               const groups = getGroups(round.id)
+              const isDeleting = confirmDelete === round.id
 
               return (
-                <Card key={round.id}>
+                <Card
+                  key={round.id}
+                  className={
+                    round.status === 'active'
+                      ? 'border-primary/40 ring-primary/20 ring-1'
+                      : ''
+                  }
+                >
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base">{round.name}</CardTitle>
@@ -234,6 +295,92 @@ export function RoundsPage() {
                         No groups assigned to this round yet.
                       </p>
                     )}
+
+                    {/* Admin actions */}
+                    {isAdmin && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
+                        {/* Status transitions */}
+                        {round.status === 'upcoming' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleSetActive(round.id)}
+                            className="gap-1.5"
+                          >
+                            <Play className="size-3.5" />
+                            Set Active
+                          </Button>
+                        )}
+                        {round.status === 'active' && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleComplete(round.id)}
+                            className="gap-1.5"
+                          >
+                            <CheckCircle className="size-3.5" />
+                            Complete
+                          </Button>
+                        )}
+                        {round.status === 'completed' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleReopen(round.id)}
+                            className="gap-1.5"
+                          >
+                            <RotateCcw className="size-3.5" />
+                            Reopen
+                          </Button>
+                        )}
+
+                        {/* Edit */}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingRound(round)}
+                          className="gap-1.5"
+                        >
+                          <Pencil className="size-3.5" />
+                          Edit
+                        </Button>
+
+                        {/* Delete */}
+                        {isDeleting ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-red-600">
+                              Delete?
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDelete(round.id)}
+                              className="h-7 text-xs"
+                            >
+                              Yes
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setConfirmDelete(null)}
+                              className="h-7 text-xs"
+                            >
+                              No
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setConfirmDelete(round.id)}
+                            className="text-muted-foreground hover:text-destructive gap-1.5"
+                          >
+                            <Trash2 className="size-3.5" />
+                            Delete
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )
@@ -290,6 +437,15 @@ export function RoundsPage() {
         onOpenChange={setShowCreateRound}
         tournamentId={tournament.id}
       />
+      {editingRound && (
+        <EditRoundDialog
+          open={!!editingRound}
+          onOpenChange={(open) => {
+            if (!open) setEditingRound(null)
+          }}
+          round={editingRound}
+        />
+      )}
     </div>
   )
 }

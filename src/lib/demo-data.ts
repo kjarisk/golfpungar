@@ -602,7 +602,7 @@ export function seedDemoData(): void {
     roundIds.push(round.id)
 
     // Move to completed
-    roundsStore.setRoundStatus(round.id, 'in_progress')
+    roundsStore.setRoundStatus(round.id, 'active')
     roundsStore.setRoundStatus(round.id, 'completed')
 
     // Create scorecards and enter scores for each player

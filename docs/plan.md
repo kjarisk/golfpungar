@@ -135,33 +135,33 @@
 
 ## Phase 12 -- Admin & Roles
 
-- [ ] Add `role: 'admin' | 'player'` to User type + auth store
-- [ ] Create `useIsAdmin()` hook for role checks
-- [ ] Add admin guards to: create tournament, create round, add/edit/remove player, update handicap, invite player, post announcement
-- [ ] Player-facing UI hides admin-only actions (buttons hidden, not just disabled)
-- [ ] Tests for role-based access (6 tests)
+- [x] Add `role: 'admin' | 'player'` to User type + auth store
+- [x] Create `useIsAdmin()` hook for role checks
+- [x] Add admin guards to: create tournament, create round, add/edit/remove player, update handicap, invite player, post announcement
+- [x] Player-facing UI hides admin-only actions (buttons hidden, not just disabled)
+- [x] Tests for role-based access (6 tests)
 
 ## Phase 13 -- Multi-Tournament
 
-- [ ] Tournament list view (admin sees all; player sees active + past)
-- [ ] Tournament switcher/selector in app header or settings
-- [ ] "Set as Active" action (admin only)
-- [ ] Past tournament browser: read-only leaderboards, scorecards, feed history
-- [ ] No-active-tournament state: show past tournaments list
-- [ ] Update all pages to respect active tournament selection
-- [ ] Tests for tournament switching + past tournament views
+- [x] Tournament list view (admin sees all; player sees active + past)
+- [x] Tournament switcher/selector in app header or settings
+- [x] "Set as Active" action (admin only)
+- [x] Past tournament browser: read-only leaderboards, scorecards, feed history
+- [x] No-active-tournament state: show past tournaments list
+- [x] Update all pages to respect active tournament selection
+- [x] Tests for tournament switching + past tournament views
 
 ## Phase 14 -- Round Status & Management
 
-- [ ] Update Round status type: `upcoming | active | completed`
-- [ ] Admin controls: set round status (upcoming → active → completed)
-- [ ] Enforce only one active round per tournament
-- [ ] Edit Round dialog (name, format, date, groups)
-- [ ] Delete round action with confirmation
-- [ ] Round list ordering: active first, upcoming next, completed last
-- [ ] Active round concept: Enter page defaults to it, Leaderboards defaults to Round tab
-- [ ] `useActiveRound()` hook for app-wide access
-- [ ] Tests for status transitions + ordering
+- [x] Update Round status type: `upcoming | active | completed`
+- [x] Admin controls: set round status (upcoming → active → completed)
+- [x] Enforce only one active round per tournament
+- [x] Edit Round dialog (name, format, date, groups)
+- [x] Delete round action with confirmation
+- [x] Round list ordering: active first, upcoming next, completed last
+- [x] Active round concept: Enter page defaults to it, Leaderboards defaults to Round tab
+- [x] `useActiveRound()` hook for app-wide access
+- [x] Tests for status transitions + ordering (13 tests)
 
 ## Phase 15 -- Team Configuration
 

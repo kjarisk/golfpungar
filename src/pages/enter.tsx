@@ -22,6 +22,7 @@ import { PenaltyList } from '@/features/penalties'
 import { BetList } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
+import { useActiveRound } from '@/hooks/use-active-round'
 import { Trophy, ClipboardList, Hash } from 'lucide-react'
 
 export function EnterPage() {
@@ -38,6 +39,8 @@ export function EnterPage() {
   const authUser = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
 
+  const activeRound = useActiveRound()
+
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
 
@@ -48,9 +51,10 @@ export function EnterPage() {
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
   const [entryMode, setEntryMode] = useState<'holes' | 'total'>('holes')
 
-  // Use the first round as default if nothing is selected
-  const effectiveRoundId =
-    selectedRoundId || (rounds.length > 0 ? rounds[0].id : '')
+  // Default to active round, then first round as fallback
+  const defaultRoundId =
+    activeRound?.id ?? (rounds.length > 0 ? rounds[0].id : '')
+  const effectiveRoundId = selectedRoundId || defaultRoundId
 
   const selectedRound = rounds.find((r) => r.id === effectiveRoundId)
   const holes = selectedRound ? getHoles(selectedRound.courseId) : []
@@ -133,7 +137,9 @@ export function EnterPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Enter Scores</h1>
           <p className="text-muted-foreground text-sm">
-            Enter hole-by-hole or round totals
+            {activeRound
+              ? `Active: ${activeRound.name}`
+              : 'Enter hole-by-hole or round totals'}
           </p>
         </div>
       </div>
@@ -155,6 +161,7 @@ export function EnterPage() {
               {rounds.map((r) => (
                 <SelectItem key={r.id} value={r.id}>
                   {r.name}
+                  {r.status === 'active' ? ' (Active)' : ''}
                 </SelectItem>
               ))}
             </SelectContent>
