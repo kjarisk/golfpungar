@@ -19,12 +19,17 @@ import { useSideEventsStore } from '@/features/side-events'
 import { usePenaltiesStore } from '@/features/penalties'
 import { useBettingStore } from '@/features/betting'
 import { useFeedStore } from '@/features/feed'
-import { computeTotalPointsLeaderboard } from '@/lib/leaderboard-calc'
+import {
+  computeTotalPointsLeaderboard,
+  computeRoundLeaderboard,
+} from '@/lib/leaderboard-calc'
+import { useActiveRound } from '@/hooks/use-active-round'
+import { NotableEventBanner } from '@/features/feed/components/notable-event-banner'
+import { AdminAnnouncementInput } from '@/features/feed/components/admin-announcement-input'
 import { seedDemoData, clearDemoData, isDemoSeeded } from '@/lib/demo-data'
 import {
   MapPin,
   Calendar,
-  Users,
   Flag,
   Bird,
   Zap,
@@ -39,6 +44,9 @@ import {
   CircleDollarSign,
   Database,
   Trash2,
+  Megaphone,
+  ArrowUpDown,
+  Medal,
 } from 'lucide-react'
 
 /** Map side event types to display config */
@@ -50,7 +58,11 @@ const SIDE_EVENT_CONFIG: Record<
   eagle: { label: 'EAGLE', icon: Zap, color: 'text-yellow-500' },
   hio: { label: 'HOLE IN ONE', icon: Star, color: 'text-amber-500' },
   albatross: { label: 'ALBATROSS', icon: Bird, color: 'text-purple-500' },
-  bunker_save: { label: 'BUNKER SAVE', icon: Target, color: 'text-orange-500' },
+  bunker_save: {
+    label: 'BUNKER SAVE',
+    icon: Target,
+    color: 'text-orange-500',
+  },
   snake: { label: 'SNAKE', icon: Skull, color: 'text-red-500' },
   snopp: { label: 'SNOPP', icon: Flame, color: 'text-red-700' },
   group_longest_drive: {
@@ -107,7 +119,21 @@ function timeAgo(dateString: string): string {
   return `${days}d ago`
 }
 
-/** Dev-only toggle: hold Shift and click the stats area 3 times to reveal demo controls */
+function placingSuffix(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return `${n}th`
+  switch (n % 10) {
+    case 1:
+      return `${n}st`
+    case 2:
+      return `${n}nd`
+    case 3:
+      return `${n}rd`
+    default:
+      return `${n}th`
+  }
+}
+
+/** Dev-only toggle */
 const IS_DEV = import.meta.env.DEV
 
 export function FeedPage() {
@@ -117,6 +143,7 @@ export function FeedPage() {
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
+  const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
   const getEventsByTournament = useSideEventsStore(
     (s) => s.getEventsByTournament
   )
@@ -128,6 +155,7 @@ export function FeedPage() {
   const seeded = roundCount$ > 0
   const setRole = useAuthStore((s) => s.setRole)
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
+  const activeRound = useActiveRound()
 
   const handleSeed = () => {
     if (!isDemoSeeded()) {
@@ -141,7 +169,6 @@ export function FeedPage() {
 
   const players = tournament ? getActivePlayers(tournament.id) : []
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
-  const playerCount = players.length
   const roundCount = rounds.length
 
   // Current user's player record
@@ -155,6 +182,23 @@ export function FeedPage() {
   const myPoints =
     totalLeaderboard.find((e) => e.playerId === currentPlayer?.id)
       ?.totalPoints ?? 0
+
+  // Active round leaders (top 5)
+  const activeRoundLeaders = (() => {
+    if (!activeRound) return []
+    const roundRPs = allRoundPoints.filter(
+      (rp) => rp.roundId === activeRound.id
+    )
+    const roundSCs = getScorecardsByRound(activeRound.id)
+    const leaderboard = computeRoundLeaderboard(roundRPs, roundSCs)
+    return leaderboard.slice(0, 5).map((entry) => {
+      const player = players.find((p) => p.id === entry.participantId)
+      return {
+        ...entry,
+        displayName: player?.displayName ?? 'Unknown',
+      }
+    })
+  })()
 
   // Combine side events + penalties + bets + feed events into a unified feed
   const sideEvents = tournament ? getEventsByTournament(tournament.id) : []
@@ -170,6 +214,7 @@ export function FeedPage() {
     sideEventType?: string
     betStatus?: string
     playerName?: string
+    feedEventType?: string
   }
 
   const unifiedFeed: UnifiedFeedItem[] = [
@@ -209,6 +254,7 @@ export function FeedPage() {
       message: e.message,
       createdAt: e.createdAt,
       type: 'feed' as const,
+      feedEventType: e.type,
     })),
     ...bets.map((bet) => {
       const creator = players.find((p) => p.id === bet.createdByPlayerId)
@@ -284,7 +330,8 @@ export function FeedPage() {
             {getGreeting()}, {user?.displayName}
           </h1>
           <p className="text-muted-foreground text-sm">
-            No active tournament.{isAdmin ? ' Create one to get started.' : ''}
+            No active tournament.
+            {isAdmin ? ' Create one to get started.' : ''}
           </p>
           <Button asChild variant="outline" className="w-fit">
             <Link to="/tournaments">
@@ -295,22 +342,12 @@ export function FeedPage() {
         </div>
       )}
 
-      {/* Stats row */}
+      {/* Notable event announcements (animated) */}
+      {tournament && <NotableEventBanner />}
+
+      {/* Stats row: Rounds + Your Points (Players card removed per v2) */}
       {tournament && (
-        <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="flex flex-col items-center pt-4 pb-3">
-              <Users className="text-primary mb-1 size-5" aria-hidden="true" />
-              <p className="text-2xl font-bold">{playerCount}</p>
-              <p className="text-muted-foreground text-xs">
-                {playerCount === 0 ? (
-                  <span className="text-amber-600">Add players</span>
-                ) : (
-                  'Players'
-                )}
-              </p>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="flex flex-col items-center pt-4 pb-3">
               <Flag className="text-primary mb-1 size-5" aria-hidden="true" />
@@ -332,6 +369,66 @@ export function FeedPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Active round leaders card */}
+      {tournament && activeRound && activeRoundLeaders.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Medal className="text-primary size-4" aria-hidden="true" />
+              <CardTitle className="text-base">
+                {activeRound.name ?? 'Active Round'} — Leaders
+              </CardTitle>
+            </div>
+            <CardDescription>Current standings</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-1.5">
+              {activeRoundLeaders.map((entry, idx) => (
+                <div
+                  key={entry.participantId}
+                  className={`flex items-center gap-3 rounded-md px-2.5 py-1.5 ${
+                    idx === 0 ? 'bg-primary/5 font-semibold' : ''
+                  }`}
+                >
+                  <span className="text-muted-foreground w-6 text-right text-sm font-medium">
+                    {placingSuffix(entry.placing)}
+                  </span>
+                  <span className="flex-1 truncate text-sm">
+                    {entry.displayName}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {entry.stablefordPoints != null
+                      ? `${entry.stablefordPoints} pts`
+                      : `${entry.grossTotal} gross`}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {entry.pointsAwarded} pts
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Admin announcement posting */}
+      {tournament && isAdmin && user && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Megaphone className="text-primary size-4" aria-hidden="true" />
+              <CardTitle className="text-base">Post Announcement</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <AdminAnnouncementInput
+              tournamentId={tournament.id}
+              userId={user.id}
+            />
+          </CardContent>
+        </Card>
       )}
 
       {/* Dev controls (dev only) */}
@@ -407,16 +504,28 @@ export function FeedPage() {
                     ? SIDE_EVENT_CONFIG[item.sideEventType]
                     : null
                   const Icon = config?.icon
+                  const isAnnouncement =
+                    item.type === 'feed' &&
+                    item.feedEventType === 'announcement'
+                  const isHandicapChange =
+                    item.type === 'feed' &&
+                    item.feedEventType === 'handicap_changed'
 
                   return (
                     <div
                       key={item.id}
-                      className="animate-in fade-in slide-in-from-top-1 flex items-start gap-2.5 rounded-md px-2 py-2"
+                      className={`animate-in fade-in slide-in-from-top-1 flex items-start gap-2.5 rounded-md px-2 py-2 ${
+                        isAnnouncement ? 'bg-primary/5' : ''
+                      }`}
                     >
                       {Icon ? (
                         <Icon
                           className={`mt-0.5 size-4 shrink-0 ${config.color}`}
                         />
+                      ) : isAnnouncement ? (
+                        <Megaphone className="mt-0.5 size-4 shrink-0 text-blue-500" />
+                      ) : isHandicapChange ? (
+                        <ArrowUpDown className="mt-0.5 size-4 shrink-0 text-amber-500" />
                       ) : item.type === 'bet' ? (
                         <CircleDollarSign className="mt-0.5 size-4 shrink-0 text-violet-500" />
                       ) : (
@@ -434,6 +543,22 @@ export function FeedPage() {
                           className="shrink-0 text-[10px]"
                         >
                           {config?.label}
+                        </Badge>
+                      )}
+                      {isAnnouncement && (
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 text-[10px]"
+                        >
+                          ANNOUNCEMENT
+                        </Badge>
+                      )}
+                      {isHandicapChange && (
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 text-[10px]"
+                        >
+                          HANDICAP
                         </Badge>
                       )}
                       {item.type === 'bet' && (

@@ -42,7 +42,6 @@ describe('Group Score Entry', () => {
       rounds: [],
       groups: [],
       teams: [],
-      pointsConfigs: [],
     })
     useSideEventsStore.setState({ events: [], images: [] })
   })
@@ -50,10 +49,10 @@ describe('Group Score Entry', () => {
   describe('individual format — group-based scoring', () => {
     it('creates scorecards for multiple players in a group', () => {
       const store = useScoringStore.getState()
-      const sc1 = store.createScorecard('round-1', 18, 'player-1')
-      const sc2 = store.createScorecard('round-1', 18, 'player-2')
-      const sc3 = store.createScorecard('round-1', 18, 'player-3')
-      const sc4 = store.createScorecard('round-1', 18, 'player-4')
+      store.createScorecard('round-1', 18, 'player-1')
+      store.createScorecard('round-1', 18, 'player-2')
+      store.createScorecard('round-1', 18, 'player-3')
+      store.createScorecard('round-1', 18, 'player-4')
 
       const all = useScoringStore.getState().getScorecardsByRound('round-1')
       expect(all).toHaveLength(4)

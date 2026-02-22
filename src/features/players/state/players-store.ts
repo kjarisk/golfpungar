@@ -5,6 +5,7 @@ import type {
   UpdatePlayerInput,
   Invite,
 } from '../types'
+import { useFeedStore } from '@/features/feed'
 
 interface PlayersState {
   players: Player[]
@@ -134,6 +135,22 @@ export const usePlayersStore = create<PlayersState>((set, get) => ({
   },
 
   updatePlayer: (id, updates) => {
+    const existing = get().players.find((p) => p.id === id)
+
+    // Detect handicap change and post feed event
+    if (
+      existing &&
+      updates.groupHandicap !== undefined &&
+      updates.groupHandicap !== existing.groupHandicap
+    ) {
+      useFeedStore.getState().addEvent({
+        tournamentId: existing.tournamentId,
+        type: 'handicap_changed',
+        message: `${existing.displayName} handicap changed: ${existing.groupHandicap} → ${updates.groupHandicap}`,
+        playerId: existing.id,
+      })
+    }
+
     set((state) => ({
       players: state.players.map((p) =>
         p.id === id ? { ...p, ...updates } : p
