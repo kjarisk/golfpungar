@@ -1,12 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -32,6 +26,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
+import { sortRounds } from '@/features/rounds/lib/sort-rounds'
 import type { Round, RoundFormat, RoundStatus } from '@/features/rounds'
 
 const FORMAT_LABELS: Record<RoundFormat, string> = {
@@ -52,25 +47,6 @@ const STATUS_LABEL: Record<RoundStatus, string> = {
   upcoming: 'Upcoming',
   active: 'Active',
   completed: 'Completed',
-}
-
-/** Sort rounds: active first, upcoming next, completed last */
-const STATUS_ORDER: Record<RoundStatus, number> = {
-  active: 0,
-  upcoming: 1,
-  completed: 2,
-}
-
-function sortRounds(rounds: Round[]): Round[] {
-  return [...rounds].sort((a, b) => {
-    const orderDiff = STATUS_ORDER[a.status] - STATUS_ORDER[b.status]
-    if (orderDiff !== 0) return orderDiff
-    // Within same status, sort by creation date (newest first for upcoming/active, oldest first for completed)
-    if (a.status === 'completed') {
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    }
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
 }
 
 export function RoundsPage() {
@@ -221,65 +197,66 @@ export function RoundsPage() {
                   className={
                     round.status === 'active'
                       ? 'border-primary/40 ring-primary/20 ring-1'
-                      : ''
+                      : round.status === 'completed'
+                        ? 'opacity-80'
+                        : ''
                   }
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-base">{round.name}</CardTitle>
-                      <Badge variant={STATUS_VARIANT[round.status]}>
-                        {STATUS_LABEL[round.status]}
-                      </Badge>
-                    </div>
-                    {course && (
-                      <CardDescription className="flex items-center gap-1">
-                        <MapPin className="size-3" />
-                        {course.name}
-                      </CardDescription>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {/* Round info row */}
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      <Badge variant="outline" className="text-xs">
-                        {FORMAT_LABELS[round.format]}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {round.holesPlayed} holes
-                      </Badge>
-                      {round.dateTime && (
-                        <Badge variant="outline" className="text-xs">
-                          <Calendar className="mr-1 size-3" />
-                          {new Date(round.dateTime).toLocaleDateString(
-                            'en-GB',
-                            {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            }
-                          )}
+                  <CardHeader className="pb-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-base">
+                          {round.name}
+                        </CardTitle>
+                        <Badge
+                          variant={STATUS_VARIANT[round.status]}
+                          className={
+                            round.status === 'active'
+                              ? 'bg-primary text-primary-foreground text-xs'
+                              : 'text-xs'
+                          }
+                        >
+                          {STATUS_LABEL[round.status]}
                         </Badge>
+                      </div>
+                    </div>
+                    {/* Compact info line: course · format · holes · date */}
+                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+                      {course && (
+                        <span className="flex items-center gap-0.5">
+                          <MapPin className="size-3" />
+                          {course.name}
+                        </span>
+                      )}
+                      <span className="text-muted-foreground/40">|</span>
+                      <span>{FORMAT_LABELS[round.format]}</span>
+                      <span className="text-muted-foreground/40">|</span>
+                      <span>{round.holesPlayed}H</span>
+                      {round.dateTime && (
+                        <>
+                          <span className="text-muted-foreground/40">|</span>
+                          <span className="flex items-center gap-0.5">
+                            <Calendar className="size-3" />
+                            {new Date(round.dateTime).toLocaleDateString(
+                              'en-GB',
+                              {
+                                day: 'numeric',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              }
+                            )}
+                          </span>
+                        </>
                       )}
                     </div>
-
-                    {/* Groups & Teams */}
+                  </CardHeader>
+                  <CardContent className="pt-1.5">
+                    {/* Compact groups */}
                     {groups.length > 0 ? (
-                      <div className="flex flex-col gap-2">
-                        <p className="text-muted-foreground flex items-center gap-1 text-xs font-medium">
-                          <Users className="size-3" />
-                          {groups.length} group{groups.length !== 1 ? 's' : ''}
-                          {isTeamFormat && teams.length > 0 && (
-                            <span>
-                              {' '}
-                              &middot; {teams.length} team
-                              {teams.length !== 1 ? 's' : ''}
-                            </span>
-                          )}
-                        </p>
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      <div className="flex flex-col gap-1">
+                        <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                           {groups.map((group) => {
-                            // Find teams within this group
                             const groupTeams = teams.filter((t) =>
                               t.playerIds.some((pid) =>
                                 group.playerIds.includes(pid)
@@ -289,40 +266,18 @@ export function RoundsPage() {
                             return (
                               <div
                                 key={group.id}
-                                className="bg-muted/50 rounded-md px-2.5 py-1.5"
+                                className="bg-muted/50 flex items-baseline gap-1.5 rounded px-2 py-1"
                               >
-                                <p className="mb-1 text-xs font-medium">
+                                <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">
                                   {group.name}
-                                </p>
-                                {isTeamFormat && groupTeams.length > 0 ? (
-                                  <div className="flex flex-col gap-1">
-                                    {groupTeams.map((team) => (
-                                      <div
-                                        key={team.id}
-                                        className="flex items-center gap-1.5"
-                                      >
-                                        <span className="bg-primary/10 text-primary rounded px-1.5 py-0.5 text-xs font-medium">
-                                          {team.name}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-wrap gap-1">
-                                    {group.playerIds.map((pid) => (
-                                      <span
-                                        key={pid}
-                                        className="text-muted-foreground text-xs"
-                                      >
-                                        {getPlayerName(pid)}
-                                        {pid !==
-                                          group.playerIds[
-                                            group.playerIds.length - 1
-                                          ] && ','}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
+                                </span>
+                                <span className="text-muted-foreground text-xs">
+                                  {isTeamFormat && groupTeams.length > 0
+                                    ? groupTeams.map((t) => t.name).join(' vs ')
+                                    : group.playerIds
+                                        .map((pid) => getPlayerName(pid))
+                                        .join(', ')}
+                                </span>
                               </div>
                             )
                           })}
@@ -334,7 +289,7 @@ export function RoundsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => setConfiguringTeamsRound(round)}
-                            className="mt-1 w-fit gap-1.5"
+                            className="mt-0.5 w-fit gap-1.5"
                           >
                             <Users className="size-3.5" />
                             {teams.length > 0
@@ -345,22 +300,21 @@ export function RoundsPage() {
                       </div>
                     ) : (
                       <p className="text-muted-foreground text-xs">
-                        No groups assigned to this round yet.
+                        No groups assigned yet.
                       </p>
                     )}
 
                     {/* Admin actions */}
                     {isAdmin && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
-                        {/* Status transitions */}
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
                         {round.status === 'upcoming' && (
                           <Button
                             size="sm"
                             variant="default"
                             onClick={() => handleSetActive(round.id)}
-                            className="gap-1.5"
+                            className="h-7 gap-1 text-xs"
                           >
-                            <Play className="size-3.5" />
+                            <Play className="size-3" />
                             Set Active
                           </Button>
                         )}
@@ -369,9 +323,9 @@ export function RoundsPage() {
                             size="sm"
                             variant="default"
                             onClick={() => handleComplete(round.id)}
-                            className="gap-1.5"
+                            className="h-7 gap-1 text-xs"
                           >
-                            <CheckCircle className="size-3.5" />
+                            <CheckCircle className="size-3" />
                             Complete
                           </Button>
                         )}
@@ -380,25 +334,21 @@ export function RoundsPage() {
                             size="sm"
                             variant="outline"
                             onClick={() => handleReopen(round.id)}
-                            className="gap-1.5"
+                            className="h-7 gap-1 text-xs"
                           >
-                            <RotateCcw className="size-3.5" />
+                            <RotateCcw className="size-3" />
                             Reopen
                           </Button>
                         )}
-
-                        {/* Edit */}
                         <Button
                           size="sm"
                           variant="ghost"
                           onClick={() => setEditingRound(round)}
-                          className="gap-1.5"
+                          className="h-7 gap-1 text-xs"
                         >
-                          <Pencil className="size-3.5" />
+                          <Pencil className="size-3" />
                           Edit
                         </Button>
-
-                        {/* Delete */}
                         {isDeleting ? (
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs text-red-600">
@@ -426,9 +376,9 @@ export function RoundsPage() {
                             size="sm"
                             variant="ghost"
                             onClick={() => setConfirmDelete(round.id)}
-                            className="text-muted-foreground hover:text-destructive gap-1.5"
+                            className="text-muted-foreground hover:text-destructive h-7 gap-1 text-xs"
                           >
-                            <Trash2 className="size-3.5" />
+                            <Trash2 className="size-3" />
                             Delete
                           </Button>
                         )}

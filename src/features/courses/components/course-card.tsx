@@ -14,10 +14,15 @@ export function CourseCard({ course, holes, onClick }: CourseCardProps) {
   const par4s = holes.filter((h) => h.par === 4).length
   const par5s = holes.filter((h) => h.par === 5).length
 
-  const frontNine = holes.filter((h) => h.holeNumber <= 9)
-  const backNine = holes.filter((h) => h.holeNumber > 9)
+  const frontNine = holes
+    .filter((h) => h.holeNumber <= 9)
+    .sort((a, b) => a.holeNumber - b.holeNumber)
+  const backNine = holes
+    .filter((h) => h.holeNumber > 9)
+    .sort((a, b) => a.holeNumber - b.holeNumber)
   const frontPar = frontNine.reduce((sum, h) => sum + h.par, 0)
   const backPar = backNine.reduce((sum, h) => sum + h.par, 0)
+  const has18 = backNine.length > 0
 
   return (
     <Card
@@ -28,112 +33,111 @@ export function CourseCard({ course, holes, onClick }: CourseCardProps) {
     >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{course.name}</CardTitle>
-          <Badge variant="secondary" className="text-xs">
-            {holes.length} holes
-          </Badge>
+          <div className="flex items-baseline gap-2">
+            <CardTitle className="text-base">{course.name}</CardTitle>
+            <span className="text-muted-foreground text-xs tabular-nums">
+              Par {totalPar}
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-xs tabular-nums">
+              {holes.length}H
+            </Badge>
+            <div className="text-muted-foreground flex gap-2 text-[10px]">
+              <span>{par3s}×P3</span>
+              <span>{par4s}×P4</span>
+              <span>{par5s}×P5</span>
+            </div>
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
-        {/* Par summary */}
-        <div className="mb-3 flex items-baseline gap-1">
-          <span className="text-2xl font-bold">{totalPar}</span>
-          <span className="text-muted-foreground text-sm">par</span>
-          {backNine.length > 0 && (
-            <span className="text-muted-foreground ml-2 text-xs">
-              ({frontPar} + {backPar})
-            </span>
-          )}
-        </div>
+      <CardContent className="px-3 pb-3">
+        {/* Front 9 */}
+        <HalfTable label="Out" holes={frontNine} subtotal={frontPar} />
 
-        {/* Par breakdown */}
-        <div className="text-muted-foreground flex gap-4 text-xs">
-          <span>
-            <span className="text-foreground font-medium">{par3s}</span> par 3
-          </span>
-          <span>
-            <span className="text-foreground font-medium">{par4s}</span> par 4
-          </span>
-          <span>
-            <span className="text-foreground font-medium">{par5s}</span> par 5
-          </span>
-        </div>
-
-        {/* Compact scorecard */}
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-center text-xs">
-            <thead>
-              <tr className="text-muted-foreground">
-                {frontNine.map((h) => (
-                  <th key={h.holeNumber} className="px-1 pb-0.5 font-medium">
-                    {h.holeNumber}
-                  </th>
-                ))}
-                {backNine.length > 0 && (
-                  <th className="text-primary px-1 pb-0.5 font-medium">Out</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                {frontNine.map((h) => (
-                  <td key={h.holeNumber} className="px-1 py-0.5">
-                    {h.par}
-                  </td>
-                ))}
-                {backNine.length > 0 && (
-                  <td className="text-primary px-1 py-0.5 font-medium">
-                    {frontPar}
-                  </td>
-                )}
-              </tr>
-              <tr className="text-muted-foreground">
-                {frontNine.map((h) => (
-                  <td key={h.holeNumber} className="px-1 py-0.5 text-[10px]">
-                    {h.strokeIndex}
-                  </td>
-                ))}
-                {backNine.length > 0 && <td />}
-              </tr>
-            </tbody>
-          </table>
-
-          {backNine.length > 0 && (
-            <table className="mt-1 w-full text-center text-xs">
-              <thead>
-                <tr className="text-muted-foreground">
-                  {backNine.map((h) => (
-                    <th key={h.holeNumber} className="px-1 pb-0.5 font-medium">
-                      {h.holeNumber}
-                    </th>
-                  ))}
-                  <th className="text-primary px-1 pb-0.5 font-medium">In</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  {backNine.map((h) => (
-                    <td key={h.holeNumber} className="px-1 py-0.5">
-                      {h.par}
-                    </td>
-                  ))}
-                  <td className="text-primary px-1 py-0.5 font-medium">
-                    {backPar}
-                  </td>
-                </tr>
-                <tr className="text-muted-foreground">
-                  {backNine.map((h) => (
-                    <td key={h.holeNumber} className="px-1 py-0.5 text-[10px]">
-                      {h.strokeIndex}
-                    </td>
-                  ))}
-                  <td />
-                </tr>
-              </tbody>
-            </table>
-          )}
-        </div>
+        {/* Back 9 */}
+        {has18 && (
+          <>
+            <div className="my-1" />
+            <HalfTable
+              label="In"
+              holes={backNine}
+              subtotal={backPar}
+              totalPar={totalPar}
+            />
+          </>
+        )}
       </CardContent>
     </Card>
+  )
+}
+
+interface HalfTableProps {
+  label: string
+  holes: Hole[]
+  subtotal: number
+  totalPar?: number
+}
+
+function HalfTable({ label, holes, subtotal, totalPar }: HalfTableProps) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-center text-xs tabular-nums">
+        <thead>
+          <tr className="text-muted-foreground">
+            <th className="w-8 py-0.5 text-left text-[10px] font-medium">
+              Hole
+            </th>
+            {holes.map((h) => (
+              <th
+                key={h.holeNumber}
+                className="min-w-[22px] py-0.5 font-medium"
+              >
+                {h.holeNumber}
+              </th>
+            ))}
+            <th className="text-primary min-w-[28px] py-0.5 font-semibold">
+              {label}
+            </th>
+            {totalPar != null && (
+              <th className="text-primary min-w-[28px] py-0.5 font-semibold">
+                Tot
+              </th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {/* Par row */}
+          <tr className="bg-muted/40">
+            <td className="py-0.5 text-left text-[10px] font-medium">Par</td>
+            {holes.map((h) => (
+              <td key={h.holeNumber} className="py-0.5">
+                {h.par}
+              </td>
+            ))}
+            <td className="text-primary py-0.5 font-semibold">{subtotal}</td>
+            {totalPar != null && (
+              <td className="text-primary py-0.5 font-semibold">{totalPar}</td>
+            )}
+          </tr>
+          {/* Stroke Index row */}
+          <tr>
+            <td className="text-muted-foreground py-0.5 text-left text-[10px] font-medium">
+              SI
+            </td>
+            {holes.map((h) => (
+              <td
+                key={h.holeNumber}
+                className="text-muted-foreground py-0.5 text-[10px]"
+              >
+                {h.strokeIndex}
+              </td>
+            ))}
+            <td />
+            {totalPar != null && <td />}
+          </tr>
+        </tbody>
+      </table>
+    </div>
   )
 }

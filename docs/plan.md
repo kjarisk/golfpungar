@@ -218,22 +218,22 @@
 
 ## Phase 19 -- Betting Improvements
 
-- [ ] Bet list organized into sections:
-  - [ ] Round bets (current active round)
-  - [ ] Tournament bets
-  - [ ] Settled bets (won/lost/paid, collapsed by default)
-- [ ] Visual differentiation between sections (headers, dividers)
-- [ ] Tests for section filtering
+- [x] Bet list organized into sections:
+  - [x] Round bets (current active round)
+  - [x] Tournament bets
+  - [x] Settled bets (won/lost/paid, collapsed by default)
+- [x] Visual differentiation between sections (headers, dividers)
+- [x] Tests for section filtering
 
 ## Phase 20 -- Rounds & Course View Polish
 
-- [ ] Course card redesign: cleaner grid layout, better alignment
-  - [ ] Proper table with Front 9 / Back 9 sections
-  - [ ] Hole numbers, par, stroke index in aligned columns
-  - [ ] Out/In subtotals
-- [ ] Round cards: more compact, clearer status prominence
-- [ ] Round ordering: active → upcoming → completed
-- [ ] Tests for sort order
+- [x] Course card redesign: cleaner grid layout, better alignment
+  - [x] Proper table with Front 9 / Back 9 sections
+  - [x] Hole numbers, par, stroke index in aligned columns
+  - [x] Out/In subtotals
+- [x] Round cards: more compact, clearer status prominence
+- [x] Round ordering: active → upcoming → completed
+- [x] Tests for sort order
 
 ## Phase 21 -- Player & Invite Refinements
 

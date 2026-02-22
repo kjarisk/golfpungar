@@ -434,6 +434,7 @@ export function EnterPage() {
           currentPlayerId={currentPlayerId}
           players={players}
           rounds={rounds}
+          activeRoundId={activeRound?.id}
         />
       )}
     </div>
