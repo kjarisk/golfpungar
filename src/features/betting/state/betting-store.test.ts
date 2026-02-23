@@ -216,7 +216,7 @@ describe('Betting Store', () => {
 
   // --- removeBet ---
 
-  it('removes a bet and its participants', () => {
+  it('removes a pending bet when called by creator', () => {
     const bet = useBettingStore.getState().createBet({
       tournamentId: T1,
       createdByPlayerId: P1,
@@ -229,13 +229,14 @@ describe('Betting Store', () => {
     expect(useBettingStore.getState().bets).toHaveLength(1)
     expect(useBettingStore.getState().participants).toHaveLength(2)
 
-    useBettingStore.getState().removeBet(bet.id)
+    const result = useBettingStore.getState().removeBet(bet.id, P1, false)
 
+    expect(result).toBe(true)
     expect(useBettingStore.getState().bets).toHaveLength(0)
     expect(useBettingStore.getState().participants).toHaveLength(0)
   })
 
-  it('does nothing when removing a non-existent bet', () => {
+  it('returns false when removing a non-existent bet', () => {
     useBettingStore.getState().createBet({
       tournamentId: T1,
       createdByPlayerId: P1,
@@ -245,10 +246,81 @@ describe('Betting Store', () => {
       opponentIds: [P2],
     })
 
-    useBettingStore.getState().removeBet('does-not-exist')
+    const result = useBettingStore
+      .getState()
+      .removeBet('does-not-exist', P1, false)
 
+    expect(result).toBe(false)
     expect(useBettingStore.getState().bets).toHaveLength(1)
     expect(useBettingStore.getState().participants).toHaveLength(1)
+  })
+
+  it('blocks non-creator from removing a bet', () => {
+    const bet = useBettingStore.getState().createBet({
+      tournamentId: T1,
+      createdByPlayerId: P1,
+      scope: 'tournament',
+      metricKey: 'most_points',
+      amount: 10,
+      opponentIds: [P2],
+    })
+
+    const result = useBettingStore.getState().removeBet(bet.id, P2, false)
+
+    expect(result).toBe(false)
+    expect(useBettingStore.getState().bets).toHaveLength(1)
+  })
+
+  it('blocks creator from removing an accepted bet', () => {
+    const bet = useBettingStore.getState().createBet({
+      tournamentId: T1,
+      createdByPlayerId: P1,
+      scope: 'tournament',
+      metricKey: 'most_points',
+      amount: 10,
+      opponentIds: [P2],
+    })
+    useBettingStore.getState().acceptBet(bet.id, P2)
+
+    const result = useBettingStore.getState().removeBet(bet.id, P1, false)
+
+    expect(result).toBe(false)
+    expect(useBettingStore.getState().bets).toHaveLength(1)
+  })
+
+  it('allows creator to remove a rejected bet', () => {
+    const bet = useBettingStore.getState().createBet({
+      tournamentId: T1,
+      createdByPlayerId: P1,
+      scope: 'tournament',
+      metricKey: 'most_points',
+      amount: 10,
+      opponentIds: [P2],
+    })
+    useBettingStore.getState().rejectBet(bet.id, P2)
+
+    const result = useBettingStore.getState().removeBet(bet.id, P1, false)
+
+    expect(result).toBe(true)
+    expect(useBettingStore.getState().bets).toHaveLength(0)
+  })
+
+  it('allows admin to remove any bet regardless of status', () => {
+    const bet = useBettingStore.getState().createBet({
+      tournamentId: T1,
+      createdByPlayerId: P1,
+      scope: 'tournament',
+      metricKey: 'most_points',
+      amount: 10,
+      opponentIds: [P2],
+    })
+    useBettingStore.getState().acceptBet(bet.id, P2)
+
+    // Admin (P3 is neither creator nor participant, but is admin)
+    const result = useBettingStore.getState().removeBet(bet.id, P3, true)
+
+    expect(result).toBe(true)
+    expect(useBettingStore.getState().bets).toHaveLength(0)
   })
 
   // --- Query: getBetsByTournament ---

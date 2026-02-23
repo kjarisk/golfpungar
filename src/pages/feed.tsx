@@ -112,7 +112,6 @@ export function FeedPage() {
     (s) => s.getEventsByTournament
   )
   const getPenaltyEntries = usePenaltiesStore((s) => s.getEntriesByTournament)
-  const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
   const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
   const getBetsForPlayer = useBettingStore((s) => s.getBetsForPlayer)
   const acceptBet = useBettingStore((s) => s.acceptBet)
@@ -200,19 +199,17 @@ export function FeedPage() {
     })
   })()
 
-  // Combine side events + penalties + bets + feed events into a unified feed
+  // Combine side events + penalties + feed events into a unified feed
   const sideEvents = tournament ? getEventsByTournament(tournament.id) : []
   const penaltyEntries = tournament ? getPenaltyEntries(tournament.id) : []
-  const bets = tournament ? getBetsByTournament(tournament.id) : []
   const feedEvents = tournament ? getRecentFeedEvents(tournament.id, 50) : []
 
   type UnifiedFeedItem = {
     id: string
     message: string
     createdAt: string
-    type: 'side_event' | 'feed' | 'penalty' | 'bet'
+    type: 'side_event' | 'feed' | 'penalty'
     sideEventType?: string
-    betStatus?: string
     playerName?: string
     feedEventType?: string
   }
@@ -256,45 +253,6 @@ export function FeedPage() {
       type: 'feed' as const,
       feedEventType: e.type,
     })),
-    ...bets.map((bet) => {
-      const creator = players.find((p) => p.id === bet.createdByPlayerId)
-      const betParticipants = getBetParticipants(bet.id)
-      const opponentNames = betParticipants
-        .map(
-          (bp) =>
-            players.find((p) => p.id === bp.playerId)?.displayName ?? 'Unknown'
-        )
-        .join(', ')
-      const metricLabel =
-        bet.metricKey === 'custom' && bet.customDescription
-          ? bet.customDescription
-          : bet.metricKey === 'most_points'
-            ? 'most points'
-            : bet.metricKey === 'most_birdies'
-              ? 'most birdies'
-              : 'head-to-head'
-      const winnerName = bet.winnerId
-        ? (players.find((p) => p.id === bet.winnerId)?.displayName ?? 'Unknown')
-        : null
-
-      const statusMessages: Record<string, string> = {
-        pending: `${creator?.displayName ?? 'Unknown'} challenged ${opponentNames} — ${metricLabel} (${bet.amount} units)`,
-        accepted: `Bet accepted: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames} — ${metricLabel}`,
-        rejected: `Bet rejected: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames}`,
-        won: `${winnerName} won the bet: ${metricLabel} (${bet.amount} units)`,
-        lost: `${winnerName} won the bet: ${metricLabel} (${bet.amount} units)`,
-        paid: `Bet settled: ${creator?.displayName ?? 'Unknown'} vs ${opponentNames} — ${metricLabel} (${bet.amount} units)`,
-      }
-
-      return {
-        id: `bet-feed-${bet.id}`,
-        message: statusMessages[bet.status] ?? `Bet update: ${bet.status}`,
-        createdAt: bet.createdAt,
-        type: 'bet' as const,
-        betStatus: bet.status,
-        playerName: creator?.displayName,
-      }
-    }),
   ].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )
@@ -544,6 +502,12 @@ export function FeedPage() {
                 No bets yet
               </p>
             )}
+            <Link
+              to="/bets"
+              className="text-primary mt-2 block text-center text-xs font-medium hover:underline"
+            >
+              View All Bets
+            </Link>
           </CardContent>
         </Card>
       )}
@@ -662,7 +626,7 @@ export function FeedPage() {
                         <Megaphone className="mt-0.5 size-4 shrink-0 text-blue-500" />
                       ) : isHandicapChange ? (
                         <ArrowUpDown className="mt-0.5 size-4 shrink-0 text-amber-500" />
-                      ) : item.type === 'bet' ? (
+                      ) : item.feedEventType === 'bet' ? (
                         <CircleDollarSign className="mt-0.5 size-4 shrink-0 text-violet-500" />
                       ) : (
                         <div className="bg-muted mt-0.5 size-4 shrink-0 rounded-full" />
@@ -703,7 +667,7 @@ export function FeedPage() {
                           HANDICAP
                         </Badge>
                       )}
-                      {item.type === 'bet' && (
+                      {item.feedEventType === 'bet' && (
                         <Badge
                           variant="secondary"
                           className="shrink-0 text-[10px]"

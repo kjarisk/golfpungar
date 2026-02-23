@@ -40,6 +40,7 @@ interface BetListProps {
   players: Player[]
   rounds: Round[]
   activeRoundId?: string
+  isAdmin?: boolean
 }
 
 const METRIC_LABELS: Record<string, string> = {
@@ -67,6 +68,7 @@ export function BetList({
   players,
   rounds,
   activeRoundId,
+  isAdmin = false,
 }: BetListProps) {
   const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
   const getParticipantsForBet = useBettingStore((s) => s.getParticipantsForBet)
@@ -80,6 +82,9 @@ export function BetList({
   const [resolvingBetId, setResolvingBetId] = useState<string | null>(null)
   const [selectedWinner, setSelectedWinner] = useState('')
   const [settledOpen, setSettledOpen] = useState(false)
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(
+    null
+  )
 
   const bets = getBetsByTournament(tournamentId)
   const { roundBets, tournamentBets, settledBets } = categorizeBets(
@@ -128,8 +133,13 @@ export function BetList({
   }
 
   function handleRemove(betId: string) {
-    removeBet(betId)
-    toast('Bet removed.', { duration: 2000 })
+    const success = removeBet(betId, currentPlayerId, isAdmin)
+    if (success) {
+      toast('Bet removed.', { duration: 2000 })
+    } else {
+      toast.error('Cannot remove this bet.', { duration: 2000 })
+    }
+    setConfirmingDeleteId(null)
   }
 
   function handleConfirmPaid(betId: string) {
@@ -328,19 +338,40 @@ export function BetList({
             </span>
           )}
 
-          {/* Remove for creator on pending/rejected bets */}
-          {isCreator &&
-            (bet.status === 'pending' || bet.status === 'rejected') && (
+          {/* Remove — creator on pending/rejected, or admin on any status */}
+          {confirmingDeleteId === bet.id ? (
+            <span className="ml-auto flex items-center gap-1 text-xs">
+              <span className="text-muted-foreground">Delete?</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-muted-foreground hover:text-destructive ml-auto size-7 p-0"
+                className="h-6 px-1.5 text-xs text-green-600 hover:text-green-700"
                 onClick={() => handleRemove(bet.id)}
-                aria-label="Remove bet"
               >
-                <Trash2 className="size-3.5" />
+                Yes
               </Button>
-            )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-1.5 text-xs"
+                onClick={() => setConfirmingDeleteId(null)}
+              >
+                No
+              </Button>
+            </span>
+          ) : (isCreator &&
+              (bet.status === 'pending' || bet.status === 'rejected')) ||
+            isAdmin ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-destructive ml-auto size-7 p-0"
+              onClick={() => setConfirmingDeleteId(bet.id)}
+              aria-label="Remove bet"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          ) : null}
         </div>
       </div>
     )

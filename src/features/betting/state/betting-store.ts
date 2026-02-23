@@ -1,4 +1,6 @@
 import { create } from 'zustand'
+import { useFeedStore } from '../../feed/state/feed-store'
+import { usePlayersStore } from '../../players/state/players-store'
 import type {
   Bet,
   BetParticipant,
@@ -6,6 +8,44 @@ import type {
   BettingTotals,
   CreateBetInput,
 } from '../types'
+
+/** Look up a player's display name, falling back to the ID. */
+function getPlayerName(playerId: string): string {
+  const player = usePlayersStore
+    .getState()
+    .players.find((p) => p.id === playerId)
+  return player?.displayName ?? playerId
+}
+
+/** Build a short description of the bet metric. */
+function describeBet(bet: Bet): string {
+  if (bet.metricKey === 'custom' && bet.customDescription) {
+    return bet.customDescription
+  }
+  const labels: Record<string, string> = {
+    most_points: 'most points',
+    most_birdies: 'most birdies',
+    head_to_head: 'head-to-head',
+    custom: 'custom bet',
+  }
+  return labels[bet.metricKey] ?? bet.metricKey
+}
+
+/** Emit a bet-related feed event. */
+function emitBetFeedEvent(
+  tournamentId: string,
+  message: string,
+  playerId?: string,
+  roundId?: string
+) {
+  useFeedStore.getState().addEvent({
+    tournamentId,
+    type: 'bet',
+    message,
+    playerId,
+    roundId,
+  })
+}
 
 interface BettingState {
   bets: Bet[]
@@ -34,7 +74,11 @@ interface BettingState {
   rejectBet: (betId: string, playerId: string) => void
   resolveBet: (betId: string, winnerId: string) => void
   confirmPaid: (betId: string, playerId: string) => void
-  removeBet: (betId: string) => void
+  removeBet: (
+    betId: string,
+    callerPlayerId: string,
+    isAdmin: boolean
+  ) => boolean
 }
 
 let nextBetId = 1
@@ -163,6 +207,16 @@ export const useBettingStore = create<BettingState>((set, get) => ({
       participants: [...state.participants, ...newParticipants],
     }))
 
+    // Emit feed event
+    const creatorName = getPlayerName(input.createdByPlayerId)
+    const opponentNames = input.opponentIds.map(getPlayerName).join(', ')
+    emitBetFeedEvent(
+      bet.tournamentId,
+      `${creatorName} invited ${opponentNames} to a bet — ${describeBet(bet)} (${bet.amount} units)`,
+      input.createdByPlayerId,
+      bet.roundId
+    )
+
     return bet
   },
 
@@ -186,9 +240,25 @@ export const useBettingStore = create<BettingState>((set, get) => ({
 
       return { bets: newBets, participants: newParticipants }
     })
+
+    // Emit feed event
+    const bet = get().getBetById(betId)
+    if (bet) {
+      const accepterName = getPlayerName(playerId)
+      const creatorName = getPlayerName(bet.createdByPlayerId)
+      emitBetFeedEvent(
+        bet.tournamentId,
+        `${accepterName} accepted a bet with ${creatorName} — ${describeBet(bet)} (${bet.amount} units)`,
+        playerId,
+        bet.roundId
+      )
+    }
   },
 
   rejectBet: (betId, playerId) => {
+    // Look up bet BEFORE updating state (so we have the original status)
+    const bet = get().getBetById(betId)
+
     set((state) => ({
       participants: state.participants.map((p) =>
         p.betId === betId && p.playerId === playerId
@@ -199,9 +269,25 @@ export const useBettingStore = create<BettingState>((set, get) => ({
         b.id === betId ? { ...b, status: 'rejected' as const } : b
       ),
     }))
+
+    // Emit feed event
+    if (bet) {
+      const rejecterName = getPlayerName(playerId)
+      const creatorName = getPlayerName(bet.createdByPlayerId)
+      emitBetFeedEvent(
+        bet.tournamentId,
+        `${rejecterName} rejected a bet from ${creatorName}`,
+        playerId,
+        bet.roundId
+      )
+    }
   },
 
   resolveBet: (betId, winnerId) => {
+    // Look up bet BEFORE updating (to get participant info)
+    const bet = get().getBetById(betId)
+    const participants = get().getParticipantsForBet(betId)
+
     set((state) => ({
       bets: state.bets.map((b) => {
         if (b.id !== betId) return b
@@ -214,6 +300,26 @@ export const useBettingStore = create<BettingState>((set, get) => ({
         }
       }),
     }))
+
+    // Emit feed event: "Kjartan won 300 from Magnus — head-to-head"
+    if (bet) {
+      const winnerName = getPlayerName(winnerId)
+      // Losers = everyone else (creator + participants, minus winner)
+      const allPlayerIds = [
+        bet.createdByPlayerId,
+        ...participants.map((p) => p.playerId),
+      ]
+      const loserNames = allPlayerIds
+        .filter((id) => id !== winnerId)
+        .map(getPlayerName)
+        .join(', ')
+      emitBetFeedEvent(
+        bet.tournamentId,
+        `${winnerName} won ${bet.amount} from ${loserNames} — ${describeBet(bet)}`,
+        winnerId,
+        bet.roundId
+      )
+    }
   },
 
   confirmPaid: (betId, playerId) => {
@@ -255,12 +361,40 @@ export const useBettingStore = create<BettingState>((set, get) => ({
 
       return { bets: finalBets, participants: newParticipants }
     })
+
+    // Emit feed event only when ALL parties have confirmed (bet now 'paid')
+    const updatedBet = get().getBetById(betId)
+    if (updatedBet?.status === 'paid') {
+      const participants = get().getParticipantsForBet(betId)
+      const allNames = [
+        getPlayerName(updatedBet.createdByPlayerId),
+        ...participants.map((p) => getPlayerName(p.playerId)),
+      ].join(' vs ')
+      emitBetFeedEvent(
+        updatedBet.tournamentId,
+        `Bet paid: ${allNames} — ${describeBet(updatedBet)} (${updatedBet.amount} units)`,
+        undefined,
+        updatedBet.roundId
+      )
+    }
   },
 
-  removeBet: (betId) => {
+  removeBet: (betId, callerPlayerId, isAdmin) => {
+    const bet = get().getBetById(betId)
+    if (!bet) return false
+
+    // Admin can remove any bet
+    if (!isAdmin) {
+      // Non-admin: must be creator
+      if (bet.createdByPlayerId !== callerPlayerId) return false
+      // Non-admin: can only remove pending or rejected bets
+      if (bet.status !== 'pending' && bet.status !== 'rejected') return false
+    }
+
     set((state) => ({
       bets: state.bets.filter((b) => b.id !== betId),
       participants: state.participants.filter((p) => p.betId !== betId),
     }))
+    return true
   },
 }))

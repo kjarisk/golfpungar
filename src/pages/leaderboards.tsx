@@ -846,6 +846,12 @@ export function LeaderboardsPage() {
               unit=""
               currentPlayerId={currentPlayerId}
             />
+            <Link
+              to="/bets"
+              className="text-primary -mt-1 block text-center text-xs font-medium hover:underline"
+            >
+              View All Bets
+            </Link>
           </SideSection>
         </TabsContent>
       </Tabs>

@@ -7,6 +7,7 @@ import {
   LeaderboardsPage,
   RoundsPage,
   PlayersPage,
+  BetsPage,
   TournamentsPage,
   NotFoundPage,
   LoginPage,
@@ -35,6 +36,7 @@ function App() {
             <Route path="leaderboards" element={<LeaderboardsPage />} />
             <Route path="rounds" element={<RoundsPage />} />
             <Route path="players" element={<PlayersPage />} />
+            <Route path="bets" element={<BetsPage />} />
             <Route path="tournaments" element={<TournamentsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>

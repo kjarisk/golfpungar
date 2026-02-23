@@ -11,6 +11,7 @@ export type FeedEventType =
   | 'team_name_changed'
   | 'announcement'
   | 'handicap_changed'
+  | 'bet'
 
 export interface FeedEvent {
   id: string
