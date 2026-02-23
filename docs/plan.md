@@ -320,3 +320,15 @@
 - [x] Leaderboards updated: all `ScorecardDetail` call sites now pass `groupHandicap`
 - [x] Scorecard detail tests: 5 new tests (Net column, relative-to-par, event totals)
 - [x] Test count: 352 tests across 21 files
+
+## Improvement Pass 5 -- UX restructure, page focus, player comparison
+
+- [x] WP1: Enter page focus — remove penalties/bets, add View Course dialog, Last Snake indicator
+- [x] WP2: Feed — betting summary card with accept/reject, "Your Position" stat, "My Round" scorecard card
+- [x] WP3: Feed cleanup — gate demo controls behind `import.meta.env.DEV`, style notable events with colored borders
+- [x] WP4: Nav badge — notification dot on Feed tab for pending bet invites
+- [x] WP5: Side leaderboard sections — group Side tab into collapsible sections (Scoring, Distance, Penalties & Betting)
+- [x] WP6a: ScorecardComparison component — side-by-side 2-player view with per-hole winner highlighting, match score, event icons
+- [x] WP6b: Compare button in leaderboard ExpandableRow — select any player to compare against expanded player
+- [x] WP6c: Round completion summary dialog — admin sees standings, highlights, scorecard status before confirming round completion
+- [x] Test count: 352 tests across 21 files
