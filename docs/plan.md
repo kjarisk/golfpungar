@@ -332,3 +332,14 @@
 - [x] WP6b: Compare button in leaderboard ExpandableRow — select any player to compare against expanded player
 - [x] WP6c: Round completion summary dialog — admin sees standings, highlights, scorecard status before confirming round completion
 - [x] Test count: 352 tests across 21 files
+
+## Improvement Pass 6 -- Dedicated bets page, real bet feed events, delete guards
+
+- [x] WP1: Add `'bet'` to `FeedEventType`, betting store emits real feed events for all 5 lifecycle actions (create, accept, reject, resolve, paid)
+- [x] WP2: Remove fake bet injection from Feed page (~40 lines); bet events now flow through `FeedEvent` records
+- [x] WP3: Create `/bets` page (`src/pages/bets.tsx`) with `BetList` + bet activity feed
+- [x] WP4: Add `/bets` route in `App.tsx`, "View All Bets" links from Feed and Leaderboards pages
+- [x] WP5: `removeBet(betId, callerPlayerId, isAdmin)` guard — admin can delete any bet, non-admin only own pending/rejected; inline delete confirmation in `BetList`; 4 new tests
+- [x] Full codebase audit: lint clean, build passes, 356 tests across 21 files
+- [x] Dead code cleanup: removed PenaltyList component, PointsConfig type, unused barrel re-exports (Trophy, TrophySourceType), 3 unused store selectors (getEventsByPlayer, clearEvents, getPointsForParticipant), 6 test-only functions from side-events-logic.ts + their 20 tests
+- [x] Test count: 336 tests across 21 files

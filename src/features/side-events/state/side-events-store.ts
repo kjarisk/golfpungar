@@ -15,7 +15,6 @@ interface SideEventsState {
   // Queries
   getEventsByTournament: (tournamentId: string) => SideEventLog[]
   getEventsByRound: (roundId: string) => SideEventLog[]
-  getEventsByPlayer: (playerId: string) => SideEventLog[]
   getEventsByType: (tournamentId: string, type: SideEventType) => SideEventLog[]
   getImagesForEvent: (sideEventLogId: string) => EvidenceImage[]
 
@@ -60,9 +59,6 @@ export const useSideEventsStore = create<SideEventsState>((set, get) => ({
 
   getEventsByRound: (roundId) =>
     get().events.filter((e) => e.roundId === roundId),
-
-  getEventsByPlayer: (playerId) =>
-    get().events.filter((e) => e.playerId === playerId),
 
   getEventsByType: (tournamentId, type) =>
     get().events.filter(

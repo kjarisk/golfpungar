@@ -20,7 +20,6 @@ interface FeedState {
 
   // Actions
   addEvent: (input: CreateFeedEventInput) => FeedEvent
-  clearEvents: (tournamentId: string) => void
   addAnnouncement: (input: CreateAnnouncementInput) => Announcement
   removeAnnouncement: (id: string) => void
   pushNotableEvent: (event: NotableEvent) => void
@@ -77,12 +76,6 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     }))
 
     return event
-  },
-
-  clearEvents: (tournamentId) => {
-    set((state) => ({
-      events: state.events.filter((e) => e.tournamentId !== tournamentId),
-    }))
   },
 
   addAnnouncement: (input) => {

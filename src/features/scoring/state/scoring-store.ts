@@ -25,10 +25,6 @@ interface ScoringState {
     teamId: string
   ) => Scorecard | undefined
   getPointsByRound: (roundId: string) => RoundPoints[]
-  getPointsForParticipant: (
-    roundId: string,
-    participantId: string
-  ) => RoundPoints | undefined
 
   // Actions
   createScorecard: (
@@ -75,11 +71,6 @@ export const useScoringStore = create<ScoringState>((set, get) => ({
 
   getPointsByRound: (roundId) =>
     get().roundPoints.filter((rp) => rp.roundId === roundId),
-
-  getPointsForParticipant: (roundId, participantId) =>
-    get().roundPoints.find(
-      (rp) => rp.roundId === roundId && rp.participantId === participantId
-    ),
 
   createScorecard: (roundId, holesPlayed, playerId, teamId) => {
     const scorecard: Scorecard = {

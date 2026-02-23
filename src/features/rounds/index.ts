@@ -13,5 +13,4 @@ export type {
   Group,
   Team,
   CreateRoundInput,
-  PointsConfig,
 } from './types'

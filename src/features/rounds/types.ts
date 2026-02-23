@@ -38,12 +38,3 @@ export interface CreateRoundInput {
   groups: { name: string; playerIds: string[] }[]
   teams?: { name: string; playerIds: string[] }[]
 }
-
-/** Points config for a round */
-export interface PointsConfig {
-  roundId: string
-  /** Points awarded by placing. Index 0 = 1st place, etc. */
-  individualPoints: number[]
-  /** Points awarded to team placings (optional) */
-  teamPoints?: number[]
-}
