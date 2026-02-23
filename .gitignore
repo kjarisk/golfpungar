@@ -12,6 +12,8 @@ dist
 dist-ssr
 coverage
 *.local
+screenshots
+moodboard
 
 # Editor directories and files
 .vscode/*

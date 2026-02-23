@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -20,9 +20,8 @@ import { SideEventLogger } from '@/features/side-events'
 import { PenaltyList } from '@/features/penalties'
 import { BetList } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
-import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveRound } from '@/hooks/use-active-round'
-import { Trophy, ClipboardList, Users } from 'lucide-react'
+import { ClipboardList, Users } from 'lucide-react'
 
 /** localStorage key for persisting the user's group selection */
 const GROUP_STORAGE_KEY = 'golfpungar:selectedGroupId'
@@ -51,13 +50,10 @@ export function EnterPage() {
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const allScorecards = useScoringStore((s) => s.scorecards)
-  const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
   const createScorecard = useScoringStore((s) => s.createScorecard)
-  const recalculatePoints = useScoringStore((s) => s.recalculatePoints)
   const authUser = useAuthStore((s) => s.user)
-  const isAdmin = useIsAdmin()
 
   const activeRound = useActiveRound()
 
@@ -85,9 +81,6 @@ export function EnterPage() {
   const scorecards = selectedRound
     ? allScorecards.filter((sc) => sc.roundId === selectedRound.id)
     : []
-  const roundPoints = selectedRound
-    ? allRoundPoints.filter((rp) => rp.roundId === selectedRound.id)
-    : []
 
   const isTeamFormat =
     selectedRound?.format === 'scramble' || selectedRound?.format === 'bestball'
@@ -113,7 +106,7 @@ export function EnterPage() {
     t.playerIds.some((pid) => groupPlayerIds.includes(pid))
   )
 
-  // All player IDs from this round's groups (for standings)
+  // All player IDs from this round's groups (for scorecard creation)
   const roundPlayerIds = groups.flatMap((g) => g.playerIds)
   const roundPlayers = players.filter((p) => roundPlayerIds.includes(p.id))
 
@@ -173,22 +166,6 @@ export function EnterPage() {
   function handleGroupChange(groupId: string) {
     setSelectedGroupId(groupId)
     persistGroupId(groupId)
-  }
-
-  function handleRecalculate() {
-    if (!selectedRound) return
-    recalculatePoints(selectedRound.id, selectedRound.format)
-  }
-
-  function getPlayerName(playerId: string) {
-    const player = players.find((p) => p.id === playerId)
-    return player?.displayName ?? 'Unknown'
-  }
-
-  function getParticipantName(participantId: string) {
-    const team = teams.find((t) => t.id === participantId)
-    if (team) return team.name
-    return getPlayerName(participantId)
   }
 
   if (!tournament) {
@@ -351,68 +328,6 @@ export function EnterPage() {
             groupPlayerIds={groupPlayerIds}
             holesPlayed={selectedRound.holesPlayed}
           />
-
-          {/* Standings section — shows full round standings */}
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Standings</CardTitle>
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRecalculate}
-                  >
-                    <Trophy className="size-3.5" />
-                    Recalculate
-                  </Button>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {roundPoints.length === 0 ? (
-                <p className="text-muted-foreground py-4 text-center text-sm">
-                  Enter scores to see standings
-                </p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {[...roundPoints]
-                    .sort((a, b) => a.placing - b.placing)
-                    .map((rp) => {
-                      const sc = scorecards.find(
-                        (s) => (s.playerId ?? s.teamId) === rp.participantId
-                      )
-                      return (
-                        <div
-                          key={rp.participantId}
-                          className="flex items-center gap-3 rounded-md px-2 py-1.5"
-                        >
-                          <span className="text-muted-foreground w-6 text-right text-sm font-bold tabular-nums">
-                            {rp.placing}
-                          </span>
-                          <span className="flex-1 truncate text-sm">
-                            {getParticipantName(rp.participantId)}
-                          </span>
-                          {sc && (
-                            <span className="text-muted-foreground text-xs tabular-nums">
-                              {sc.grossTotal > 0 && `${sc.grossTotal} gross`}
-                              {sc.stablefordPoints !== null &&
-                                ` / ${sc.stablefordPoints} stb`}
-                            </span>
-                          )}
-                          <Badge
-                            variant="default"
-                            className="tabular-nums text-xs"
-                          >
-                            {rp.pointsAwarded}p
-                          </Badge>
-                        </div>
-                      )
-                    })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 

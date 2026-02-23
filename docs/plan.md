@@ -293,3 +293,14 @@
 - [x] PWA support (`vite-plugin-pwa`, manifest, service worker, precaching)
 - [x] `useIsMobile` hook (`useSyncExternalStore` pattern, no React Compiler lint issues)
 - [x] Test count: 347 tests across 21 files
+
+## Improvement Pass 3 -- Enter page cleanup, side event logger redesign
+
+- [x] SideEventLogger: replace `<Select>` player dropdown with touch button row (selected = `bg-primary`)
+- [x] SideEventLogger: bigger hole buttons (`h-11`) with per-player event icons (tap icon to remove with undo toast)
+- [x] SideEventLogger: remove auto-detect quick actions (birdie/eagle/HIO/albatross) — these are auto-detected from scores
+- [x] SideEventLogger: inline `HoleButton` component with event type icons + overflow indicator
+- [x] Remove Standings section from Enter page (redundant with Leaderboards/Feed pages)
+- [x] Clean up dead code in Enter page (removed `isAdmin`, `recalculatePoints`, `getParticipantName`, unused imports)
+- [x] Connect auto-detected side events to feed notable event banners (`pushNotableEvent` on birdie/eagle/albatross/HIO)
+- [x] Test count: 347 tests across 21 files

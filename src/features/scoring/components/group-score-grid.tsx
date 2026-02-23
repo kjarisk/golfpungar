@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/drawer'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
+import { useFeedStore } from '@/features/feed'
 import type { Scorecard, HoleStroke } from '@/features/scoring'
 import type { Hole } from '@/features/courses'
 import type { RoundFormat, Team } from '@/features/rounds'
@@ -104,6 +105,9 @@ function computeSubtotalPar(holes: Hole[], from: number, to: number): number {
 }
 
 // --- Auto-detection ---
+
+/** Counter for generating unique notable event IDs */
+let nextNotableId = 1
 
 /** Side event types that are automatically derived from score vs par */
 const AUTO_DETECT_TYPES: SideEventType[] = [
@@ -291,6 +295,12 @@ export function GroupScoreGrid({
     return team ? team.playerIds[0] : participantId
   }
 
+  /** Resolve a human-readable name for the participant (player or team) */
+  function resolvePlayerName(participantId: string): string {
+    const p = participants.find((p) => p.id === participantId)
+    return p?.name ?? 'Unknown'
+  }
+
   /**
    * After a score change, sync auto-detectable side events (birdie/eagle/albatross/HIO).
    * - Removes existing auto-events that no longer match the new score
@@ -349,6 +359,16 @@ export function GroupScoreGrid({
         playerId,
         type: expectedType,
         createdByPlayerId: currentPlayerId,
+      })
+
+      // Push notable event for the animated feed banner
+      const playerName = resolvePlayerName(participantId)
+      useFeedStore.getState().pushNotableEvent({
+        id: `notable-${String(nextNotableId++).padStart(3, '0')}`,
+        kind: expectedType as 'birdie' | 'eagle' | 'albatross' | 'hio',
+        playerName,
+        holeNumber,
+        createdAt: new Date().toISOString(),
       })
     }
   }

@@ -40,6 +40,9 @@ Keep this short: what we decided, and why.
 - 2026-02-22: Improvement Pass 2 — PWA support via `vite-plugin-pwa` with `generateSW` strategy, SVG icons, workbox precaching. App installable as standalone PWA.
 - 2026-02-22: Improvement Pass 2 — Dark mode via `next-themes` ThemeProvider. Sun/moon toggle in app shell header. Dark tokens already existed in `index.css` via Tailwind v4.
 - 2026-02-22: Improvement Pass 2 — Shared `SIDE_EVENT_ICONS` module at `src/lib/side-event-icons.ts` — single source of truth for icon, className, bgClassName, label across all 12 side event types.
+- 2026-02-23: Improvement Pass 3 — SideEventLogger redesigned: `<Select>` player dropdown replaced with touch button row; hole buttons enlarged (`h-11`) with per-player event type icons; tap-to-remove with undo toast. Birdie/eagle/HIO/albatross removed from quick actions (auto-detected from scores).
+- 2026-02-23: Improvement Pass 3 — Standings section removed from Enter page. Round standings available on Leaderboards and Feed pages; duplicate on Enter page was redundant.
+- 2026-02-23: Improvement Pass 3 — Auto-detected side events (birdie/eagle/albatross/HIO) now push `NotableEvent` to feed store, triggering animated announcement banners on the Feed page. Previously the banner component existed but was never triggered in production.
 
 ## UI system choice (per project)
 

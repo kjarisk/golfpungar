@@ -4,31 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { HoleSelector } from './hole-selector'
 import { useSideEventsStore } from '../state/side-events-store'
 import { useAuthStore } from '@/features/auth'
-import type { SideEventType } from '../types'
+import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
+import { cn } from '@/lib/utils'
+import type { SideEventType, SideEventLog } from '../types'
 import type { Player } from '@/features/players/types'
 import type { Hole } from '@/features/courses'
 import {
-  Bird,
-  Zap,
   Target,
   Skull,
   Ruler,
   Trophy,
   Camera,
-  Star,
   Flame,
   CircleDot,
   Crosshair,
+  X,
 } from 'lucide-react'
 
 interface SideEventLoggerProps {
@@ -41,42 +33,18 @@ interface SideEventLoggerProps {
   holesPlayed: 9 | 18
 }
 
-/** Event type config for the quick-action buttons */
+/** Event type config for the quick-action buttons.
+ *  Birdie/Eagle/HIO/Albatross removed — those are auto-detected from scores. */
 const EVENT_BUTTONS: {
   type: SideEventType
   label: string
-  icon: typeof Bird
+  icon: typeof Target
   color: string
   requiresValue?: boolean
   requiresImage?: boolean
   par5Only?: boolean
-  /** Key used for the meters input panel (shared across value-based events) */
   valueInputKey?: string
 }[] = [
-  {
-    type: 'birdie',
-    label: 'Birdie',
-    icon: Bird,
-    color: 'bg-green-500 hover:bg-green-600 text-white',
-  },
-  {
-    type: 'eagle',
-    label: 'Eagle',
-    icon: Zap,
-    color: 'bg-yellow-500 hover:bg-yellow-600 text-white',
-  },
-  {
-    type: 'hio',
-    label: 'Hole in One',
-    icon: Star,
-    color: 'bg-amber-400 hover:bg-amber-500 text-white',
-  },
-  {
-    type: 'albatross',
-    label: 'Albatross',
-    icon: Bird,
-    color: 'bg-purple-500 hover:bg-purple-600 text-white',
-  },
   {
     type: 'bunker_save',
     label: 'Bunker Save',
@@ -135,6 +103,11 @@ const EVENT_BUTTONS: {
   },
 ]
 
+/** Short display name for a player */
+function shortName(player: Player): string {
+  return player.nickname || player.displayName.split(' ')[0]
+}
+
 export function SideEventLogger({
   tournamentId,
   roundId,
@@ -144,8 +117,9 @@ export function SideEventLogger({
   holesPlayed,
 }: SideEventLoggerProps) {
   const logEvent = useSideEventsStore((s) => s.logEvent)
+  const removeEvent = useSideEventsStore((s) => s.removeEvent)
   const addImage = useSideEventsStore((s) => s.addImage)
-  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
+  const allEvents = useSideEventsStore((s) => s.events)
   const getLastSnakeInGroup = useSideEventsStore((s) => s.getLastSnakeInGroup)
   const user = useAuthStore((s) => s.user)
 
@@ -163,14 +137,29 @@ export function SideEventLogger({
   // Default selected player to current user
   const effectivePlayerId = selectedPlayerId || currentPlayer?.id || ''
 
-  // Get holes where events were logged this round (for dot indicators)
-  const roundEvents = getEventsByRound(roundId)
-  const markedHoles = [
-    ...new Set(roundEvents.map((e) => e.holeNumber).filter(Boolean)),
-  ] as number[]
+  // Get round events (subscribe to raw array to get reactive updates)
+  const roundEvents = allEvents.filter((e) => e.roundId === roundId)
 
   // Par 5 holes for group longest drive restriction
   const par5Holes = holes.filter((h) => h.par === 5).map((h) => h.holeNumber)
+
+  // Events for the selected player, grouped by hole
+  const playerEvents = roundEvents.filter(
+    (e) => e.playerId === effectivePlayerId
+  )
+  const eventsByHole = new Map<number, SideEventLog[]>()
+  for (const evt of playerEvents) {
+    if (evt.holeNumber) {
+      const existing = eventsByHole.get(evt.holeNumber) ?? []
+      existing.push(evt)
+      eventsByHole.set(evt.holeNumber, existing)
+    }
+  }
+
+  // Holes with events for any player (for the green dot indicator)
+  const markedHoles = [
+    ...new Set(roundEvents.map((e) => e.holeNumber).filter(Boolean)),
+  ] as number[]
 
   function handleQuickLog(eventType: SideEventType) {
     if (!selectedHole) return
@@ -197,10 +186,7 @@ export function SideEventLogger({
       players.find((p) => p.id === effectivePlayerId)?.displayName ?? 'Player'
     const message = `${playerName} — ${eventConfig?.label ?? eventType} on ${selectedHole}`
 
-    // Show toast notification
-    toast(message, {
-      duration: 3000,
-    })
+    toast(message, { duration: 3000 })
   }
 
   function handleLogValue() {
@@ -223,13 +209,40 @@ export function SideEventLogger({
       players.find((p) => p.id === effectivePlayerId)?.displayName ?? 'Player'
     const message = `${playerName} — ${meters}m ${eventConfig?.label ?? activeValueInput} on ${selectedHole}`
 
-    // Show toast notification
-    toast(message, {
-      duration: 4000,
-    })
+    toast(message, { duration: 4000 })
 
     setValueMeters('')
     setActiveValueInput(null)
+  }
+
+  function handleRemoveEvent(event: SideEventLog) {
+    const playerName =
+      players.find((p) => p.id === event.playerId)?.displayName ?? 'Player'
+    const config =
+      SIDE_EVENT_ICONS[event.type] ??
+      EVENT_BUTTONS.find((b) => b.type === event.type)
+    const label = config?.label ?? event.type
+
+    removeEvent(event.id)
+
+    toast(`Removed ${label} from ${playerName} on hole ${event.holeNumber}`, {
+      duration: 3000,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          // Re-log the event
+          logEvent({
+            tournamentId: event.tournamentId,
+            roundId: event.roundId ?? roundId,
+            holeNumber: event.holeNumber,
+            playerId: event.playerId,
+            type: event.type,
+            value: event.value,
+            createdByPlayerId: event.createdByPlayerId,
+          })
+        },
+      },
+    })
   }
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -258,42 +271,139 @@ export function SideEventLogger({
   const isHoleSelected = selectedHole !== null
   const isPlayerSelected = effectivePlayerId !== ''
 
+  // Events for the selected player on the selected hole (for the event list)
+  const selectedHoleEvents = selectedHole
+    ? (eventsByHole.get(selectedHole) ?? [])
+    : []
+
+  const holeNumbers = Array.from({ length: holesPlayed }, (_, i) => i + 1)
+  const frontNine = holeNumbers.filter((h) => h <= 9)
+  const backNine = holeNumbers.filter((h) => h > 9)
+
   return (
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base">Log Side Events</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Player selector */}
+        {/* Player selector — touch buttons */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium">Player</span>
-          <Select value={effectivePlayerId} onValueChange={setSelectedPlayerId}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select player" />
-            </SelectTrigger>
-            <SelectContent>
-              {players.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.displayName}
-                  {p.nickname ? ` (${p.nickname})` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap gap-1.5">
+            {players.map((p) => {
+              const isSelected = p.id === effectivePlayerId
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setSelectedPlayerId(p.id)}
+                  className={cn(
+                    'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
+                    isSelected
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card hover:bg-muted border-border'
+                  )}
+                >
+                  {shortName(p)}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Hole selector */}
+        {/* Hole selector — bigger buttons with event icons */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium">Hole</span>
-          <HoleSelector
-            holesPlayed={holesPlayed}
-            selectedHole={selectedHole}
-            onSelectHole={setSelectedHole}
-            markedHoles={markedHoles}
-          />
+          <div
+            className="flex flex-col gap-1.5"
+            role="group"
+            aria-label="Hole selector"
+          >
+            {/* Front 9 */}
+            <div className="grid grid-cols-9 gap-1">
+              {frontNine.map((hole) => (
+                <HoleButton
+                  key={hole}
+                  hole={hole}
+                  isSelected={selectedHole === hole}
+                  onSelect={setSelectedHole}
+                  events={eventsByHole.get(hole)}
+                  hasAnyEvent={markedHoles.includes(hole)}
+                />
+              ))}
+            </div>
+            {/* Back 9 */}
+            {backNine.length > 0 && (
+              <div className="grid grid-cols-9 gap-1">
+                {backNine.map((hole) => (
+                  <HoleButton
+                    key={hole}
+                    hole={hole}
+                    isSelected={selectedHole === hole}
+                    onSelect={setSelectedHole}
+                    events={eventsByHole.get(hole)}
+                    hasAnyEvent={markedHoles.includes(hole)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Quick action buttons */}
+        {/* Events on selected hole for selected player (tap icon to remove) */}
+        {isPlayerSelected &&
+          isHoleSelected &&
+          selectedHoleEvents.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium">
+                Events on hole {selectedHole} for{' '}
+                {shortName(
+                  players.find((p) => p.id === effectivePlayerId) ?? players[0]
+                )}
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {selectedHoleEvents.map((evt) => {
+                  const iconConfig = SIDE_EVENT_ICONS[evt.type]
+                  const btnConfig = EVENT_BUTTONS.find(
+                    (b) => b.type === evt.type
+                  )
+                  const Icon = iconConfig?.icon ?? btnConfig?.icon
+                  const label =
+                    iconConfig?.label ?? btnConfig?.label ?? evt.type
+                  return (
+                    <button
+                      key={evt.id}
+                      type="button"
+                      onClick={() => handleRemoveEvent(evt)}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors',
+                        'bg-muted/50 hover:bg-destructive/10 hover:border-destructive/30 group'
+                      )}
+                      title={`Remove ${label}`}
+                    >
+                      {Icon && (
+                        <Icon
+                          className={cn(
+                            'size-3.5',
+                            iconConfig?.className ?? 'text-muted-foreground'
+                          )}
+                        />
+                      )}
+                      <span>{label}</span>
+                      {evt.value != null && (
+                        <span className="text-muted-foreground">
+                          ({evt.value}m)
+                        </span>
+                      )}
+                      <X className="size-3 text-muted-foreground group-hover:text-destructive" />
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+        {/* Quick action buttons (8 buttons — no birdie/eagle/HIO/albatross) */}
         <div className="flex flex-col gap-1.5">
           <span className="text-xs font-medium">Quick Actions</span>
           <div className="grid grid-cols-4 gap-2">
@@ -408,9 +518,9 @@ export function SideEventLogger({
                 .slice(0, 10)
                 .map((event) => {
                   const player = players.find((p) => p.id === event.playerId)
-                  const config = EVENT_BUTTONS.find(
-                    (b) => b.type === event.type
-                  )
+                  const config =
+                    SIDE_EVENT_ICONS[event.type] ??
+                    EVENT_BUTTONS.find((b) => b.type === event.type)
                   return (
                     <div
                       key={event.id}
@@ -463,5 +573,83 @@ export function SideEventLogger({
           })()}
       </CardContent>
     </Card>
+  )
+}
+
+/** Individual hole button with event icons for the selected player */
+function HoleButton({
+  hole,
+  isSelected,
+  onSelect,
+  events,
+  hasAnyEvent,
+}: {
+  hole: number
+  isSelected: boolean
+  onSelect: (hole: number) => void
+  events?: SideEventLog[]
+  hasAnyEvent: boolean
+}) {
+  // Get unique event types for this hole (for icon display)
+  const eventTypes = events ? [...new Set(events.map((e) => e.type))] : []
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(hole)}
+      aria-label={`Hole ${hole}`}
+      aria-pressed={isSelected}
+      className={cn(
+        'relative flex h-11 w-full flex-col items-center justify-center rounded-md text-sm font-medium transition-colors',
+        isSelected
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-muted hover:bg-muted/80 text-foreground cursor-pointer'
+      )}
+    >
+      {hole}
+      {/* Event type icons below the number */}
+      {eventTypes.length > 0 && (
+        <div className="flex gap-px">
+          {eventTypes.slice(0, 3).map((type) => {
+            const config = SIDE_EVENT_ICONS[type]
+            if (!config) return null
+            const Icon = config.icon
+            return (
+              <Icon
+                key={type}
+                className={cn(
+                  'size-2.5',
+                  isSelected ? 'text-primary-foreground/80' : config.className
+                )}
+              />
+            )
+          })}
+          {eventTypes.length > 3 && (
+            <span
+              className={cn(
+                'text-[8px]',
+                isSelected
+                  ? 'text-primary-foreground/80'
+                  : 'text-muted-foreground'
+              )}
+            >
+              +{eventTypes.length - 3}
+            </span>
+          )}
+        </div>
+      )}
+      {/* Fallback dot for events by other players when no icons shown */}
+      {eventTypes.length === 0 && hasAnyEvent && (
+        <>
+          <span
+            className={cn(
+              'absolute -top-0.5 -right-0.5 size-1.5 rounded-full',
+              isSelected ? 'bg-primary-foreground/70' : 'bg-primary'
+            )}
+          />
+          <span className="sr-only">(has events)</span>
+        </>
+      )}
+    </button>
   )
 }
