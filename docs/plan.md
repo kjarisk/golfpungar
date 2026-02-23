@@ -377,3 +377,13 @@
 - [x] Relative score badge in overlay: dark mode colors matched to grid cells
 - [x] App test updated for badge count in nav link textContent
 - [x] Test count: 348 tests across 22 files
+
+### WP4: Enter page — group/round permissions
+
+- [x] Players auto-locked to own group (group selector hidden for non-admin)
+- [x] Admin keeps group selector, can edit all groups
+- [x] Non-active rounds: grid is read-only (overlay disabled, cursor-default)
+- [x] Read-only banner for completed/upcoming rounds
+- [x] Side event logger hidden when round is read-only
+- [x] `readOnly` prop added to `GroupScoreGrid`
+- [x] Test count: 348 tests across 22 files

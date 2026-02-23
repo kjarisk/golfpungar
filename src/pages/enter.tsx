@@ -27,8 +27,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useAuthStore } from '@/features/auth'
+import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveRound } from '@/hooks/use-active-round'
-import { ClipboardList, Users, MapPin, Skull } from 'lucide-react'
+import { ClipboardList, Users, MapPin, Skull, Lock } from 'lucide-react'
 
 /** localStorage key for persisting the user's group selection */
 const GROUP_STORAGE_KEY = 'golfpungar:selectedGroupId'
@@ -63,6 +64,7 @@ export function EnterPage() {
   const allCourses = useCoursesStore((s) => s.courses)
   const sideEvents = useSideEventsStore((s) => s.events)
   const authUser = useAuthStore((s) => s.user)
+  const isAdmin = useIsAdmin()
 
   const activeRound = useActiveRound()
 
@@ -95,21 +97,27 @@ export function EnterPage() {
     selectedRound?.format === 'scramble' || selectedRound?.format === 'bestball'
   const useTeamScorecards = isTeamFormat && teams.length > 0
 
+  // Read-only when the selected round is not active
+  const isReadOnly = selectedRound?.status !== 'active'
+
   // Course for "View Course" dialog
   const course = selectedRound
     ? allCourses.find((c) => c.id === selectedRound.courseId)
     : undefined
 
   // --- Group selection logic ---
-  // Auto-detect current player's group, or use persisted, or first group
+  // Non-admin players are auto-locked to their own group
+  // Admin users can select any group (persisted in localStorage)
   const currentPlayerGroup = groups.find((g) =>
     g.playerIds.includes(currentPlayerId)
   )
   const persistedGroup = groups.find((g) => g.id === selectedGroupId)
-  const effectiveGroup =
-    persistedGroup ??
-    currentPlayerGroup ??
-    (groups.length > 0 ? groups[0] : undefined)
+
+  const effectiveGroup = isAdmin
+    ? (persistedGroup ??
+      currentPlayerGroup ??
+      (groups.length > 0 ? groups[0] : undefined))
+    : (currentPlayerGroup ?? (groups.length > 0 ? groups[0] : undefined))
 
   // Players in the selected group
   const groupPlayerIds = effectiveGroup?.playerIds ?? []
@@ -266,8 +274,8 @@ export function EnterPage() {
           </Select>
         </div>
 
-        {/* Group selector */}
-        {groups.length > 0 && (
+        {/* Group selector (admin only — players are auto-locked to their group) */}
+        {groups.length > 0 && isAdmin && (
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <label className="text-xs font-medium" id="group-select-label">
               <Users className="mr-1 inline size-3" aria-hidden="true" />
@@ -374,6 +382,21 @@ export function EnterPage() {
         </div>
       )}
 
+      {/* Read-only indicator for non-active rounds */}
+      {selectedRound && isReadOnly && (
+        <div className="bg-muted/60 flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Lock
+            className="text-muted-foreground size-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-muted-foreground text-sm">
+            {selectedRound.status === 'completed'
+              ? 'This round is completed — scores are read-only'
+              : 'This round is upcoming — scores are read-only'}
+          </span>
+        </div>
+      )}
+
       {/* Score entry grid for the selected group */}
       {selectedRound && effectiveGroup && hasParticipants && (
         <div className="flex flex-col gap-4">
@@ -387,17 +410,20 @@ export function EnterPage() {
             allPlayers={players}
             scorecards={scorecards}
             currentPlayerId={currentPlayerId}
+            readOnly={isReadOnly}
           />
 
-          {/* Side Event Logger — scoped to group players */}
-          <SideEventLogger
-            tournamentId={tournament.id}
-            roundId={selectedRound.id}
-            players={groupPlayers}
-            holes={holes}
-            groupPlayerIds={groupPlayerIds}
-            holesPlayed={selectedRound.holesPlayed}
-          />
+          {/* Side Event Logger — only when round is active */}
+          {!isReadOnly && (
+            <SideEventLogger
+              tournamentId={tournament.id}
+              roundId={selectedRound.id}
+              players={groupPlayers}
+              holes={holes}
+              groupPlayerIds={groupPlayerIds}
+              holesPlayed={selectedRound.holesPlayed}
+            />
+          )}
         </div>
       )}
 

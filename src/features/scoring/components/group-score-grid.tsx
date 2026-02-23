@@ -52,6 +52,8 @@ interface GroupScoreGridProps {
   scorecards: Scorecard[]
   /** Current logged-in player ID (for createdByPlayerId on side events) */
   currentPlayerId: string
+  /** When true, disable editing (non-active rounds) */
+  readOnly?: boolean
 }
 
 // --- Helpers ---
@@ -157,6 +159,7 @@ export function GroupScoreGrid({
   allPlayers,
   scorecards,
   currentPlayerId,
+  readOnly = false,
 }: GroupScoreGridProps) {
   const setHoleStroke = useScoringStore((s) => s.setHoleStroke)
   const logEvent = useSideEventsStore((s) => s.logEvent)
@@ -448,13 +451,16 @@ export function GroupScoreGrid({
               >
                 <button
                   type="button"
-                  onClick={() => openOverlay(holeIdx, pIdx)}
+                  onClick={() => !readOnly && openOverlay(holeIdx, pIdx)}
                   tabIndex={holeIdx === 0 && pIdx === 0 ? 0 : -1}
-                  aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}`}
+                  aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}${readOnly ? ' (read-only)' : ''}`}
+                  aria-disabled={readOnly || undefined}
                   className={`relative flex w-full min-w-[2.8rem] items-center justify-center px-1 py-1.5 text-sm font-bold tabular-nums transition-all ${
-                    isHighlighted
-                      ? 'ring-primary border-primary ring-2'
-                      : 'hover:ring-primary/30 hover:ring-1'
+                    readOnly
+                      ? 'cursor-default'
+                      : isHighlighted
+                        ? 'ring-primary border-primary ring-2'
+                        : 'hover:ring-primary/30 hover:ring-1'
                   } ${getScoreCellClass(strokes, hole.par)}`}
                 >
                   {strokes !== null ? strokes : '\u2013'}
