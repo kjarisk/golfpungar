@@ -414,3 +414,28 @@
 - [x] Demo data: Round 2 (Scramble) has custom `pointsTable: [20, 15, 12, 10, 8, 6, 4]`
 - [x] Rounds store tests: 6 new tests (per-round points table CRUD, teams at round creation)
 - [x] Test count: 357 tests across 22 files
+
+### WP7: Players — invite on create
+
+- [x] Player form dialog: "Send invite" checkbox toggle when email is valid
+- [x] Auto-sends invite via `sendInvite()` on player creation when toggle is on
+- [x] Submit button bumped to `h-11`
+- [x] Players page: edit/accept invite buttons `icon-xs` → `icon-sm` (32px)
+- [x] Players page: header Invite/Add buttons `size="sm"` → `size="default"`
+- [x] Invite dialog: badge X buttons enlarged with `p-1`, `size-4` icon, hover states
+- [x] Invite dialog: Send button bumped to `h-11`
+
+### WP8: Mobile UX audit (drunk-proof pass)
+
+- [x] Bet list: all action buttons `h-7 text-xs` → `h-9 text-sm` (Accept/Reject/Resolve/Mark as Paid)
+- [x] Bet list: resolve form select + buttons bumped to `h-9`
+- [x] Bet list: delete confirmation buttons `h-6` → `h-8`, delete icon `size-7` → `size-8`
+- [x] Bet list: "New Bet" button → default size
+- [x] Create bet dialog: opponent toggle buttons enlarged (`py-2.5`, checkbox `size-5`)
+- [x] Create bet dialog: badge X buttons enlarged (`py-1 pr-1`, `size-4` icon)
+- [x] Create bet dialog: footer buttons both `h-11`
+- [x] Feed page: bet accept/reject buttons `h-7 w-7` → `h-9 w-9`, icons `size-5`
+- [x] App shell: dark mode toggle `size-7` → `size-8`
+- [x] App shell: tournament header link `py-1` for bigger touch area
+- [x] All dialog footer buttons audited → primary action `h-11` (6 dialogs: create-round, edit-round, create-tournament, edit-tournament, create-course, import-course)
+- [x] Lint clean, build passes, 357 tests across 22 files
