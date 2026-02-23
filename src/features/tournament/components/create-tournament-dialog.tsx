@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useTournamentStore } from '@/features/tournament'
+import { CountrySelect } from '@/features/countries'
 
 interface CreateTournamentDialogProps {
   open: boolean
@@ -24,6 +25,7 @@ export function CreateTournamentDialog({
   const createTournament = useTournamentStore((s) => s.createTournament)
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
+  const [countryId, setCountryId] = useState<string | undefined>(undefined)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
@@ -34,12 +36,14 @@ export function CreateTournamentDialog({
     createTournament({
       name: name.trim(),
       location: location.trim() || undefined,
+      countryId,
       startDate,
       endDate,
     })
 
     setName('')
     setLocation('')
+    setCountryId(undefined)
     setStartDate('')
     setEndDate('')
     onOpenChange(false)
@@ -76,6 +80,8 @@ export function CreateTournamentDialog({
               onChange={(e) => setLocation(e.target.value)}
             />
           </div>
+
+          <CountrySelect value={countryId} onChange={setCountryId} />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-2">

@@ -15,11 +15,9 @@ export function TournamentsPage() {
   const [showCreate, setShowCreate] = useState(false)
 
   function handleSelect(tournament: Tournament) {
-    // If it's a past tournament, navigate to leaderboards to browse it
     if (tournament.status === 'done') {
-      // Temporarily set it as active so leaderboards show its data
-      setActiveTournament(tournament.id)
-      navigate('/leaderboards')
+      // Browse past tournament leaderboards without changing active tournament
+      navigate(`/leaderboards?tournamentId=${tournament.id}`)
     } else {
       setActiveTournament(tournament.id)
       navigate('/feed')

@@ -18,9 +18,13 @@ interface TournamentState {
   updateTournament: (
     id: string,
     updates: Partial<
-      Pick<Tournament, 'name' | 'location' | 'startDate' | 'endDate'>
+      Pick<
+        Tournament,
+        'name' | 'location' | 'countryId' | 'startDate' | 'endDate'
+      >
     >
   ) => void
+  removeTournament: (id: string) => void
   setStatus: (id: string, status: TournamentStatus) => void
   setActiveTournament: (id: string | null) => void
 }
@@ -68,6 +72,19 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
         t.id === id ? { ...t, ...updates } : t
       ),
     }))
+  },
+
+  removeTournament: (id) => {
+    set((state) => {
+      const remaining = state.tournaments.filter((t) => t.id !== id)
+      let { activeTournamentId } = state
+      if (activeTournamentId === id) {
+        // Reassign to first live tournament, or null
+        const nextActive = remaining.find((t) => t.status === 'live')
+        activeTournamentId = nextActive?.id ?? null
+      }
+      return { tournaments: remaining, activeTournamentId }
+    })
   },
 
   setStatus: (id, status) => {

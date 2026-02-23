@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -63,7 +63,18 @@ import {
 } from 'lucide-react'
 
 export function LeaderboardsPage() {
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const [searchParams] = useSearchParams()
+  const queryTournamentId = searchParams.get('tournamentId')
+  const tournaments = useTournamentStore((s) => s.tournaments)
+  const activeTournament = useTournamentStore((s) => s.activeTournament())
+
+  // If a tournamentId query param is present, show that tournament (for browsing past/done tournaments)
+  // Otherwise fall back to the active tournament
+  const tournament = queryTournamentId
+    ? tournaments.find((t) => t.id === queryTournamentId)
+    : activeTournament
+  const isBrowsingPast =
+    !!queryTournamentId && tournament?.id !== activeTournament?.id
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
@@ -258,6 +269,20 @@ export function LeaderboardsPage() {
 
   return (
     <div className="flex flex-col gap-4">
+      {isBrowsingPast && (
+        <div className="bg-muted flex items-center justify-between rounded-md px-3 py-2">
+          <div className="text-sm">
+            <span className="text-muted-foreground">Viewing: </span>
+            <span className="font-medium">{tournament.name}</span>
+            <Badge variant="outline" className="ml-2 text-[10px]">
+              Archived
+            </Badge>
+          </div>
+          <Button asChild size="sm" variant="ghost" className="h-7 text-xs">
+            <Link to="/leaderboards">Back to active</Link>
+          </Button>
+        </div>
+      )}
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Leaderboards</h1>
         <p className="text-muted-foreground text-sm">

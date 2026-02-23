@@ -50,6 +50,11 @@ Keep this short: what we decided, and why.
 - 2026-02-23: Improvement Pass 6 — `removeBet(betId, callerPlayerId, isAdmin)` guard rules: admin can delete any bet; non-admin can only delete their own bets in `pending` or `rejected` status. Returns `boolean` success.
 - 2026-02-23: Improvement Pass 6 — `/bets` page is a standalone route, NOT added to bottom nav (accessible via "View All Bets" links from Feed and Leaderboards pages). Keeps nav bar focused on the 5 core tabs.
 - 2026-02-23: Improvement Pass 6 — Demo data creates 8 bets via store actions, generating ~20 auto-generated bet feed events. No hardcoded `type: 'bet'` feed events; all flow through real `FeedEvent` records.
+- 2026-02-23: Improvement Pass 7 WP1 — Country entity as a full Zustand store (`src/features/countries/`) with CRUD, case-insensitive duplicate prevention. Countries shared between tournaments and courses. `CountrySelect` component with dropdown + "Add new" inline input.
+- 2026-02-23: Improvement Pass 7 WP1 — Tournament type extended with `countryId?: string`. `removeTournament(id)` does hard delete (not soft). Reassigns active to first remaining live tournament or null.
+- 2026-02-23: Improvement Pass 7 WP1 — Done tournament viewing fixed: `/leaderboards?tournamentId=xxx` route param instead of changing `activeTournamentId`. Banner shows "Viewing: X (Archived)" with "Back to active" link.
+- 2026-02-23: Improvement Pass 7 WP1 — Tournament list rewritten: status transition buttons (Go Live, Mark Complete), edit/delete per card, done tournaments in collapsible "Archive" section at bottom (collapsed by default).
+- 2026-02-23: Improvement Pass 7 WP1 — Edit Tournament dialog uses key-based remount pattern (same as EditRoundDialog) for React Compiler safety.
 
 ## UI system choice (per project)
 

@@ -343,3 +343,22 @@
 - [x] Full codebase audit: lint clean, build passes, 356 tests across 21 files
 - [x] Dead code cleanup: removed PenaltyList component, PointsConfig type, unused barrel re-exports (Trophy, TrophySourceType), 3 unused store selectors (getEventsByPlayer, clearEvents, getPointsForParticipant), 6 test-only functions from side-events-logic.ts + their 20 tests
 - [x] Test count: 336 tests across 21 files
+
+## Improvement Pass 7 -- UX/permissions overhaul
+
+### WP1: Tournament CRUD + archive (admin-only)
+
+- [x] Country entity: `src/features/countries/` with types, Zustand store (add, remove, duplicate prevention), barrel export
+- [x] Country store tests: 7 tests (add, remove, duplicate case-insensitive, empty name, multiple, trim)
+- [x] Add `countryId?: string` to Tournament + CreateTournamentInput types
+- [x] Add `removeTournament(id)` to tournament store (hard delete, reassign active to first live or null)
+- [x] `updateTournament` now accepts `countryId` in partial updates
+- [x] Tournament store tests: 5 new tests (remove, remove reassigns active, remove sets null, create with countryId, update countryId)
+- [x] `CountrySelect` component: dropdown of existing countries + "Add new" inline input + "No country" option
+- [x] Create Tournament dialog: added country selector
+- [x] Edit Tournament dialog (new component): pre-filled form with name, location, country, dates; key-based remount
+- [x] Tournament list rewrite: status transition buttons (Go Live, Mark Complete), edit/delete buttons, delete confirmation dialog, country display on cards
+- [x] Archive section: done tournaments in collapsible "Archive" at bottom, collapsed by default
+- [x] Fix done tournament viewing: `/leaderboards?tournamentId=xxx` route param instead of changing activeTournamentId; "Viewing: X (Archived)" banner with "Back to active" link
+- [x] Demo data: countries seeded (Spain, Portugal), `countryId` set on both tournaments, cleared on reset
+- [x] Docs updated: plan.md, decisions.md

@@ -4,6 +4,7 @@ export interface Tournament {
   id: string
   name: string
   location?: string
+  countryId?: string
   startDate: string
   endDate: string
   status: TournamentStatus
@@ -14,6 +15,7 @@ export interface Tournament {
 export interface CreateTournamentInput {
   name: string
   location?: string
+  countryId?: string
   startDate: string
   endDate: string
 }

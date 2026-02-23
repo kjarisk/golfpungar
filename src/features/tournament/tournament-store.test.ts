@@ -162,4 +162,70 @@ describe('Tournament Store', () => {
       'tournament-001'
     )
   })
+
+  // --- removeTournament tests (IP7 WP1) ---
+
+  it('removes a tournament', () => {
+    const { createTournament, removeTournament } = useTournamentStore.getState()
+    createTournament({
+      name: 'To Delete',
+      startDate: '2026-04-01',
+      endDate: '2026-04-05',
+    })
+    expect(useTournamentStore.getState().tournaments).toHaveLength(2)
+
+    const toDelete = useTournamentStore
+      .getState()
+      .tournaments.find((t) => t.name === 'To Delete')!
+    removeTournament(toDelete.id)
+    expect(useTournamentStore.getState().tournaments).toHaveLength(1)
+    expect(useTournamentStore.getState().tournaments[0].name).toBe('Spain 2026')
+  })
+
+  it('reassigns active to first live tournament when active is removed', () => {
+    const {
+      createTournament,
+      setStatus,
+      setActiveTournament,
+      removeTournament,
+    } = useTournamentStore.getState()
+    const t2 = createTournament({
+      name: 'Second',
+      startDate: '2026-04-01',
+      endDate: '2026-04-05',
+    })
+    setStatus(t2.id, 'live')
+    // Make t2 active, then delete it — should fall back to tournament-001 (live)
+    setActiveTournament(t2.id)
+    removeTournament(t2.id)
+    expect(useTournamentStore.getState().activeTournamentId).toBe(
+      'tournament-001'
+    )
+  })
+
+  it('sets active to null when no live tournaments remain after removal', () => {
+    const { removeTournament, setStatus } = useTournamentStore.getState()
+    // Change the only tournament to draft so no live ones remain
+    setStatus('tournament-001', 'draft')
+    removeTournament('tournament-001')
+    expect(useTournamentStore.getState().activeTournamentId).toBeNull()
+  })
+
+  it('creates tournament with countryId', () => {
+    const { createTournament } = useTournamentStore.getState()
+    const t = createTournament({
+      name: 'Portugal Trip',
+      countryId: 'country-001',
+      startDate: '2027-05-01',
+      endDate: '2027-05-06',
+    })
+    expect(t.countryId).toBe('country-001')
+  })
+
+  it('updates tournament countryId', () => {
+    const { updateTournament } = useTournamentStore.getState()
+    updateTournament('tournament-001', { countryId: 'country-002' })
+    const t = useTournamentStore.getState().activeTournament()
+    expect(t?.countryId).toBe('country-002')
+  })
 })
