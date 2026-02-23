@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -24,7 +23,7 @@ import type { RoundFormat, Team } from '@/features/rounds'
 import type { Player } from '@/features/players/types'
 import type { SideEventLog, SideEventType } from '@/features/side-events'
 import { stablefordPointsForHole } from '@/features/scoring/lib/scoring-calc'
-import { Minus, Plus, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 import { useIsMobile } from '@/hooks/use-is-mobile'
 
@@ -382,10 +381,6 @@ export function GroupScoreGrid({
     }
   }
 
-  function clearStroke(holeIdx: number, pIdx: number) {
-    setStroke(holeIdx, pIdx, null)
-  }
-
   /** Get side event icons for a specific hole + participant */
   function getHoleEvents(
     holeNumber: number,
@@ -573,22 +568,40 @@ export function GroupScoreGrid({
     <>
       <Card>
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Score Entry</CardTitle>
-            <div className="flex gap-1.5">
-              {participants.map((p) => (
-                <Badge
-                  key={p.id}
-                  variant="outline"
-                  className="text-xs tabular-nums"
-                >
-                  {shortName(p.name)}:{' '}
-                  {p.scorecard.grossTotal > 0
-                    ? p.scorecard.grossTotal
-                    : '\u2013'}
-                </Badge>
-              ))}
-            </div>
+          <CardTitle className="text-base">Score Entry</CardTitle>
+          {/* Mini leaderboard strip — sorted by gross total (lowest winning) */}
+          <div className="mt-1 flex gap-2">
+            {[...participants]
+              .sort((a, b) => {
+                // Players with scores sort before players without
+                if (a.scorecard.grossTotal === 0 && b.scorecard.grossTotal > 0)
+                  return 1
+                if (b.scorecard.grossTotal === 0 && a.scorecard.grossTotal > 0)
+                  return -1
+                return a.scorecard.grossTotal - b.scorecard.grossTotal
+              })
+              .map((p, sortedIdx) => {
+                const isLeading = sortedIdx === 0 && p.scorecard.grossTotal > 0
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex flex-1 flex-col items-center rounded-lg border px-2 py-1.5 ${
+                      isLeading
+                        ? 'border-primary/40 bg-primary/10'
+                        : 'border-border bg-muted/30'
+                    }`}
+                  >
+                    <span className="text-muted-foreground max-w-[5rem] truncate text-[11px]">
+                      {shortName(p.name)}
+                    </span>
+                    <span className="text-lg font-bold tabular-nums">
+                      {p.scorecard.grossTotal > 0
+                        ? p.scorecard.grossTotal
+                        : '\u2013'}
+                    </span>
+                  </div>
+                )
+              })}
           </div>
         </CardHeader>
         <CardContent className="overflow-x-auto px-0 pb-2">
@@ -668,9 +681,6 @@ export function GroupScoreGrid({
         onSetStroke={(n) =>
           overlayHoleIdx !== null && setStroke(overlayHoleIdx, overlayPIdx, n)
         }
-        onClear={() =>
-          overlayHoleIdx !== null && clearStroke(overlayHoleIdx, overlayPIdx)
-        }
         onPrevHole={() =>
           overlayHoleIdx !== null &&
           overlayHoleIdx > 0 &&
@@ -703,7 +713,6 @@ interface ScoreOverlayProps {
   onIncrement: () => void
   onDecrement: () => void
   onSetStroke: (n: number) => void
-  onClear: () => void
   onPrevHole: () => void
   onNextHole: () => void
 }
@@ -723,7 +732,6 @@ function ScoreOverlay({
   onIncrement,
   onDecrement,
   onSetStroke,
-  onClear,
   onPrevHole,
   onNextHole,
 }: ScoreOverlayProps) {
@@ -741,7 +749,6 @@ function ScoreOverlay({
         onIncrement={onIncrement}
         onDecrement={onDecrement}
         onSetStroke={onSetStroke}
-        onClear={onClear}
         onPrevHole={onPrevHole}
         onNextHole={onNextHole}
       />
@@ -816,7 +823,6 @@ interface ScoreOverlayContentProps {
   onIncrement: () => void
   onDecrement: () => void
   onSetStroke: (n: number) => void
-  onClear: () => void
   onPrevHole: () => void
   onNextHole: () => void
 }
@@ -833,7 +839,6 @@ function ScoreOverlayContent({
   onIncrement,
   onDecrement,
   onSetStroke,
-  onClear,
   onPrevHole,
   onNextHole,
 }: ScoreOverlayContentProps) {
@@ -947,7 +952,7 @@ function ScoreOverlayContent({
         </div>
 
         {/* Quick number buttons (1-10) for fast entry */}
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-5 gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
             const isSelected = currentStrokes === n
             const isPar = n === overlayHole.par
@@ -955,8 +960,7 @@ function ScoreOverlayContent({
               <Button
                 key={n}
                 variant={isSelected ? 'default' : 'outline'}
-                size="sm"
-                className={`h-9 w-9 tabular-nums ${
+                className={`h-11 w-11 text-base tabular-nums ${
                   !isSelected && isPar ? 'ring-primary/50 ring-2 font-bold' : ''
                 }`}
                 onClick={() => onSetStroke(n)}
@@ -966,36 +970,25 @@ function ScoreOverlayContent({
             )
           })}
         </div>
-
-        {/* Clear button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="text-muted-foreground"
-        >
-          <X className="size-4" />
-          Clear
-        </Button>
       </div>
 
       {/* Hole navigation */}
       <div className="flex items-center justify-between border-t pt-3">
         <Button
-          variant="ghost"
-          size="sm"
+          variant="outline"
+          className="h-10 px-4"
           onClick={onPrevHole}
           disabled={overlayHoleIdx <= 0}
         >
           <ChevronLeft className="size-4" />
           Prev
         </Button>
-        <span className="text-muted-foreground text-xs">
+        <span className="text-muted-foreground text-sm tabular-nums">
           {overlayHoleIdx + 1} / {totalHoles}
         </span>
         <Button
-          variant="ghost"
-          size="sm"
+          variant="outline"
+          className="h-10 px-4"
           onClick={onNextHole}
           disabled={overlayHoleIdx >= totalHoles - 1}
         >
