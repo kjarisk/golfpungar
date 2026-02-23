@@ -16,12 +16,19 @@ import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useScoringStore } from '@/features/scoring'
 import { GroupScoreGrid } from '@/features/scoring/components/group-score-grid'
-import { SideEventLogger } from '@/features/side-events'
-import { PenaltyList } from '@/features/penalties'
-import { BetList } from '@/features/betting'
+import { SideEventLogger, useSideEventsStore } from '@/features/side-events'
+import { deriveLastSnakeInGroup } from '@/features/side-events/lib/side-events-logic'
+import { CourseCard } from '@/features/courses/components/course-card'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { useAuthStore } from '@/features/auth'
 import { useActiveRound } from '@/hooks/use-active-round'
-import { ClipboardList, Users } from 'lucide-react'
+import { ClipboardList, Users, MapPin, Skull } from 'lucide-react'
 
 /** localStorage key for persisting the user's group selection */
 const GROUP_STORAGE_KEY = 'golfpungar:selectedGroupId'
@@ -53,6 +60,8 @@ export function EnterPage() {
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
   const createScorecard = useScoringStore((s) => s.createScorecard)
+  const allCourses = useCoursesStore((s) => s.courses)
+  const sideEvents = useSideEventsStore((s) => s.events)
   const authUser = useAuthStore((s) => s.user)
 
   const activeRound = useActiveRound()
@@ -86,6 +95,11 @@ export function EnterPage() {
     selectedRound?.format === 'scramble' || selectedRound?.format === 'bestball'
   const useTeamScorecards = isTeamFormat && teams.length > 0
 
+  // Course for "View Course" dialog
+  const course = selectedRound
+    ? allCourses.find((c) => c.id === selectedRound.courseId)
+    : undefined
+
   // --- Group selection logic ---
   // Auto-detect current player's group, or use persisted, or first group
   const currentPlayerGroup = groups.find((g) =>
@@ -105,6 +119,20 @@ export function EnterPage() {
   const groupTeams = teams.filter((t) =>
     t.playerIds.some((pid) => groupPlayerIds.includes(pid))
   )
+
+  // Last snake in group
+  const lastSnake =
+    selectedRound && effectiveGroup
+      ? deriveLastSnakeInGroup(
+          sideEvents,
+          selectedRound.id,
+          effectiveGroup.id,
+          groupPlayerIds
+        )
+      : null
+  const lastSnakePlayer = lastSnake?.playerId
+    ? players.find((p) => p.id === lastSnake.playerId)
+    : null
 
   // All player IDs from this round's groups (for scorecard creation)
   const roundPlayerIds = groups.flatMap((g) => g.playerIds)
@@ -279,9 +307,9 @@ export function EnterPage() {
         )}
       </div>
 
-      {/* Round info badges */}
+      {/* Round info badges + View Course */}
       {selectedRound && (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary" className="text-xs">
             {selectedRound.format}
           </Badge>
@@ -301,6 +329,48 @@ export function EnterPage() {
               {groupTeams.length} teams
             </Badge>
           )}
+
+          {/* View Course button */}
+          {course && holes.length > 0 && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs"
+                >
+                  <MapPin className="size-3" aria-hidden="true" />
+                  Course
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-h-[85vh] max-w-lg overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{course.name}</DialogTitle>
+                </DialogHeader>
+                <CourseCard course={course} holes={holes} />
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
+      )}
+
+      {/* Last Snake indicator */}
+      {lastSnakePlayer && lastSnake && (
+        <div className="bg-destructive/10 border-destructive/20 flex items-center gap-2 rounded-lg border px-3 py-2">
+          <Skull
+            className="text-destructive size-4 shrink-0"
+            aria-hidden="true"
+          />
+          <span className="text-sm">
+            <span className="font-medium">Last Snake:</span>{' '}
+            {lastSnakePlayer.displayName}
+            {lastSnake.holeNumber != null && (
+              <span className="text-muted-foreground">
+                {' '}
+                (hole {lastSnake.holeNumber})
+              </span>
+            )}
+          </span>
         </div>
       )}
 
@@ -347,26 +417,6 @@ export function EnterPage() {
             </p>
           </CardContent>
         </Card>
-      )}
-
-      {/* Penalties */}
-      {tournament && (
-        <PenaltyList
-          tournamentId={tournament.id}
-          players={players}
-          rounds={rounds}
-        />
-      )}
-
-      {/* Bets */}
-      {tournament && currentPlayerId && (
-        <BetList
-          tournamentId={tournament.id}
-          currentPlayerId={currentPlayerId}
-          players={players}
-          rounds={rounds}
-          activeRoundId={activeRound?.id}
-        />
       )}
     </div>
   )
