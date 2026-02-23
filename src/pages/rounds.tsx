@@ -17,6 +17,7 @@ import { useRoundsStore } from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
 import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
+import { RoundCompletionDialog } from '@/features/rounds/components/round-completion-dialog'
 import { usePlayersStore } from '@/features/players'
 import {
   Upload,
@@ -84,6 +85,7 @@ export function RoundsPage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [configuringTeamsRound, setConfiguringTeamsRound] =
     useState<Round | null>(null)
+  const [completingRound, setCompletingRound] = useState<Round | null>(null)
 
   if (!tournament) {
     return (
@@ -109,6 +111,11 @@ export function RoundsPage() {
   }
 
   function handleComplete(roundId: string) {
+    const round = rounds.find((r) => r.id === roundId)
+    if (round) setCompletingRound(round)
+  }
+
+  function confirmComplete(roundId: string) {
     setRoundStatus(roundId, 'completed')
   }
 
@@ -513,6 +520,16 @@ export function RoundsPage() {
           }}
           round={configuringTeamsRound}
           tournamentId={tournament.id}
+        />
+      )}
+      {completingRound && (
+        <RoundCompletionDialog
+          open={!!completingRound}
+          onOpenChange={(open) => {
+            if (!open) setCompletingRound(null)
+          }}
+          round={completingRound}
+          onConfirm={() => confirmComplete(completingRound.id)}
         />
       )}
     </div>

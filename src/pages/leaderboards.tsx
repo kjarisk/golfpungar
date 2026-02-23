@@ -22,6 +22,7 @@ import { usePlayersStore } from '@/features/players'
 import {
   useScoringStore,
   ScorecardDetail,
+  ScorecardComparison,
   SideEventBadges,
 } from '@/features/scoring'
 import { useSideEventsStore, EvidenceGallery } from '@/features/side-events'
@@ -58,6 +59,7 @@ import {
   Hash,
   CircleDollarSign,
   ChevronDown,
+  ArrowLeftRight,
 } from 'lucide-react'
 
 export function LeaderboardsPage() {
@@ -88,6 +90,7 @@ export function LeaderboardsPage() {
   const currentPlayerId = useCurrentPlayerId()
   const [selectedRoundId, setSelectedRoundId] = useState<string>('')
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null)
+  const [comparePlayerId, setComparePlayerId] = useState<string | null>(null)
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const players = tournament ? getActivePlayers(tournament.id) : []
@@ -99,6 +102,7 @@ export function LeaderboardsPage() {
 
   const toggleExpand = useCallback((playerId: string) => {
     setExpandedPlayerId((prev) => (prev === playerId ? null : playerId))
+    setComparePlayerId(null)
   }, [])
 
   // Default tab: 'round' when an active round exists, 'total' otherwise
@@ -212,6 +216,20 @@ export function LeaderboardsPage() {
   // Teams for the effective round (used to resolve team names in round leaderboard)
   const roundTeams = effectiveRoundId ? getTeamsByRound(effectiveRoundId) : []
 
+  // Players with scorecards in the effective round (for compare selector)
+  const comparablePlayers = (() => {
+    if (!effectiveRoundId) return []
+    const scorecards = getScorecardsByRound(effectiveRoundId)
+    return scorecards
+      .map((sc) => {
+        const id = sc.playerId ?? sc.teamId ?? ''
+        const player = players.find((p) => p.id === id)
+        const team = roundTeams.find((t) => t.id === id)
+        return { id, name: player?.displayName ?? team?.name ?? 'Unknown' }
+      })
+      .filter((p) => p.id !== '')
+  })()
+
   function getPlayerName(playerId: string) {
     const player = players.find((p) => p.id === playerId)
     if (player) return player.displayName
@@ -291,6 +309,9 @@ export function LeaderboardsPage() {
                         getPlayerName={getPlayerName}
                         getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
+                        comparablePlayers={comparablePlayers}
+                        comparePlayerId={isExpanded ? comparePlayerId : null}
+                        onCompareSelect={setComparePlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -348,6 +369,9 @@ export function LeaderboardsPage() {
                         getPlayerName={getPlayerName}
                         getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
+                        comparablePlayers={comparablePlayers}
+                        comparePlayerId={isExpanded ? comparePlayerId : null}
+                        onCompareSelect={setComparePlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -401,6 +425,9 @@ export function LeaderboardsPage() {
                         getPlayerName={getPlayerName}
                         getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
+                        comparablePlayers={comparablePlayers}
+                        comparePlayerId={isExpanded ? comparePlayerId : null}
+                        onCompareSelect={setComparePlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
                         <span className="flex-1 truncate text-sm font-medium">
@@ -459,6 +486,9 @@ export function LeaderboardsPage() {
                           getPlayerName={getPlayerName}
                           getPlayerHandicap={getPlayerHandicap}
                           currentPlayerId={currentPlayerId}
+                          comparablePlayers={comparablePlayers}
+                          comparePlayerId={isExpanded ? comparePlayerId : null}
+                          onCompareSelect={setComparePlayerId}
                         >
                           <PlacingBadge placing={entry.placing} />
                           <span className="flex-1 truncate text-sm font-medium">
@@ -952,6 +982,10 @@ interface ExpandableRowProps {
   getPlayerName: (id: string) => string
   getPlayerHandicap: (id: string) => number | undefined
   currentPlayerId: string | null
+  /** All player IDs with scorecards for this round (for compare selector) */
+  comparablePlayers?: { id: string; name: string }[]
+  comparePlayerId?: string | null
+  onCompareSelect?: (playerId: string | null) => void
   children: React.ReactNode
 }
 
@@ -967,17 +1001,29 @@ function ExpandableRow({
   getPlayerName,
   getPlayerHandicap,
   currentPlayerId,
+  comparablePlayers,
+  comparePlayerId: compareId,
+  onCompareSelect,
   children,
 }: ExpandableRowProps) {
   const round = rounds.find((r) => r.id === roundId)
   const holes = round ? getHolesByCourse(round.courseId) : []
-  const scorecard = roundId
-    ? getScorecardsByRound(roundId).find(
-        (sc) => (sc.playerId ?? sc.teamId) === playerId
-      )
-    : undefined
+  const roundScorecards = roundId ? getScorecardsByRound(roundId) : []
+  const scorecard = roundScorecards.find(
+    (sc) => (sc.playerId ?? sc.teamId) === playerId
+  )
   const roundEvents = roundId ? getEventsByRound(roundId) : []
   const isCurrentUser = playerId === currentPlayerId
+
+  // Comparison target scorecard
+  const compareScorecard = compareId
+    ? roundScorecards.find((sc) => (sc.playerId ?? sc.teamId) === compareId)
+    : null
+
+  // Players available for comparison (exclude self)
+  const compareOptions = (comparablePlayers ?? []).filter(
+    (p) => p.id !== playerId
+  )
 
   return (
     <div>
@@ -998,15 +1044,75 @@ function ExpandableRow({
       </button>
       {isExpanded && scorecard && holes.length > 0 && (
         <div className="bg-muted/30 mt-0.5 rounded-md px-3 py-2">
-          <ScorecardDetail
-            holes={holes}
-            holeStrokes={scorecard.holeStrokes}
-            sideEvents={roundEvents.filter((e) => e.playerId === playerId)}
-            grossTotal={scorecard.grossTotal}
-            netTotal={scorecard.netTotal}
-            stablefordPoints={scorecard.stablefordPoints}
-            groupHandicap={getPlayerHandicap(playerId)}
-          />
+          {compareId && compareScorecard ? (
+            <>
+              <ScorecardComparison
+                holes={holes}
+                playerA={{
+                  name: getPlayerName(playerId),
+                  holeStrokes: scorecard.holeStrokes,
+                  grossTotal: scorecard.grossTotal,
+                  netTotal: scorecard.netTotal,
+                  stablefordPoints: scorecard.stablefordPoints,
+                  sideEvents: roundEvents.filter(
+                    (e) => e.playerId === playerId
+                  ),
+                  groupHandicap: getPlayerHandicap(playerId),
+                }}
+                playerB={{
+                  name: getPlayerName(compareId),
+                  holeStrokes: compareScorecard.holeStrokes,
+                  grossTotal: compareScorecard.grossTotal,
+                  netTotal: compareScorecard.netTotal,
+                  stablefordPoints: compareScorecard.stablefordPoints,
+                  sideEvents: roundEvents.filter(
+                    (e) => e.playerId === compareId
+                  ),
+                  groupHandicap: getPlayerHandicap(compareId),
+                }}
+              />
+              <button
+                type="button"
+                className="text-muted-foreground hover:text-foreground mt-2 text-xs underline"
+                onClick={() => onCompareSelect?.(null)}
+              >
+                Back to scorecard
+              </button>
+            </>
+          ) : (
+            <>
+              <ScorecardDetail
+                holes={holes}
+                holeStrokes={scorecard.holeStrokes}
+                sideEvents={roundEvents.filter((e) => e.playerId === playerId)}
+                grossTotal={scorecard.grossTotal}
+                netTotal={scorecard.netTotal}
+                stablefordPoints={scorecard.stablefordPoints}
+                groupHandicap={getPlayerHandicap(playerId)}
+              />
+              {/* Compare button */}
+              {onCompareSelect && compareOptions.length > 0 && (
+                <div className="mt-2 flex items-center gap-2">
+                  <ArrowLeftRight
+                    className="text-muted-foreground size-3.5"
+                    aria-hidden="true"
+                  />
+                  <Select onValueChange={(val) => onCompareSelect(val)}>
+                    <SelectTrigger className="h-7 w-auto gap-1.5 text-xs">
+                      <SelectValue placeholder="Compare with..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {compareOptions.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
       {isExpanded && !scorecard && (
