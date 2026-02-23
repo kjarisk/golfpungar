@@ -123,10 +123,19 @@ function EditTournamentForm({
       </div>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11"
+          onClick={onClose}
+        >
           Cancel
         </Button>
-        <Button type="submit" disabled={!name.trim() || !startDate || !endDate}>
+        <Button
+          type="submit"
+          className="h-11"
+          disabled={!name.trim() || !startDate || !endDate}
+        >
           Save
         </Button>
       </DialogFooter>

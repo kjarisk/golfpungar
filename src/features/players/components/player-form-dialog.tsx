@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { usePlayersStore } from '@/features/players'
 import type { Player } from '@/features/players'
+import { Mail } from 'lucide-react'
 
 interface PlayerFormDialogProps {
   open: boolean
@@ -35,6 +37,7 @@ export function PlayerFormDialog({
 }: PlayerFormDialogProps) {
   const addPlayer = usePlayersStore((s) => s.addPlayer)
   const updatePlayer = usePlayersStore((s) => s.updatePlayer)
+  const sendInvite = usePlayersStore((s) => s.sendInvite)
 
   const [displayName, setDisplayName] = useState(player?.displayName ?? '')
   const [nickname, setNickname] = useState(player?.nickname ?? '')
@@ -42,8 +45,11 @@ export function PlayerFormDialog({
   const [groupHandicap, setGroupHandicap] = useState(
     player?.groupHandicap?.toString() ?? ''
   )
+  const [sendInviteOnCreate, setSendInviteOnCreate] = useState(true)
 
   const isEditing = !!player
+  const trimmedEmail = email.trim().toLowerCase()
+  const hasValidEmail = trimmedEmail.includes('@')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -65,6 +71,11 @@ export function PlayerFormDialog({
         email: email.trim() || undefined,
         groupHandicap: isNaN(hcp) ? 18 : hcp,
       })
+      // Auto-send invite if email provided and toggle is on
+      if (showEmail && hasValidEmail && sendInviteOnCreate) {
+        sendInvite(tournamentId, trimmedEmail)
+        toast(`Invite sent to ${trimmedEmail}`, { duration: 3000 })
+      }
     }
 
     if (!isEditing) {
@@ -72,6 +83,7 @@ export function PlayerFormDialog({
       setNickname('')
       setEmail('')
       setGroupHandicap('')
+      setSendInviteOnCreate(true)
     }
     onOpenChange(false)
   }
@@ -120,10 +132,26 @@ export function PlayerFormDialog({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
-              <p className="text-muted-foreground text-xs">
-                If set, invites sent to this email will auto-link to this
-                player.
-              </p>
+              {!isEditing && hasValidEmail && (
+                <label className="bg-muted/50 flex items-center gap-2.5 rounded-md px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={sendInviteOnCreate}
+                    onChange={(e) => setSendInviteOnCreate(e.target.checked)}
+                    className="accent-primary size-4 rounded"
+                  />
+                  <span className="flex items-center gap-1.5 text-sm">
+                    <Mail className="size-3.5" aria-hidden="true" />
+                    Send invite to {trimmedEmail}
+                  </span>
+                </label>
+              )}
+              {isEditing && (
+                <p className="text-muted-foreground text-xs">
+                  If set, invites sent to this email will auto-link to this
+                  player.
+                </p>
+              )}
             </div>
           )}
 
@@ -144,7 +172,11 @@ export function PlayerFormDialog({
           )}
 
           <DialogFooter>
-            <Button type="submit" disabled={!displayName.trim()}>
+            <Button
+              type="submit"
+              className="h-11"
+              disabled={!displayName.trim()}
+            >
               {isEditing ? 'Save' : 'Add Player'}
             </Button>
           </DialogFooter>

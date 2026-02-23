@@ -56,7 +56,7 @@ export function AppShell() {
         <div className="mx-auto flex max-w-lg items-center justify-between md:max-w-2xl">
           <Link
             to="/tournaments"
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs font-medium transition-colors"
+            className="text-muted-foreground hover:text-foreground flex items-center gap-1 py-1 text-xs font-medium transition-colors"
           >
             {tournament ? tournament.name : 'No active tournament'}
             <ChevronRight className="size-3" aria-hidden="true" />
@@ -64,7 +64,7 @@ export function AppShell() {
           <Button
             variant="ghost"
             size="icon"
-            className="size-7"
+            className="size-8"
             onClick={() =>
               setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
             }

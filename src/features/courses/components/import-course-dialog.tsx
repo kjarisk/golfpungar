@@ -213,7 +213,7 @@ export function ImportCourseDialog({
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              className="h-11"
               onClick={() => fileRef.current?.click()}
             >
               <Upload className="size-4" />
@@ -221,6 +221,7 @@ export function ImportCourseDialog({
             </Button>
             <Button
               type="button"
+              className="h-11"
               onClick={handleImport}
               disabled={!parseResult || !courseName.trim()}
             >

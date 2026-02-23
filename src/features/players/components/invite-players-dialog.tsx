@@ -94,15 +94,19 @@ export function InvitePlayersDialog({
           {pendingEmails.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {pendingEmails.map((addr) => (
-                <Badge key={addr} variant="secondary" className="gap-1 pr-1">
-                  <Mail className="size-3" />
+                <Badge
+                  key={addr}
+                  variant="secondary"
+                  className="gap-1.5 py-1 pr-1 text-sm"
+                >
+                  <Mail className="size-3.5" />
                   {addr}
                   <button
                     type="button"
                     onClick={() => removeEmail(addr)}
-                    className="hover:bg-muted ml-0.5 rounded-full p-0.5"
+                    className="hover:bg-destructive/10 hover:text-destructive ml-0.5 rounded-full p-1"
                   >
-                    <X className="size-3" />
+                    <X className="size-4" />
                     <span className="sr-only">Remove {addr}</span>
                   </button>
                 </Badge>
@@ -113,6 +117,7 @@ export function InvitePlayersDialog({
           <DialogFooter>
             <Button
               type="button"
+              className="h-11"
               onClick={handleSend}
               disabled={pendingEmails.length === 0}
             >

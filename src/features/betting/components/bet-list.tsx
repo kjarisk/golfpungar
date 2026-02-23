@@ -227,26 +227,26 @@ export function BetList({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Acceptance buttons for opponents */}
           {needsMyResponse && (
             <>
               <Button
                 size="sm"
                 variant="default"
-                className="h-7 text-xs"
+                className="h-9 gap-1.5 px-3 text-sm"
                 onClick={() => handleAccept(bet.id)}
               >
-                <Check className="mr-1 size-3" />
+                <Check className="size-4" />
                 Accept
               </Button>
               <Button
                 size="sm"
                 variant="destructive"
-                className="h-7 text-xs"
+                className="h-9 gap-1.5 px-3 text-sm"
                 onClick={() => handleReject(bet.id)}
               >
-                <X className="mr-1 size-3" />
+                <X className="size-4" />
                 Reject
               </Button>
             </>
@@ -257,13 +257,13 @@ export function BetList({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs"
+              className="h-9 gap-1.5 px-3 text-sm"
               onClick={() => {
                 setResolvingBetId(bet.id)
                 setSelectedWinner('')
               }}
             >
-              <Trophy className="mr-1 size-3" />
+              <Trophy className="size-4" />
               Resolve
             </Button>
           )}
@@ -273,7 +273,7 @@ export function BetList({
             <>
               <Select value={selectedWinner} onValueChange={setSelectedWinner}>
                 <SelectTrigger
-                  className="h-7 w-36 text-xs"
+                  className="h-9 w-36 text-sm"
                   aria-label="Select winner"
                 >
                   <SelectValue placeholder="Winner?" />
@@ -289,7 +289,7 @@ export function BetList({
               <Button
                 size="sm"
                 variant="default"
-                className="h-7 text-xs"
+                className="h-9 px-3 text-sm"
                 onClick={() => handleResolve(bet.id)}
                 disabled={!selectedWinner}
               >
@@ -298,7 +298,7 @@ export function BetList({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 text-xs"
+                className="h-9 px-3 text-sm"
                 onClick={() => setResolvingBetId(null)}
               >
                 Cancel
@@ -311,10 +311,10 @@ export function BetList({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs"
+              className="h-9 gap-1.5 px-3 text-sm"
               onClick={() => handleConfirmPaid(bet.id)}
             >
-              <Banknote className="mr-1 size-3" />
+              <Banknote className="size-4" />
               Mark as Paid
             </Button>
           )}
@@ -340,12 +340,12 @@ export function BetList({
 
           {/* Remove — creator on pending/rejected, or admin on any status */}
           {confirmingDeleteId === bet.id ? (
-            <span className="ml-auto flex items-center gap-1 text-xs">
+            <span className="ml-auto flex items-center gap-1.5 text-sm">
               <span className="text-muted-foreground">Delete?</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-1.5 text-xs text-green-600 hover:text-green-700"
+                className="h-8 px-2.5 text-sm text-green-600 hover:text-green-700"
                 onClick={() => handleRemove(bet.id)}
               >
                 Yes
@@ -353,7 +353,7 @@ export function BetList({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 px-1.5 text-xs"
+                className="h-8 px-2.5 text-sm"
                 onClick={() => setConfirmingDeleteId(null)}
               >
                 No
@@ -365,11 +365,11 @@ export function BetList({
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-destructive ml-auto size-7 p-0"
+              className="text-muted-foreground hover:text-destructive ml-auto size-8 p-0"
               onClick={() => setConfirmingDeleteId(bet.id)}
               aria-label="Remove bet"
             >
-              <Trash2 className="size-3.5" />
+              <Trash2 className="size-4" />
             </Button>
           ) : null}
         </div>
@@ -409,7 +409,7 @@ export function BetList({
               <CircleDollarSign className="size-4 text-green-600" />
               Bets
             </CardTitle>
-            <Button size="sm" onClick={() => setShowDialog(true)}>
+            <Button onClick={() => setShowDialog(true)}>
               <Plus className="size-4" />
               New Bet
             </Button>

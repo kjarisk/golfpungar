@@ -123,7 +123,7 @@ export function CreateBetDialog({
                 </Badge>
               )}
             </Label>
-            <div className="grid max-h-40 grid-cols-2 gap-1 overflow-y-auto rounded-md border p-2">
+            <div className="grid max-h-48 grid-cols-2 gap-1.5 overflow-y-auto rounded-md border p-2">
               {opponents.map((p) => {
                 const isSelected = selectedOpponentIds.includes(p.id)
                 return (
@@ -131,20 +131,20 @@ export function CreateBetDialog({
                     key={p.id}
                     type="button"
                     onClick={() => toggleOpponent(p.id)}
-                    className={`flex items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                    className={`flex items-center gap-2 rounded-md px-2.5 py-2.5 text-left text-sm transition-colors ${
                       isSelected
                         ? 'bg-primary/10 text-primary border-primary/30 border'
                         : 'hover:bg-muted border border-transparent'
                     }`}
                   >
                     <div
-                      className={`flex size-4 shrink-0 items-center justify-center rounded-sm border ${
+                      className={`flex size-5 shrink-0 items-center justify-center rounded-sm border ${
                         isSelected
                           ? 'bg-primary border-primary text-primary-foreground'
                           : 'border-input'
                       }`}
                     >
-                      {isSelected && <Check className="size-3" />}
+                      {isSelected && <Check className="size-3.5" />}
                     </div>
                     <span className="truncate">
                       {p.displayName}
@@ -155,23 +155,23 @@ export function CreateBetDialog({
               })}
             </div>
             {selectedOpponentIds.length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {selectedOpponentIds.map((id) => {
                   const player = players.find((p) => p.id === id)
                   return (
                     <Badge
                       key={id}
                       variant="secondary"
-                      className="gap-1 text-xs"
+                      className="gap-1.5 py-1 pr-1 text-sm"
                     >
                       {player?.displayName}
                       <button
                         type="button"
                         onClick={() => toggleOpponent(id)}
-                        className="hover:text-destructive ml-0.5"
+                        className="hover:bg-destructive/10 hover:text-destructive ml-0.5 rounded-full p-1"
                         aria-label={`Remove ${player?.displayName}`}
                       >
-                        <X className="size-3" />
+                        <X className="size-4" />
                       </button>
                     </Badge>
                   )
@@ -269,12 +269,14 @@ export function CreateBetDialog({
             <Button
               type="button"
               variant="ghost"
+              className="h-11"
               onClick={() => onOpenChange(false)}
             >
               Cancel
             </Button>
             <Button
               type="submit"
+              className="h-11"
               disabled={
                 selectedOpponentIds.length === 0 ||
                 (scope === 'round' && !roundId) ||

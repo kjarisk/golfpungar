@@ -191,10 +191,18 @@ export function CreateCourseDialog({
         </div>
 
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => handleClose(false)}>
+          <Button
+            variant="outline"
+            className="h-11"
+            onClick={() => handleClose(false)}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit()}>
+          <Button
+            className="h-11"
+            onClick={handleSubmit}
+            disabled={!canSubmit()}
+          >
             <Plus className="size-4" />
             Create Course
           </Button>

@@ -109,6 +109,7 @@ export function CreateTournamentDialog({
           <DialogFooter>
             <Button
               type="submit"
+              className="h-11"
               disabled={!name.trim() || !startDate || !endDate}
             >
               Create

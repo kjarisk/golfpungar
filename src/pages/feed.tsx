@@ -467,26 +467,26 @@ export function FeedPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
+                        className="h-9 w-9 p-0 text-green-600 hover:text-green-700"
                         onClick={() => {
                           acceptBet(bet.id, currentPlayer.id)
                           toast('Bet accepted!')
                         }}
                         aria-label="Accept bet"
                       >
-                        <Check className="size-4" />
+                        <Check className="size-5" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700"
                         onClick={() => {
                           rejectBet(bet.id, currentPlayer.id)
                           toast('Bet rejected.')
                         }}
                         aria-label="Reject bet"
                       >
-                        <X className="size-4" />
+                        <X className="size-5" />
                       </Button>
                     </div>
                   )

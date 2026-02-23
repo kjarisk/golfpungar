@@ -565,10 +565,14 @@ function EditRoundForm({
       </div>
 
       <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <Button
+          variant="outline"
+          className="h-11"
+          onClick={() => onOpenChange(false)}
+        >
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!canSubmit()}>
+        <Button className="h-11" onClick={handleSubmit} disabled={!canSubmit()}>
           Save Changes
         </Button>
       </DialogFooter>

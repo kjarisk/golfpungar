@@ -70,7 +70,6 @@ export function PlayersPage() {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              size="sm"
               onClick={() => setShowInvite(true)}
               aria-label="Invite players"
             >
@@ -78,7 +77,6 @@ export function PlayersPage() {
               <span className="hidden sm:inline">Invite</span>
             </Button>
             <Button
-              size="sm"
               onClick={() => setShowAddPlayer(true)}
               aria-label="Add player"
             >
@@ -145,10 +143,10 @@ export function PlayersPage() {
                     {canEdit && (
                       <Button
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         onClick={() => setEditingPlayer(player)}
                       >
-                        <Pencil className="size-3.5" />
+                        <Pencil className="size-4" />
                         <span className="sr-only">
                           Edit {player.displayName}
                         </span>
@@ -213,12 +211,12 @@ export function PlayersPage() {
                     {isAdmin && (
                       <Button
                         variant="ghost"
-                        size="icon-xs"
+                        size="icon-sm"
                         onClick={() => acceptInvite(invite.id)}
                         aria-label={`Accept invite for ${invite.email}`}
                         title="Accept invite (mock)"
                       >
-                        <Check className="size-3.5" />
+                        <Check className="size-4" />
                       </Button>
                     )}
                   </div>
