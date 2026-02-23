@@ -400,3 +400,17 @@
 - [x] Demo data: Los Naranjos → Spain countryId, Quinta do Lago → Portugal countryId
 - [x] Course store tests: 3 new tests (countryId stored, undefined when omitted, manual source with countryId)
 - [x] Test count: 351 tests across 22 files
+
+### WP6: Round creation — inline team assignment + editable points
+
+- [x] `pointsTable?: number[]` field added to `Round`, `CreateRoundInput`, `UpdateRoundInput` types
+- [x] Rounds store: `createRound()` persists `pointsTable` from input; `updateRound()` supports `pointsTable` updates
+- [x] `PointsTableEditor` component (new): reusable view/edit modes, 5-column grid of number inputs, add/remove places, reset to default
+- [x] `TeamPairingEditor` component (new): inline team pairing per group with shuffle + rename; exports `autoPairGroups()` helper
+- [x] Team pairing lib (`src/features/rounds/lib/team-pairing.ts`): extracted shared types (`GroupTeamDraft`, `TeamPairingResult`) + `autoPairGroups()` to fix react-refresh lint rule
+- [x] Create Round dialog: integrated PointsTableEditor + TeamPairingEditor, team configs auto-regenerate on format/group changes
+- [x] Edit Round dialog: integrated PointsTableEditor + TeamPairingEditor, `buildInitialTeamConfigs()` reconstructs existing teams, submit saves pointsTable + teams
+- [x] Cross-store points wiring: scoring store's `setHoleStroke` reads per-round `pointsTable` from rounds store via `useRoundsStore.getState()`
+- [x] Demo data: Round 2 (Scramble) has custom `pointsTable: [20, 15, 12, 10, 8, 6, 4]`
+- [x] Rounds store tests: 6 new tests (per-round points table CRUD, teams at round creation)
+- [x] Test count: 357 tests across 22 files
