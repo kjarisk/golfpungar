@@ -59,12 +59,13 @@ interface GroupScoreGridProps {
 function getScoreCellClass(strokes: HoleStroke, par: number): string {
   if (strokes === null) return 'bg-muted/50 text-muted-foreground'
   const diff = strokes - par
-  if (diff <= -2) return 'bg-yellow-500 text-white' // eagle or better
+  if (diff <= -2)
+    return 'bg-yellow-500/90 text-yellow-950 dark:bg-yellow-600 dark:text-yellow-50' // eagle or better
   if (diff === -1) return 'bg-primary text-primary-foreground' // birdie
   if (diff === 0) return 'bg-background text-foreground' // par
   if (diff === 1)
-    return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' // bogey
-  return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' // double+
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-800/50 dark:text-orange-200' // bogey
+  return 'bg-red-100 text-red-800 dark:bg-red-800/50 dark:text-red-200' // double+
 }
 
 /** Human-readable label for a score relative to par */
@@ -420,15 +421,15 @@ export function GroupScoreGrid({
       return (
         <tr key={hole.holeNumber} className="border-b last:border-b-0">
           {/* Hole number */}
-          <td className="bg-muted/30 px-1.5 py-1 text-center text-xs font-medium tabular-nums">
+          <td className="bg-muted/30 px-1 py-0.5 text-center text-[11px] font-medium tabular-nums">
             {hole.holeNumber}
           </td>
           {/* Par */}
-          <td className="bg-muted/30 text-muted-foreground px-1.5 py-1 text-center text-xs tabular-nums">
+          <td className="bg-muted/30 text-muted-foreground px-1 py-0.5 text-center text-[11px] tabular-nums">
             {hole.par}
           </td>
           {/* SI */}
-          <td className="bg-muted/30 text-muted-foreground px-1.5 py-1 text-center text-xs tabular-nums">
+          <td className="bg-muted/30 text-muted-foreground px-1 py-0.5 text-center text-[11px] tabular-nums">
             {hole.strokeIndex}
           </td>
           {/* Player/team score cells */}
@@ -440,7 +441,11 @@ export function GroupScoreGrid({
             const uniqueTypes = [...new Set(events.map((e) => e.type))]
 
             return (
-              <td key={p.id} className="p-0" role="gridcell">
+              <td
+                key={p.id}
+                className="border-l border-border/50 p-0"
+                role="gridcell"
+              >
                 <button
                   type="button"
                   onClick={() => openOverlay(holeIdx, pIdx)}
@@ -466,7 +471,7 @@ export function GroupScoreGrid({
                         return (
                           <Icon
                             key={type}
-                            className={`size-2.5 ${config.className}`}
+                            className={`size-3 drop-shadow-sm ${config.className}`}
                           />
                         )
                       })}
@@ -634,13 +639,13 @@ export function GroupScoreGrid({
           >
             <thead>
               <tr className="bg-muted border-b">
-                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                <th scope="col" className="px-1 py-1 text-[10px] font-semibold">
                   #
                 </th>
-                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                <th scope="col" className="px-1 py-1 text-[10px] font-semibold">
                   Par
                 </th>
-                <th scope="col" className="px-1.5 py-1.5 text-xs font-semibold">
+                <th scope="col" className="px-1 py-1 text-[10px] font-semibold">
                   SI
                 </th>
                 {participants.map((p) => (
@@ -823,12 +828,13 @@ function formatRelativeScore(strokes: number, par: number): string {
 /** CSS class for the relative score badge */
 function getRelativeBadgeClass(strokes: number, par: number): string {
   const diff = strokes - par
-  if (diff <= -2) return 'bg-yellow-500 text-white' // eagle or better
+  if (diff <= -2)
+    return 'bg-yellow-500/90 text-yellow-950 dark:bg-yellow-600 dark:text-yellow-50' // eagle or better
   if (diff === -1) return 'bg-primary text-primary-foreground' // birdie
   if (diff === 0) return 'bg-muted text-muted-foreground' // par
   if (diff === 1)
-    return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' // bogey
-  return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' // double+
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-800/50 dark:text-orange-200' // bogey
+  return 'bg-red-100 text-red-800 dark:bg-red-800/50 dark:text-red-200' // double+
 }
 
 interface ScoreOverlayContentProps {

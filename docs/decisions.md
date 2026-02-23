@@ -56,6 +56,7 @@ Keep this short: what we decided, and why.
 - 2026-02-23: Improvement Pass 7 WP1 — Tournament list rewritten: status transition buttons (Go Live, Mark Complete), edit/delete per card, done tournaments in collapsible "Archive" section at bottom (collapsed by default).
 - 2026-02-23: Improvement Pass 7 WP1 — Edit Tournament dialog uses key-based remount pattern (same as EditRoundDialog) for React Compiler safety.
 - 2026-02-23: Improvement Pass 7 WP2 — "View All Bets" replaced with "Go to Bets" `<Button variant="outline">` (full-width, touchable) on Feed page. Feed tab notification changed from red dot to count badge (shows number, "9+" for >9).
+- 2026-02-23: Improvement Pass 7 WP3 — Score entry grid dark mode fix: eagle uses `bg-yellow-500/90 dark:bg-yellow-600`, bogey/double+ use semi-transparent dark variants (`dark:bg-orange-800/50`, `dark:bg-red-800/50`). Header rows compacted to `text-[10px]`. Score cells get subtle `border-l border-border/50`. Side event icons increased to `size-3` with `drop-shadow-sm`.
 
 ## UI system choice (per project)
 

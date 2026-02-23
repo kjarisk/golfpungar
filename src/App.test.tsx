@@ -10,16 +10,20 @@ describe('App', () => {
 
   it('renders the app shell with bottom navigation', () => {
     render(<App />)
-    expect(screen.getByRole('navigation')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation')
+    expect(nav).toBeInTheDocument()
 
-    // Check nav links by role (these are <a> elements via NavLink)
-    const navLinks = screen.getAllByRole('link')
-    const navLabels = navLinks.map((link) => link.textContent)
-    expect(navLabels).toContain('Feed')
-    expect(navLabels).toContain('Enter')
-    expect(navLabels).toContain('Leaders')
-    expect(navLabels).toContain('Rounds')
-    expect(navLabels).toContain('Players')
+    // Check nav links within the navigation bar
+    const navLinks = nav.querySelectorAll('a')
+    const navLabels = Array.from(navLinks).map(
+      (link) => link.textContent?.trim() ?? ''
+    )
+    // Feed link may include badge count text (e.g. "2Feed"), so check with includes
+    expect(navLabels.some((l) => l.includes('Feed'))).toBe(true)
+    expect(navLabels.some((l) => l.includes('Enter'))).toBe(true)
+    expect(navLabels.some((l) => l.includes('Leaders'))).toBe(true)
+    expect(navLabels.some((l) => l.includes('Rounds'))).toBe(true)
+    expect(navLabels.some((l) => l.includes('Players'))).toBe(true)
   })
 
   it('shows the feed page with tournament name by default', () => {

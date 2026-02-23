@@ -367,3 +367,13 @@
 
 - [x] Rename "View All Bets" → "Go to Bets" as full-width `<Button variant="outline">` on Feed page
 - [x] Feed tab: red dot → count badge (shows number, "9+" for >9)
+
+### WP3: Score entry grid — dark mode + visual fixes
+
+- [x] Dark mode colors: eagle/bogey/double+ use semi-transparent dark variants for better contrast
+- [x] Header rows (#, Par, SI): more compact (`text-[10px]`, reduced padding)
+- [x] Score cells: subtle left border (`border-l border-border/50`) for grid definition
+- [x] Side event icons: increased to `size-3` with `drop-shadow-sm` for visibility
+- [x] Relative score badge in overlay: dark mode colors matched to grid cells
+- [x] App test updated for badge count in nav link textContent
+- [x] Test count: 348 tests across 22 files
