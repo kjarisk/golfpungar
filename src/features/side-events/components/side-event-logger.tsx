@@ -298,7 +298,7 @@ export function SideEventLogger({
                   type="button"
                   onClick={() => setSelectedPlayerId(p.id)}
                   className={cn(
-                    'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
+                    'rounded-lg border px-4 py-2 text-base font-medium transition-colors',
                     isSelected
                       ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-card hover:bg-muted border-border'
