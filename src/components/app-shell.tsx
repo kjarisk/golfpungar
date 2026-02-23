@@ -16,6 +16,8 @@ import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
 import { useTournamentStore } from '@/features/tournament'
+import { useBettingStore } from '@/features/betting'
+import { useCurrentPlayerId } from '@/hooks/use-current-player-id'
 
 const navItems = [
   { to: '/feed', label: 'Feed', icon: Newspaper },
@@ -29,6 +31,23 @@ export function AppShell() {
   const location = useLocation()
   const tournament = useTournamentStore((s) => s.activeTournament())
   const { resolvedTheme, setTheme } = useTheme()
+  const currentPlayerId = useCurrentPlayerId()
+  const bets = useBettingStore((s) => s.bets)
+  const participants = useBettingStore((s) => s.participants)
+
+  // Count pending bets awaiting current player's response
+  const pendingBetCount = (() => {
+    if (!tournament || !currentPlayerId) return 0
+    return bets.filter((bet) => {
+      if (bet.tournamentId !== tournament.id) return false
+      if (bet.status !== 'pending') return false
+      if (bet.createdByPlayerId === currentPlayerId) return false
+      const myP = participants.find(
+        (p) => p.betId === bet.id && p.playerId === currentPlayerId
+      )
+      return myP?.accepted === null
+    }).length
+  })()
 
   return (
     <div className="bg-background flex min-h-svh flex-col">
@@ -91,7 +110,15 @@ export function AppShell() {
                 )
               }
             >
-              <Icon className="size-5" aria-hidden="true" />
+              <span className="relative">
+                <Icon className="size-5" aria-hidden="true" />
+                {to === '/feed' && pendingBetCount > 0 && (
+                  <span
+                    className="bg-destructive absolute -top-1 -right-1 size-2 rounded-full"
+                    aria-label={`${pendingBetCount} pending bet${pendingBetCount !== 1 ? 's' : ''}`}
+                  />
+                )}
+              </span>
               <span>{label}</span>
             </NavLink>
           ))}
