@@ -387,3 +387,16 @@
 - [x] Side event logger hidden when round is read-only
 - [x] `readOnly` prop added to `GroupScoreGrid`
 - [x] Test count: 348 tests across 22 files
+
+### WP5: Courses rework — countries, manual creation, grouped display
+
+- [x] `Course` type extended with `countryId?: string`
+- [x] `addCourse()` store action accepts optional `countryId` as 5th param
+- [x] Import Course dialog: added `CountrySelect` for country assignment
+- [x] Create Course dialog (new): manual course creation with name, country, hole count (9/18), tap-to-cycle par, editable SI
+- [x] Rounds page Courses tab rewritten: courses grouped by country (tournament country first with badge, others collapsible, "No country" last)
+- [x] Create Round dialog: course selector groups courses by tournament country vs. "Other countries"
+- [x] Course card: shows country name below title
+- [x] Demo data: Los Naranjos → Spain countryId, Quinta do Lago → Portugal countryId
+- [x] Course store tests: 3 new tests (countryId stored, undefined when omitted, manual source with countryId)
+- [x] Test count: 351 tests across 22 files
