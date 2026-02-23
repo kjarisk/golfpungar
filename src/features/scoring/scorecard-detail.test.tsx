@@ -77,12 +77,11 @@ describe('ScorecardDetail', () => {
     const detail = screen.getByTestId('scorecard-detail')
     expect(detail).toBeInTheDocument()
 
-    // Check headers
+    // Check headers (no Events column — events are inline on Score cells)
     expect(screen.getByText('Hole')).toBeInTheDocument()
     expect(screen.getByText('Par')).toBeInTheDocument()
     expect(screen.getByText('SI')).toBeInTheDocument()
     expect(screen.getByText('Score')).toBeInTheDocument()
-    expect(screen.getByText('Events')).toBeInTheDocument()
 
     // Check subtotal rows
     expect(screen.getByText('Out')).toBeInTheDocument()
@@ -260,6 +259,120 @@ describe('ScorecardDetail', () => {
     expect(within(outRow).getByText('38')).toBeInTheDocument()
     // Also shows total par for front 9 (36)
     expect(within(outRow).getByText('36')).toBeInTheDocument()
+  })
+
+  // --- New tests for Net column and relative-to-par header ---
+
+  it('shows Net column header when groupHandicap is provided', () => {
+    const strokes: HoleStroke[] = Array(18).fill(5)
+
+    render(
+      <ScorecardDetail
+        holes={HOLES_18}
+        holeStrokes={strokes}
+        sideEvents={[]}
+        grossTotal={90}
+        netTotal={72}
+        stablefordPoints={null}
+        groupHandicap={18}
+      />
+    )
+
+    // Net column header should appear
+    const headers = screen.getAllByRole('columnheader')
+    const headerTexts = headers.map((h) => h.textContent)
+    expect(headerTexts).toContain('Net')
+  })
+
+  it('does not show Net column when groupHandicap is not provided', () => {
+    const strokes: HoleStroke[] = Array(18).fill(4)
+
+    render(
+      <ScorecardDetail
+        holes={HOLES_18}
+        holeStrokes={strokes}
+        sideEvents={[]}
+        grossTotal={72}
+        netTotal={null}
+        stablefordPoints={null}
+      />
+    )
+
+    const headers = screen.getAllByRole('columnheader')
+    const headerTexts = headers.map((h) => h.textContent)
+    expect(headerTexts).not.toContain('Net')
+  })
+
+  it('shows relative-to-par header with correct values', () => {
+    // 18 holes par = 72, gross = 85 → +13
+    const strokes: HoleStroke[] = Array(18).fill(5)
+    strokes[0] = 4 // hole 1 = par (4), but 17 holes × 5 + 1 × 4 = 89
+    // Actually let's just use known totals
+    render(
+      <ScorecardDetail
+        holes={HOLES_18}
+        holeStrokes={strokes}
+        sideEvents={[]}
+        grossTotal={85}
+        netTotal={70}
+        stablefordPoints={null}
+        groupHandicap={15}
+        participantName="Antonio"
+      />
+    )
+
+    // Should show participant name
+    expect(screen.getByText('Antonio')).toBeInTheDocument()
+
+    // Should show relative to par: +13 for gross (85-72)
+    expect(screen.getByText('+13')).toBeInTheDocument()
+    // Should show -2 for net (70-72)
+    expect(screen.getByText('-2')).toBeInTheDocument()
+  })
+
+  it('shows "E" for even par in relative header', () => {
+    render(
+      <ScorecardDetail
+        holes={HOLES_18}
+        holeStrokes={Array(18).fill(4)}
+        sideEvents={[]}
+        grossTotal={72}
+        netTotal={null}
+        stablefordPoints={null}
+      />
+    )
+
+    // Total par = 72, gross = 72 → E
+    expect(screen.getByText('E')).toBeInTheDocument()
+  })
+
+  it('shows event totals in the summary footer', () => {
+    const strokes: HoleStroke[] = Array(9).fill(4)
+    const events: SideEventLog[] = [
+      makeSideEvent('birdie', 'player-1', 1),
+      makeSideEvent('birdie', 'player-1', 5),
+      makeSideEvent('snake', 'player-1', 3),
+      makeSideEvent('gir', 'player-1', 1),
+      makeSideEvent('gir', 'player-1', 4),
+      makeSideEvent('gir', 'player-1', 7),
+    ]
+
+    render(
+      <ScorecardDetail
+        holes={HOLES_9}
+        holeStrokes={strokes}
+        sideEvents={events}
+        grossTotal={36}
+        netTotal={null}
+        stablefordPoints={null}
+      />
+    )
+
+    // Should show event totals: 2 birdies, 1 snake, 3 GIR
+    // Note: "1 Snake" appears both as inline icon on hole 3 and in footer totals
+    expect(screen.getByTitle('2 Birdies')).toBeInTheDocument()
+    expect(screen.getAllByTitle('1 Snake').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByTitle('3 GIRs')).toBeInTheDocument()
   })
 })
 

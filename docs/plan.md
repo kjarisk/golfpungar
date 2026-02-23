@@ -304,3 +304,19 @@
 - [x] Clean up dead code in Enter page (removed `isAdmin`, `recalculatePoints`, `getParticipantName`, unused imports)
 - [x] Connect auto-detected side events to feed notable event banners (`pushNotableEvent` on birdie/eagle/albatross/HIO)
 - [x] Test count: 347 tests across 21 files
+
+## Improvement Pass 4 -- Login page, scorecard enhancement, cleanup
+
+- [x] Magic-link login page (`src/pages/login.tsx`): golf-themed green gradient, rolling hills SVG, email input, mock magic link flow, "Check your email" confirmation state
+- [x] Auth guard layout route (`src/components/auth-guard.tsx`): redirects unauthenticated → `/login`, spinner during loading
+- [x] Route restructure: `/login` outside `AppShell`, all app routes wrapped in `<AuthGuard>`
+- [x] Delete dead code: removed `hole-selector.tsx`
+- [x] Scorecard detail rewrite (`scorecard-detail.tsx`):
+  - [x] Removed "Events" column — side event icons now render inline on Score cells
+  - [x] Added optional Net column (per-hole net strokes, color-coded) when `groupHandicap` provided
+  - [x] Added relative-to-par header (`+13 / -2` style, "E" for even)
+  - [x] Added `SubtotalRow` with GIR/Sand/Snake icon counts in Out/In rows
+  - [x] Added `EventTotals` component — event type counts in summary footer
+- [x] Leaderboards updated: all `ScorecardDetail` call sites now pass `groupHandicap`
+- [x] Scorecard detail tests: 5 new tests (Net column, relative-to-par, event totals)
+- [x] Test count: 352 tests across 21 files

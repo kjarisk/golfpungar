@@ -215,6 +215,10 @@ export function LeaderboardsPage() {
     return 'Unknown'
   }
 
+  function getPlayerHandicap(playerId: string): number | undefined {
+    return players.find((p) => p.id === playerId)?.groupHandicap
+  }
+
   if (!tournament) {
     return (
       <div className="flex flex-col gap-6">
@@ -280,6 +284,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
@@ -336,6 +341,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
@@ -388,6 +394,7 @@ export function LeaderboardsPage() {
                         getScorecardsByRound={getScorecardsByRound}
                         getEventsByRound={getEventsByRound}
                         getPlayerName={getPlayerName}
+                        getPlayerHandicap={getPlayerHandicap}
                         currentPlayerId={currentPlayerId}
                       >
                         <PlacingBadge placing={entry.placing} />
@@ -445,6 +452,7 @@ export function LeaderboardsPage() {
                           getScorecardsByRound={getScorecardsByRound}
                           getEventsByRound={getEventsByRound}
                           getPlayerName={getPlayerName}
+                          getPlayerHandicap={getPlayerHandicap}
                           currentPlayerId={currentPlayerId}
                         >
                           <PlacingBadge placing={entry.placing} />
@@ -580,6 +588,11 @@ export function LeaderboardsPage() {
                                   grossTotal={scorecard.grossTotal}
                                   netTotal={scorecard.netTotal}
                                   stablefordPoints={scorecard.stablefordPoints}
+                                  groupHandicap={
+                                    players.find(
+                                      (p) => p.id === entry.participantId
+                                    )?.groupHandicap
+                                  }
                                 />
                               </div>
                             )}
@@ -919,6 +932,7 @@ interface ExpandableRowProps {
     roundId: string
   ) => import('@/features/side-events').SideEventLog[]
   getPlayerName: (id: string) => string
+  getPlayerHandicap: (id: string) => number | undefined
   currentPlayerId: string | null
   children: React.ReactNode
 }
@@ -933,6 +947,7 @@ function ExpandableRow({
   getScorecardsByRound,
   getEventsByRound,
   getPlayerName,
+  getPlayerHandicap,
   currentPlayerId,
   children,
 }: ExpandableRowProps) {
@@ -972,6 +987,7 @@ function ExpandableRow({
             grossTotal={scorecard.grossTotal}
             netTotal={scorecard.netTotal}
             stablefordPoints={scorecard.stablefordPoints}
+            groupHandicap={getPlayerHandicap(playerId)}
           />
         </div>
       )}

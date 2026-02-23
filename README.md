@@ -75,7 +75,7 @@ Click **"Seed Demo Data"** on the Feed page to populate a full v2 demo:
 - TanStack Query (server state -- wired to Supabase later)
 - Zustand (client/UI state + mock data stores)
 - React Router v7 (5-tab bottom navigation)
-- Vitest + Testing Library (347 tests)
+- Vitest + Testing Library (352 tests)
 
 ## Project Structure
 
@@ -152,4 +152,4 @@ Sample files available in `docs/csv-examples/`:
 
 All phases (0-22) complete plus post-v2 improvement pass. v2 features include admin/player roles, multi-tournament, round status management, group-based score entry grid with Dialog overlay, team configuration, feed announcements with animated banners, scorecard detail views, and comprehensive demo data. Post-v2 improvements: score entry overlay redesign, auto-detect side events from scores, soft delete/restore for rounds, full Edit Round dialog with course + group editing, and dead code cleanup. All data is in Zustand mock stores. Backend (Supabase) integration deferred.
 
-347 tests across 21 test files. See `docs/plan.md` for the full implementation plan.
+352 tests across 21 test files. See `docs/plan.md` for the full implementation plan.

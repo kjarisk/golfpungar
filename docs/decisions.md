@@ -43,6 +43,8 @@ Keep this short: what we decided, and why.
 - 2026-02-23: Improvement Pass 3 — SideEventLogger redesigned: `<Select>` player dropdown replaced with touch button row; hole buttons enlarged (`h-11`) with per-player event type icons; tap-to-remove with undo toast. Birdie/eagle/HIO/albatross removed from quick actions (auto-detected from scores).
 - 2026-02-23: Improvement Pass 3 — Standings section removed from Enter page. Round standings available on Leaderboards and Feed pages; duplicate on Enter page was redundant.
 - 2026-02-23: Improvement Pass 3 — Auto-detected side events (birdie/eagle/albatross/HIO) now push `NotableEvent` to feed store, triggering animated announcement banners on the Feed page. Previously the banner component existed but was never triggered in production.
+- 2026-02-23: Improvement Pass 4 — Magic-link login page with auth guard route. `/login` is outside `AppShell`; all app routes wrapped in `<AuthGuard>` that redirects unauthenticated users to `/login`.
+- 2026-02-23: Improvement Pass 4 — Scorecard detail rewrite: removed separate "Events" column, side event icons now inline on Score cells. Added optional Net column (per-hole net strokes, color-coded via `netStrokesForHole()`). Added relative-to-par header (`+13 / -2`). Added SubtotalRow with event icon counts. Added EventTotals footer. No yardage column (Hole type has no distance field). No per-hole putts count column; snake icon shown where 3-putt occurred.
 
 ## UI system choice (per project)
 
