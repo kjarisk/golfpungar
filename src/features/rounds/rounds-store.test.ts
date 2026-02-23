@@ -719,3 +719,116 @@ describe('Rounds Store — updateGroups', () => {
     expect(oldIds).not.toContain(newGroups[0].id)
   })
 })
+
+describe('Rounds Store — Per-Round Points Table', () => {
+  beforeEach(() => {
+    useRoundsStore.setState({
+      rounds: [],
+      groups: [],
+      teams: [],
+    })
+  })
+
+  it('stores custom pointsTable on round creation', () => {
+    const customPoints = [20, 15, 12, 10, 8, 6, 4]
+    const round = useRoundsStore.getState().createRound('tournament-001', {
+      ...SAMPLE_INPUT,
+      pointsTable: customPoints,
+    })
+
+    expect(round.pointsTable).toEqual(customPoints)
+    const stored = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(stored?.pointsTable).toEqual(customPoints)
+  })
+
+  it('stores undefined pointsTable when not provided', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    expect(round.pointsTable).toBeUndefined()
+  })
+
+  it('updates pointsTable via updateRound', () => {
+    const round = useRoundsStore
+      .getState()
+      .createRound('tournament-001', SAMPLE_INPUT)
+
+    const newPoints = [10, 8, 6, 4, 2]
+    useRoundsStore.getState().updateRound(round.id, { pointsTable: newPoints })
+
+    const updated = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(updated?.pointsTable).toEqual(newPoints)
+  })
+
+  it('clears pointsTable by setting undefined', () => {
+    const round = useRoundsStore.getState().createRound('tournament-001', {
+      ...SAMPLE_INPUT,
+      pointsTable: [20, 15, 12],
+    })
+
+    useRoundsStore.getState().updateRound(round.id, { pointsTable: undefined })
+
+    const updated = useRoundsStore
+      .getState()
+      .rounds.find((r) => r.id === round.id)
+    expect(updated?.pointsTable).toBeUndefined()
+  })
+})
+
+describe('Rounds Store — Teams at Round Creation', () => {
+  beforeEach(() => {
+    useRoundsStore.setState({
+      rounds: [],
+      groups: [],
+      teams: [],
+    })
+  })
+
+  it('creates teams inline with round creation', () => {
+    const round = useRoundsStore.getState().createRound('tournament-001', {
+      ...SAMPLE_INPUT,
+      format: 'scramble',
+      teams: [
+        { name: 'Team Alpha', playerIds: ['player-001', 'player-002'] },
+        { name: 'Team Bravo', playerIds: ['player-003', 'player-004'] },
+      ],
+    })
+
+    const teams = useRoundsStore.getState().getTeamsByRound(round.id)
+    expect(teams).toHaveLength(2)
+    expect(teams[0].name).toBe('Team Alpha')
+    expect(teams[0].playerIds).toEqual(['player-001', 'player-002'])
+    expect(teams[1].name).toBe('Team Bravo')
+    expect(teams[1].playerIds).toEqual(['player-003', 'player-004'])
+  })
+
+  it('creates both groups and teams in one call', () => {
+    const round = useRoundsStore.getState().createRound('tournament-001', {
+      courseId: 'course-001',
+      name: 'Scramble Day',
+      format: 'scramble',
+      holesPlayed: 18,
+      groups: [
+        {
+          name: 'Group 1',
+          playerIds: ['player-001', 'player-002', 'player-003', 'player-004'],
+        },
+      ],
+      teams: [
+        { name: 'Pair A', playerIds: ['player-001', 'player-002'] },
+        { name: 'Pair B', playerIds: ['player-003', 'player-004'] },
+      ],
+    })
+
+    const groups = useRoundsStore.getState().getGroupsByRound(round.id)
+    const teams = useRoundsStore.getState().getTeamsByRound(round.id)
+
+    expect(groups).toHaveLength(1)
+    expect(teams).toHaveLength(2)
+  })
+})

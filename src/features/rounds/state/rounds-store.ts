@@ -13,6 +13,7 @@ export interface UpdateRoundInput {
   format?: Round['format']
   holesPlayed?: Round['holesPlayed']
   courseId?: string
+  pointsTable?: number[]
 }
 
 export interface AddTeamInput {
@@ -93,6 +94,7 @@ export const useRoundsStore = create<RoundsState>((set, get) => ({
       dateTime: input.dateTime,
       format: input.format,
       holesPlayed: input.holesPlayed,
+      pointsTable: input.pointsTable,
       status: 'upcoming',
       createdAt: new Date().toISOString(),
     }

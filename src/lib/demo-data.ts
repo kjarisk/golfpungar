@@ -279,6 +279,8 @@ interface RoundDef {
   status: 'completed' | 'active' | 'upcoming'
   groups: { name: string; playerIds: string[] }[]
   teams?: { name: string; playerIds: string[] }[]
+  /** Custom points table (if not default) */
+  pointsTable?: number[]
   /** For active round: how many holes have been scored (partial) */
   holesScored?: number
 }
@@ -334,6 +336,7 @@ const SPAIN_ROUNDS: RoundDef[] = [
       { name: 'Jonni & Arnar', playerIds: ['player-d11', 'player-d12'] },
       { name: 'Helgi & Einar', playerIds: ['player-d10', 'player-d14'] },
     ],
+    pointsTable: [20, 15, 12, 10, 8, 6, 4], // Custom 7-team scramble points
     holesScored: 12, // front 9 + 3 of back 9
   },
   {
@@ -947,6 +950,7 @@ export function seedDemoData(): void {
       dateTime: def.dateTime,
       format: def.format,
       holesPlayed: 18,
+      pointsTable: def.pointsTable,
       groups: def.groups,
     })
     spainRoundIds.push(round.id)
@@ -979,7 +983,7 @@ export function seedDemoData(): void {
         }
       }
 
-      scoringStore.recalculatePoints(round.id, def.format)
+      scoringStore.recalculatePoints(round.id, def.format, def.pointsTable)
 
       feedStore.addEvent({
         tournamentId: T1,
@@ -1113,7 +1117,7 @@ export function seedDemoData(): void {
       }
     }
 
-    scoringStore.recalculatePoints(round.id, def.format)
+    scoringStore.recalculatePoints(round.id, def.format, def.pointsTable)
   }
 
   // -----------------------------------------------------------------------

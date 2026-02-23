@@ -24,7 +24,12 @@ import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useTournamentStore } from '@/features/tournament'
 import { useCountriesStore } from '@/features/countries'
+import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { RoundFormat } from '@/features/rounds'
+import { PointsTableEditor } from './points-table-editor'
+import { TeamPairingEditor } from './team-pairing-editor'
+import { autoPairGroups } from '../lib/team-pairing'
+import type { GroupTeamDraft } from '../lib/team-pairing'
 import { Shuffle, Plus, X, Users } from 'lucide-react'
 
 interface CreateRoundDialogProps {
@@ -55,8 +60,6 @@ const FORMAT_OPTIONS: { value: RoundFormat; label: string; desc: string }[] = [
     desc: 'Team format, each plays own ball',
   },
 ]
-
-const DEFAULT_INDIVIDUAL_POINTS = [15, 12, 10, 8, 7, 6, 5, 4, 3, 2]
 
 interface GroupDraft {
   name: string
@@ -95,9 +98,11 @@ export function CreateRoundDialog({
   const [format, setFormat] = useState<RoundFormat>('stableford')
   const [holesPlayed, setHolesPlayed] = useState<9 | 18>(18)
   const [dateTime, setDateTime] = useState('')
+  const [pointsTable, setPointsTable] = useState<number[]>([...DEFAULT_POINTS])
   const [groups, setGroups] = useState<GroupDraft[]>([
     { name: 'Group 1', playerIds: [] },
   ])
+  const [teamConfigs, setTeamConfigs] = useState<GroupTeamDraft[]>([])
 
   // Players already assigned to a group
   const assignedPlayerIds = useMemo(
@@ -108,15 +113,29 @@ export function CreateRoundDialog({
 
   const isTeamFormat = format === 'scramble' || format === 'bestball'
 
+  // Regenerate team configs when groups change and format is team-based
+  function syncTeamConfigs(newGroups: GroupDraft[]) {
+    if (format === 'scramble' || format === 'bestball') {
+      setTeamConfigs(autoPairGroups(newGroups, getPlayerName))
+    }
+  }
+
   function addGroup() {
-    setGroups((prev) => [
-      ...prev,
-      { name: `Group ${prev.length + 1}`, playerIds: [] },
-    ])
+    setGroups((prev) => {
+      const updated = [
+        ...prev,
+        { name: `Group ${prev.length + 1}`, playerIds: [] },
+      ]
+      return updated
+    })
   }
 
   function removeGroup(index: number) {
-    setGroups((prev) => prev.filter((_, i) => i !== index))
+    setGroups((prev) => {
+      const updated = prev.filter((_, i) => i !== index)
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function updateGroupName(index: number, newName: string) {
@@ -126,21 +145,25 @@ export function CreateRoundDialog({
   }
 
   function addPlayerToGroup(groupIndex: number, playerId: string) {
-    setGroups((prev) =>
-      prev.map((g, i) =>
+    setGroups((prev) => {
+      const updated = prev.map((g, i) =>
         i === groupIndex ? { ...g, playerIds: [...g.playerIds, playerId] } : g
       )
-    )
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function removePlayerFromGroup(groupIndex: number, playerId: string) {
-    setGroups((prev) =>
-      prev.map((g, i) =>
+    setGroups((prev) => {
+      const updated = prev.map((g, i) =>
         i === groupIndex
           ? { ...g, playerIds: g.playerIds.filter((id) => id !== playerId) }
           : g
       )
-    )
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function autoAssignGroups() {
@@ -159,6 +182,10 @@ export function CreateRoundDialog({
       })
     }
     setGroups(newGroups)
+    // Re-generate team pairings if team format
+    if (isTeamFormat) {
+      setTeamConfigs(autoPairGroups(newGroups, getPlayerName))
+    }
   }
 
   function getPlayerName(playerId: string) {
@@ -182,13 +209,30 @@ export function CreateRoundDialog({
       .filter((g) => g.playerIds.length > 0)
       .map((g) => ({ name: g.name, playerIds: g.playerIds }))
 
+    // Check if points table differs from default
+    const isDefaultPoints =
+      pointsTable.length === DEFAULT_POINTS.length &&
+      pointsTable.every((p, i) => p === DEFAULT_POINTS[i])
+
+    // Collect teams from team pairing editor (if team format)
+    const teams = isTeamFormat
+      ? teamConfigs.flatMap((cfg) =>
+          cfg.teams.map((t) => ({
+            name: t.name,
+            playerIds: [...t.playerIds],
+          }))
+        )
+      : undefined
+
     createRound(tournamentId, {
       courseId,
       name: name.trim(),
       dateTime: dateTime || undefined,
       format,
       holesPlayed,
+      pointsTable: isDefaultPoints ? undefined : pointsTable,
       groups: validGroups,
+      teams: teams && teams.length > 0 ? teams : undefined,
     })
 
     handleClose(false)
@@ -201,7 +245,9 @@ export function CreateRoundDialog({
       setFormat('stableford')
       setHolesPlayed(18)
       setDateTime('')
+      setPointsTable([...DEFAULT_POINTS])
       setGroups([{ name: 'Group 1', playerIds: [] }])
+      setTeamConfigs([])
     }
     onOpenChange(openState)
   }
@@ -286,7 +332,22 @@ export function CreateRoundDialog({
               <Label>Format</Label>
               <Select
                 value={format}
-                onValueChange={(v) => setFormat(v as RoundFormat)}
+                onValueChange={(v) => {
+                  const newFormat = v as RoundFormat
+                  setFormat(newFormat)
+                  // Auto-generate team pairings when switching to team format
+                  if (
+                    (newFormat === 'scramble' || newFormat === 'bestball') &&
+                    format !== 'scramble' &&
+                    format !== 'bestball'
+                  ) {
+                    setTeamConfigs(autoPairGroups(groups, getPlayerName))
+                  }
+                  // Clear team configs when switching away from team format
+                  if (newFormat !== 'scramble' && newFormat !== 'bestball') {
+                    setTeamConfigs([])
+                  }
+                }}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -335,24 +396,11 @@ export function CreateRoundDialog({
 
           <Separator />
 
-          {/* Points preview */}
-          <div className="flex flex-col gap-2">
-            <Label>Points (default top 10)</Label>
-            <div className="flex flex-wrap gap-1">
-              {DEFAULT_INDIVIDUAL_POINTS.map((pts, i) => (
-                <Badge
-                  key={i}
-                  variant="outline"
-                  className="text-xs tabular-nums"
-                >
-                  {i + 1}st: {pts}p
-                </Badge>
-              ))}
-            </div>
-            <p className="text-muted-foreground text-xs">
-              Points can be customized later per round.
-            </p>
-          </div>
+          {/* Points table editor */}
+          <PointsTableEditor
+            pointsTable={pointsTable}
+            onChange={setPointsTable}
+          />
 
           <Separator />
 
@@ -479,12 +527,12 @@ export function CreateRoundDialog({
           {isTeamFormat && (
             <>
               <Separator />
-              <div className="bg-muted/50 rounded-lg p-3">
-                <p className="text-sm font-medium">Team Format</p>
-                <p className="text-muted-foreground text-xs">
-                  Teams can be configured after creating the round.
-                </p>
-              </div>
+              <TeamPairingEditor
+                groups={groups}
+                getPlayerName={getPlayerName}
+                value={teamConfigs}
+                onChange={setTeamConfigs}
+              />
             </>
           )}
         </div>

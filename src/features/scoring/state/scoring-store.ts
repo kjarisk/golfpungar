@@ -9,6 +9,7 @@ import {
 } from '../lib/scoring-calc'
 import { awardPoints, DEFAULT_POINTS } from '../lib/points-calc'
 import type { RoundFormat } from '@/features/rounds'
+import { useRoundsStore } from '@/features/rounds'
 
 interface ScoringState {
   scorecards: Scorecard[]
@@ -131,7 +132,10 @@ export const useScoringStore = create<ScoringState>((set, get) => ({
 
     // Auto-recalculate points after every stroke entry
     if (roundId) {
-      get().recalculatePoints(roundId, format)
+      const round = useRoundsStore
+        .getState()
+        .rounds.find((r) => r.id === roundId)
+      get().recalculatePoints(roundId, format, round?.pointsTable)
     }
   },
 

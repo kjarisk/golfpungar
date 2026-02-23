@@ -22,7 +22,12 @@ import { Separator } from '@/components/ui/separator'
 import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
+import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { Round, RoundFormat } from '@/features/rounds'
+import { PointsTableEditor } from './points-table-editor'
+import { TeamPairingEditor } from './team-pairing-editor'
+import { autoPairGroups } from '../lib/team-pairing'
+import type { GroupTeamDraft } from '../lib/team-pairing'
 import { Shuffle, Plus, X, Users } from 'lucide-react'
 
 interface EditRoundDialogProps {
@@ -80,6 +85,46 @@ export function EditRoundDialog({
   )
 }
 
+function buildInitialTeamConfigs(
+  existingGroups: { name: string; playerIds: string[] }[],
+  existingTeams: { playerIds: string[]; name: string }[],
+  getPlayerName: (id: string) => string
+): GroupTeamDraft[] {
+  if (existingTeams.length === 0) {
+    return autoPairGroups(existingGroups, getPlayerName)
+  }
+
+  // Match existing teams back to groups
+  return existingGroups
+    .filter((g) => g.playerIds.length >= 2)
+    .map((g, i) => {
+      // Find teams whose players are a subset of this group
+      const groupTeams = existingTeams
+        .filter((t) => t.playerIds.every((pid) => g.playerIds.includes(pid)))
+        .map((t) => ({
+          playerIds: [t.playerIds[0], t.playerIds[1]] as [string, string],
+          name: t.name,
+        }))
+
+      // If no matching teams found, auto-pair
+      if (groupTeams.length === 0) {
+        return {
+          groupIndex: i,
+          groupName: g.name,
+          playerIds: g.playerIds,
+          teams: autoPairGroups([g], getPlayerName)[0]?.teams ?? [],
+        }
+      }
+
+      return {
+        groupIndex: i,
+        groupName: g.name,
+        playerIds: g.playerIds,
+        teams: groupTeams,
+      }
+    })
+}
+
 function EditRoundForm({
   round,
   onOpenChange,
@@ -90,6 +135,9 @@ function EditRoundForm({
   const updateRound = useRoundsStore((s) => s.updateRound)
   const updateGroups = useRoundsStore((s) => s.updateGroups)
   const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
+  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
+  const addTeamsToRound = useRoundsStore((s) => s.addTeamsToRound)
+  const removeTeamsByRound = useRoundsStore((s) => s.removeTeamsByRound)
   const getCoursesByTournament = useCoursesStore(
     (s) => s.getCoursesByTournament
   )
@@ -101,6 +149,7 @@ function EditRoundForm({
 
   // Initialize groups from existing data
   const existingGroups = getGroupsByRound(round.id)
+  const existingTeams = getTeamsByRound(round.id)
   const initialGroups: GroupDraft[] =
     existingGroups.length > 0
       ? existingGroups.map((g) => ({
@@ -109,12 +158,25 @@ function EditRoundForm({
         }))
       : [{ name: 'Group 1', playerIds: [] }]
 
+  function getPlayerName(playerId: string) {
+    const player = players.find((p) => p.id === playerId)
+    return player?.displayName ?? 'Unknown'
+  }
+
   const [name, setName] = useState(round.name)
   const [courseId, setCourseId] = useState(round.courseId)
   const [format, setFormat] = useState<RoundFormat>(round.format)
   const [holesPlayed, setHolesPlayed] = useState<9 | 18>(round.holesPlayed)
   const [dateTime, setDateTime] = useState(round.dateTime ?? '')
+  const [pointsTable, setPointsTable] = useState<number[]>(
+    round.pointsTable ? [...round.pointsTable] : [...DEFAULT_POINTS]
+  )
   const [groups, setGroups] = useState<GroupDraft[]>(initialGroups)
+  const [teamConfigs, setTeamConfigs] = useState<GroupTeamDraft[]>(() => {
+    const isTeam = round.format === 'scramble' || round.format === 'bestball'
+    if (!isTeam) return []
+    return buildInitialTeamConfigs(initialGroups, existingTeams, getPlayerName)
+  })
 
   // Players already assigned to a group
   const assignedPlayerIds = useMemo(
@@ -125,6 +187,13 @@ function EditRoundForm({
 
   const isTeamFormat = format === 'scramble' || format === 'bestball'
 
+  // Regenerate team configs when groups change and format is team-based
+  function syncTeamConfigs(newGroups: GroupDraft[]) {
+    if (format === 'scramble' || format === 'bestball') {
+      setTeamConfigs(autoPairGroups(newGroups, getPlayerName))
+    }
+  }
+
   function addGroup() {
     setGroups((prev) => [
       ...prev,
@@ -133,7 +202,11 @@ function EditRoundForm({
   }
 
   function removeGroup(index: number) {
-    setGroups((prev) => prev.filter((_, i) => i !== index))
+    setGroups((prev) => {
+      const updated = prev.filter((_, i) => i !== index)
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function updateGroupName(index: number, newName: string) {
@@ -143,21 +216,25 @@ function EditRoundForm({
   }
 
   function addPlayerToGroup(groupIndex: number, playerId: string) {
-    setGroups((prev) =>
-      prev.map((g, i) =>
+    setGroups((prev) => {
+      const updated = prev.map((g, i) =>
         i === groupIndex ? { ...g, playerIds: [...g.playerIds, playerId] } : g
       )
-    )
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function removePlayerFromGroup(groupIndex: number, playerId: string) {
-    setGroups((prev) =>
-      prev.map((g, i) =>
+    setGroups((prev) => {
+      const updated = prev.map((g, i) =>
         i === groupIndex
           ? { ...g, playerIds: g.playerIds.filter((id) => id !== playerId) }
           : g
       )
-    )
+      syncTeamConfigs(updated)
+      return updated
+    })
   }
 
   function autoAssignGroups() {
@@ -175,11 +252,10 @@ function EditRoundForm({
       })
     }
     setGroups(newGroups)
-  }
-
-  function getPlayerName(playerId: string) {
-    const player = players.find((p) => p.id === playerId)
-    return player?.displayName ?? 'Unknown'
+    // Re-generate team pairings if team format
+    if (isTeamFormat) {
+      setTeamConfigs(autoPairGroups(newGroups, getPlayerName))
+    }
   }
 
   function canSubmit() {
@@ -192,6 +268,11 @@ function EditRoundForm({
   function handleSubmit() {
     if (!canSubmit()) return
 
+    // Check if points table differs from default
+    const isDefaultPoints =
+      pointsTable.length === DEFAULT_POINTS.length &&
+      pointsTable.every((p, i) => p === DEFAULT_POINTS[i])
+
     // Update round fields
     updateRound(round.id, {
       name: name.trim(),
@@ -199,6 +280,7 @@ function EditRoundForm({
       holesPlayed,
       courseId,
       dateTime: dateTime || undefined,
+      pointsTable: isDefaultPoints ? undefined : pointsTable,
     })
 
     // Update groups (replace all groups for this round)
@@ -206,6 +288,20 @@ function EditRoundForm({
       .filter((g) => g.playerIds.length > 0)
       .map((g) => ({ name: g.name, playerIds: g.playerIds }))
     updateGroups(round.id, validGroups)
+
+    // Update teams: remove old, add new (if team format)
+    removeTeamsByRound(round.id)
+    if (isTeamFormat) {
+      const teamInputs = teamConfigs.flatMap((cfg) =>
+        cfg.teams.map((t) => ({
+          name: t.name,
+          playerIds: [...t.playerIds],
+        }))
+      )
+      if (teamInputs.length > 0) {
+        addTeamsToRound(round.id, teamInputs)
+      }
+    }
 
     onOpenChange(false)
   }
@@ -263,7 +359,22 @@ function EditRoundForm({
             <Label>Format</Label>
             <Select
               value={format}
-              onValueChange={(v) => setFormat(v as RoundFormat)}
+              onValueChange={(v) => {
+                const newFormat = v as RoundFormat
+                setFormat(newFormat)
+                // Auto-generate team pairings when switching to team format
+                if (
+                  (newFormat === 'scramble' || newFormat === 'bestball') &&
+                  format !== 'scramble' &&
+                  format !== 'bestball'
+                ) {
+                  setTeamConfigs(autoPairGroups(groups, getPlayerName))
+                }
+                // Clear team configs when switching away from team format
+                if (newFormat !== 'scramble' && newFormat !== 'bestball') {
+                  setTeamConfigs([])
+                }
+              }}
             >
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -309,6 +420,14 @@ function EditRoundForm({
             onChange={(e) => setDateTime(e.target.value)}
           />
         </div>
+
+        <Separator />
+
+        {/* Points table editor */}
+        <PointsTableEditor
+          pointsTable={pointsTable}
+          onChange={setPointsTable}
+        />
 
         <Separator />
 
@@ -435,12 +554,12 @@ function EditRoundForm({
         {isTeamFormat && (
           <>
             <Separator />
-            <div className="bg-muted/50 rounded-lg p-3">
-              <p className="text-sm font-medium">Team Format</p>
-              <p className="text-muted-foreground text-xs">
-                Teams can be configured separately after saving.
-              </p>
-            </div>
+            <TeamPairingEditor
+              groups={groups}
+              getPlayerName={getPlayerName}
+              value={teamConfigs}
+              onChange={setTeamConfigs}
+            />
           </>
         )}
       </div>

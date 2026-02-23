@@ -10,6 +10,8 @@ export interface Round {
   format: RoundFormat
   holesPlayed: 9 | 18
   status: RoundStatus
+  /** Custom points table for this round. When undefined, uses DEFAULT_POINTS. */
+  pointsTable?: number[]
   /** Soft-deleted rounds are hidden from players but visible to admin */
   deleted?: boolean
   createdAt: string
@@ -35,6 +37,7 @@ export interface CreateRoundInput {
   dateTime?: string
   format: RoundFormat
   holesPlayed: 9 | 18
+  pointsTable?: number[]
   groups: { name: string; playerIds: string[] }[]
   teams?: { name: string; playerIds: string[] }[]
 }
