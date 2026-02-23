@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { parseCourseCSV, useCoursesStore } from '@/features/courses'
 import type { CsvParseResult } from '@/features/courses'
+import { CountrySelect } from '@/features/countries/components/country-select'
 import { Upload, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react'
 
 interface ImportCourseDialogProps {
@@ -29,6 +30,7 @@ export function ImportCourseDialog({
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [courseName, setCourseName] = useState('')
+  const [countryId, setCountryId] = useState<string | undefined>(undefined)
   const [parseResult, setParseResult] = useState<CsvParseResult | null>(null)
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [fileName, setFileName] = useState<string>('')
@@ -60,10 +62,17 @@ export function ImportCourseDialog({
   function handleImport() {
     if (!parseResult || !courseName.trim()) return
 
-    addCourse(tournamentId, courseName.trim(), parseResult.holes, 'csv')
+    addCourse(
+      tournamentId,
+      courseName.trim(),
+      parseResult.holes,
+      'csv',
+      countryId
+    )
 
     // Reset
     setCourseName('')
+    setCountryId(undefined)
     setParseResult(null)
     setParseErrors([])
     setFileName('')
@@ -74,6 +83,7 @@ export function ImportCourseDialog({
   function handleClose(openState: boolean) {
     if (!openState) {
       setCourseName('')
+      setCountryId(undefined)
       setParseResult(null)
       setParseErrors([])
       setFileName('')
@@ -194,6 +204,8 @@ export function ImportCourseDialog({
                   required
                 />
               </div>
+
+              <CountrySelect value={countryId} onChange={setCountryId} />
             </>
           )}
 

@@ -840,6 +840,13 @@ export function seedDemoData(): void {
     countryId: spain?.id,
   })
 
+  // Set country on existing Los Naranjos course (Spain)
+  useCoursesStore.setState((s) => ({
+    courses: s.courses.map((c) =>
+      c.id === COURSE_SPAIN ? { ...c, countryId: spain?.id } : c
+    ),
+  }))
+
   // Add Portugal 2025 tournament
   const pastTournament: Tournament = {
     id: T2,
@@ -915,6 +922,7 @@ export function seedDemoData(): void {
     id: COURSE_PORTUGAL,
     tournamentId: T2,
     name: 'Quinta do Lago South',
+    countryId: portugal?.id,
     source: 'csv',
     createdAt: '2025-08-20T10:00:00Z',
   }

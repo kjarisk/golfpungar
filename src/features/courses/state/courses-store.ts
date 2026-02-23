@@ -14,7 +14,8 @@ interface CoursesState {
     tournamentId: string,
     name: string,
     parsedHoles: ParsedHole[],
-    source?: 'csv' | 'manual'
+    source?: 'csv' | 'manual',
+    countryId?: string
   ) => Course
   removeCourse: (id: string) => void
 }
@@ -172,12 +173,13 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
       .holes.filter((h) => h.courseId === courseId)
       .sort((a, b) => a.holeNumber - b.holeNumber),
 
-  addCourse: (tournamentId, name, parsedHoles, source = 'csv') => {
+  addCourse: (tournamentId, name, parsedHoles, source = 'csv', countryId) => {
     const courseId = `course-${String(nextCourseId++).padStart(3, '0')}`
     const course: Course = {
       id: courseId,
       tournamentId,
       name,
+      countryId,
       source,
       createdAt: new Date().toISOString(),
     }

@@ -125,4 +125,49 @@ describe('Courses Store', () => {
 
     expect(c1.id).not.toBe(c2.id)
   })
+
+  it('stores countryId when provided', () => {
+    const course = useCoursesStore
+      .getState()
+      .addCourse(
+        'tournament-001',
+        'Valderrama',
+        SAMPLE_HOLES,
+        'csv',
+        'country-spain'
+      )
+
+    expect(course.countryId).toBe('country-spain')
+
+    const stored = useCoursesStore
+      .getState()
+      .courses.find((c) => c.id === course.id)
+    expect(stored?.countryId).toBe('country-spain')
+  })
+
+  it('leaves countryId undefined when not provided', () => {
+    const course = useCoursesStore
+      .getState()
+      .addCourse('tournament-001', 'No Country Course', SAMPLE_HOLES)
+
+    expect(course.countryId).toBeUndefined()
+  })
+
+  it('supports manual source for manually created courses', () => {
+    const course = useCoursesStore
+      .getState()
+      .addCourse(
+        'tournament-001',
+        'Manual Course',
+        SAMPLE_HOLES,
+        'manual',
+        'country-pt'
+      )
+
+    expect(course.source).toBe('manual')
+    expect(course.countryId).toBe('country-pt')
+
+    const holes = useCoursesStore.getState().getHolesByCourse(course.id)
+    expect(holes).toHaveLength(9)
+  })
 })

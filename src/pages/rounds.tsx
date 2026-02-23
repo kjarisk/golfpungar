@@ -13,12 +13,14 @@ import { useTournamentStore } from '@/features/tournament'
 import { useCoursesStore } from '@/features/courses'
 import { CourseCard } from '@/features/courses/components/course-card'
 import { ImportCourseDialog } from '@/features/courses/components/import-course-dialog'
+import { CreateCourseDialog } from '@/features/courses/components/create-course-dialog'
 import { useRoundsStore } from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
 import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
 import { RoundCompletionDialog } from '@/features/rounds/components/round-completion-dialog'
 import { usePlayersStore } from '@/features/players'
+import { useCountriesStore } from '@/features/countries'
 import {
   Upload,
   Plus,
@@ -73,6 +75,8 @@ export function RoundsPage() {
   const restoreRound = useRoundsStore((s) => s.restoreRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
 
+  const countries = useCountriesStore((s) => s.countries)
+
   const courses = tournament ? getCoursesByTournament(tournament.id) : []
   const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
   const rounds = sortRounds(rawRounds)
@@ -80,6 +84,7 @@ export function RoundsPage() {
   const players = tournament ? getActivePlayers(tournament.id) : []
 
   const [showImport, setShowImport] = useState(false)
+  const [showCreateCourse, setShowCreateCourse] = useState(false)
   const [showCreateRound, setShowCreateRound] = useState(false)
   const [editingRound, setEditingRound] = useState<Round | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -140,15 +145,6 @@ export function RoundsPage() {
         {isAdmin && (
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowImport(true)}
-              aria-label="Import Course"
-            >
-              <Upload className="size-4" aria-hidden="true" />
-              <span className="hidden sm:inline">Import Course</span>
-            </Button>
-            <Button
               size="sm"
               onClick={() => setShowCreateRound(true)}
               disabled={courses.length === 0}
@@ -177,19 +173,15 @@ export function RoundsPage() {
                   <p className="text-muted-foreground text-sm">No rounds yet</p>
                   <p className="text-muted-foreground/60 text-xs">
                     {courses.length === 0
-                      ? 'Import a course first, then create your first round'
+                      ? 'Create a course first, then create your first round'
                       : 'Create your first round to get started'}
                   </p>
                 </div>
                 {isAdmin &&
                   (courses.length === 0 ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowImport(true)}
-                    >
-                      <Upload className="size-4" />
-                      Import Course
+                    <Button size="sm" onClick={() => setShowCreateCourse(true)}>
+                      <Plus className="size-4" />
+                      Create Course
                     </Button>
                   ) : (
                     <Button size="sm" onClick={() => setShowCreateRound(true)}>
@@ -456,38 +448,65 @@ export function RoundsPage() {
 
         {/* Courses tab */}
         <TabsContent value="courses" className="mt-4 flex flex-col gap-4">
+          {isAdmin && (
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => setShowCreateCourse(true)}
+                aria-label="Create Course"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Create Course</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowImport(true)}
+                aria-label="Import CSV"
+              >
+                <Upload className="size-4" aria-hidden="true" />
+                <span className="hidden sm:inline">Import CSV</span>
+              </Button>
+            </div>
+          )}
+
           {courses.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center gap-3 py-8 text-center">
                 <MapPin className="text-muted-foreground size-10" />
                 <div>
                   <p className="text-muted-foreground text-sm">
-                    No courses imported
+                    No courses added
                   </p>
                   <p className="text-muted-foreground/60 text-xs">
-                    Upload a CSV file to import a course
+                    Create a course or upload a CSV file to get started
                   </p>
                 </div>
                 {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowImport(true)}
-                  >
-                    <Upload className="size-4" />
-                    Import Course
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => setShowCreateCourse(true)}>
+                      <Plus className="size-4" />
+                      Create Course
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowImport(true)}
+                    >
+                      <Upload className="size-4" />
+                      Import CSV
+                    </Button>
+                  </div>
                 )}
               </CardContent>
             </Card>
           ) : (
-            courses.map((course) => (
-              <CourseCard
-                key={course.id}
-                course={course}
-                holes={getHoles(course.id)}
-              />
-            ))
+            <CoursesByCountry
+              courses={courses}
+              countries={countries}
+              tournamentCountryId={tournament?.countryId}
+              getHoles={getHoles}
+            />
           )}
         </TabsContent>
       </Tabs>
@@ -496,6 +515,11 @@ export function RoundsPage() {
       <ImportCourseDialog
         open={showImport}
         onOpenChange={setShowImport}
+        tournamentId={tournament.id}
+      />
+      <CreateCourseDialog
+        open={showCreateCourse}
+        onOpenChange={setShowCreateCourse}
         tournamentId={tournament.id}
       />
       <CreateRoundDialog
@@ -532,6 +556,153 @@ export function RoundsPage() {
           onConfirm={() => confirmComplete(completingRound.id)}
         />
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// CoursesByCountry — groups courses by country, tournament country on top
+// ---------------------------------------------------------------------------
+
+interface CoursesByCountryProps {
+  courses: import('@/features/courses').Course[]
+  countries: import('@/features/countries').Country[]
+  tournamentCountryId: string | undefined
+  getHoles: (courseId: string) => import('@/features/courses').Hole[]
+}
+
+function CoursesByCountry({
+  courses,
+  countries,
+  tournamentCountryId,
+  getHoles,
+}: CoursesByCountryProps) {
+  const countryMap = new Map(countries.map((c) => [c.id, c]))
+
+  // Group courses by countryId
+  const grouped = new Map<string | undefined, typeof courses>()
+  for (const course of courses) {
+    const key = course.countryId
+    const list = grouped.get(key) ?? []
+    list.push(course)
+    grouped.set(key, list)
+  }
+
+  // Sort sections: tournament country first, then named countries alphabetically, then "No country"
+  const sections: {
+    countryId: string | undefined
+    name: string
+    courses: typeof courses
+  }[] = []
+
+  // Tournament country first (if it has courses)
+  if (tournamentCountryId && grouped.has(tournamentCountryId)) {
+    const country = countryMap.get(tournamentCountryId)
+    sections.push({
+      countryId: tournamentCountryId,
+      name: country?.name ?? 'Unknown',
+      courses: grouped.get(tournamentCountryId)!,
+    })
+  }
+
+  // Other named countries
+  const otherCountryIds = [...grouped.keys()]
+    .filter((id) => id !== undefined && id !== tournamentCountryId)
+    .sort((a, b) => {
+      const nameA = countryMap.get(a!)?.name ?? ''
+      const nameB = countryMap.get(b!)?.name ?? ''
+      return nameA.localeCompare(nameB)
+    })
+
+  for (const id of otherCountryIds) {
+    const country = countryMap.get(id!)
+    sections.push({
+      countryId: id,
+      name: country?.name ?? 'Unknown',
+      courses: grouped.get(id)!,
+    })
+  }
+
+  // No country
+  if (grouped.has(undefined)) {
+    sections.push({
+      countryId: undefined,
+      name: 'No country',
+      courses: grouped.get(undefined)!,
+    })
+  }
+
+  // If only one section, render flat without headers
+  if (sections.length === 1) {
+    return (
+      <div className="flex flex-col gap-3">
+        {sections[0].courses.map((course) => (
+          <CourseCard
+            key={course.id}
+            course={course}
+            holes={getHoles(course.id)}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {sections.map((section, si) => {
+        const isTournamentCountry = section.countryId === tournamentCountryId
+
+        if (isTournamentCountry) {
+          // Tournament country — always expanded
+          return (
+            <div
+              key={section.countryId ?? 'none'}
+              className="flex flex-col gap-3"
+            >
+              <h3 className="text-sm font-semibold">
+                {section.name}
+                <Badge variant="secondary" className="ml-2 text-[10px]">
+                  Tournament
+                </Badge>
+              </h3>
+              {section.courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  holes={getHoles(course.id)}
+                />
+              ))}
+            </div>
+          )
+        }
+
+        // Other countries — collapsible
+        return (
+          <Collapsible key={section.countryId ?? 'none'} defaultOpen={si < 3}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground h-8 w-full justify-start gap-2 text-sm font-semibold"
+              >
+                <ChevronDown className="size-3 transition-transform [[data-state=open]_&]:rotate-180" />
+                {section.name}
+                <span className="text-muted-foreground/60 text-xs font-normal">
+                  ({section.courses.length})
+                </span>
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 flex flex-col gap-3">
+              {section.courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  holes={getHoles(course.id)}
+                />
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )
+      })}
     </div>
   )
 }

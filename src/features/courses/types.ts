@@ -2,6 +2,7 @@ export interface Course {
   id: string
   tournamentId: string
   name: string
+  countryId?: string
   source: 'csv' | 'manual'
   createdAt: string
 }

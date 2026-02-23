@@ -22,6 +22,8 @@ import { Separator } from '@/components/ui/separator'
 import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
+import { useTournamentStore } from '@/features/tournament'
+import { useCountriesStore } from '@/features/countries'
 import type { RoundFormat } from '@/features/rounds'
 import { Shuffle, Plus, X, Users } from 'lucide-react'
 
@@ -72,8 +74,20 @@ export function CreateRoundDialog({
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const createRound = useRoundsStore((s) => s.createRound)
+  const tournament = useTournamentStore((s) =>
+    s.tournaments.find((t) => t.id === tournamentId)
+  )
+  const countries = useCountriesStore((s) => s.countries)
 
   const courses = getCoursesByTournament(tournamentId)
+  // Separate courses into tournament country vs. others
+  const tournamentCountryId = tournament?.countryId
+  const countryCourses = tournamentCountryId
+    ? courses.filter((c) => c.countryId === tournamentCountryId)
+    : courses
+  const otherCourses = tournamentCountryId
+    ? courses.filter((c) => c.countryId !== tournamentCountryId)
+    : []
   const players = getActivePlayers(tournamentId)
 
   const [name, setName] = useState('')
@@ -219,7 +233,7 @@ export function CreateRoundDialog({
             <Label>Course</Label>
             {courses.length === 0 ? (
               <p className="text-muted-foreground text-sm">
-                No courses imported yet. Import a course first.
+                No courses created yet. Create a course first.
               </p>
             ) : (
               <Select value={courseId} onValueChange={setCourseId}>
@@ -227,7 +241,7 @@ export function CreateRoundDialog({
                   <SelectValue placeholder="Select a course" />
                 </SelectTrigger>
                 <SelectContent>
-                  {courses.map((course) => {
+                  {countryCourses.map((course) => {
                     const holes = getHoles(course.id)
                     const totalPar = holes.reduce((s, h) => s + h.par, 0)
                     return (
@@ -236,6 +250,31 @@ export function CreateRoundDialog({
                       </SelectItem>
                     )
                   })}
+                  {otherCourses.length > 0 && (
+                    <>
+                      <div className="text-muted-foreground px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider">
+                        Other countries
+                      </div>
+                      {otherCourses.map((course) => {
+                        const holes = getHoles(course.id)
+                        const totalPar = holes.reduce((s, h) => s + h.par, 0)
+                        const country = countries.find(
+                          (c) => c.id === course.countryId
+                        )
+                        return (
+                          <SelectItem key={course.id} value={course.id}>
+                            {course.name} ({holes.length}h, par {totalPar})
+                            {country && (
+                              <span className="text-muted-foreground">
+                                {' '}
+                                — {country.name}
+                              </span>
+                            )}
+                          </SelectItem>
+                        )
+                      })}
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             )}

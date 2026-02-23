@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Course, Hole } from '@/features/courses'
+import { useCountriesStore } from '@/features/countries'
 
 interface CourseCardProps {
   course: Course
@@ -9,6 +10,10 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, holes, onClick }: CourseCardProps) {
+  const countries = useCountriesStore((s) => s.countries)
+  const country = course.countryId
+    ? countries.find((c) => c.id === course.countryId)
+    : undefined
   const totalPar = holes.reduce((sum, h) => sum + h.par, 0)
   const par3s = holes.filter((h) => h.par === 3).length
   const par4s = holes.filter((h) => h.par === 4).length
@@ -50,6 +55,9 @@ export function CourseCard({ course, holes, onClick }: CourseCardProps) {
             </div>
           </div>
         </div>
+        {country && (
+          <span className="text-muted-foreground text-xs">{country.name}</span>
+        )}
       </CardHeader>
       <CardContent className="px-3 pb-3">
         {/* Front 9 */}
