@@ -5,6 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -608,219 +613,210 @@ export function LeaderboardsPage() {
         </TabsContent>
 
         {/* --- Side Competitions Tab --- */}
-        <TabsContent value="side" className="flex flex-col gap-3">
-          {/* Birdies */}
-          <SideCompetitionCard
-            title="Birdies"
-            icon={<Bird className="size-4 text-green-500" />}
-            entries={birdieBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
+        <TabsContent value="side" className="flex flex-col gap-4">
+          {/* Scoring Events Section */}
+          <SideSection title="Scoring Events">
+            <SideCompetitionCard
+              title="Birdies"
+              icon={<Bird className="size-4 text-green-500" />}
+              entries={birdieBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Eagles"
+              icon={<Zap className="size-4 text-yellow-500" />}
+              entries={eagleBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Snakes (3-putts)"
+              icon={<Skull className="size-4 text-red-500" />}
+              entries={snakeBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              invertColor
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Bunker Saves"
+              icon={<Target className="size-4 text-orange-500" />}
+              entries={bunkerBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Greens in Regulation"
+              icon={<CircleDot className="size-4 text-emerald-500" />}
+              entries={girBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+          </SideSection>
 
-          {/* Eagles */}
-          <SideCompetitionCard
-            title="Eagles"
-            icon={<Zap className="size-4 text-yellow-500" />}
-            entries={eagleBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Snakes */}
-          <SideCompetitionCard
-            title="Snakes (3-putts)"
-            icon={<Skull className="size-4 text-red-500" />}
-            entries={snakeBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            invertColor
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Bunker Saves */}
-          <SideCompetitionCard
-            title="Bunker Saves"
-            icon={<Target className="size-4 text-orange-500" />}
-            entries={bunkerBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Group Longest Drives */}
-          <SideCompetitionCard
-            title="Group Longest Drives (Par 5)"
-            icon={<Star className="size-4 text-blue-500" />}
-            entries={groupLDBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Snopp */}
-          <SideCompetitionCard
-            title="Most Snopp"
-            icon={<Flame className="size-4 text-red-700" />}
-            entries={snoppBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            invertColor
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* GIR */}
-          <SideCompetitionCard
-            title="Greens in Regulation"
-            icon={<CircleDot className="size-4 text-emerald-500" />}
-            entries={girBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Longest Drive (meters) */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Ruler className="size-4 text-indigo-500" />
-                Longest Drive
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {longestDriveBoard.length === 0 ? (
-                <EmptyState message="No longest drives logged yet." />
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {longestDriveBoard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className={cn(
-                        'flex items-center gap-3 rounded-md px-2 py-2',
-                        entry.playerId === currentPlayerId && 'bg-primary/10'
-                      )}
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="tabular-nums text-xs"
+          {/* Distance Competitions Section */}
+          <SideSection title="Distance Competitions">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Ruler className="size-4 text-indigo-500" />
+                  Longest Drive
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {longestDriveBoard.length === 0 ? (
+                  <EmptyState message="No longest drives logged yet." />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {longestDriveBoard.map((entry) => (
+                      <div
+                        key={entry.playerId}
+                        className={cn(
+                          'flex items-center gap-3 rounded-md px-2 py-2',
+                          entry.playerId === currentPlayerId && 'bg-primary/10'
+                        )}
                       >
-                        {entry.meters}m
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="tabular-nums text-xs"
+                        >
+                          {entry.meters}m
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Evidence Gallery for longest drives */}
-          <EvidenceGallery
-            tournamentId={tournament.id}
-            getPlayerName={getPlayerName}
-          />
+            {/* Evidence Gallery for longest drives */}
+            <EvidenceGallery
+              tournamentId={tournament.id}
+              getPlayerName={getPlayerName}
+            />
 
-          {/* Longest Putt (meters) */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Ruler className="size-4 text-cyan-500" />
-                Longest Putt
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {longestPuttBoard.length === 0 ? (
-                <EmptyState message="No longest putts logged yet." />
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {longestPuttBoard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className={cn(
-                        'flex items-center gap-3 rounded-md px-2 py-2',
-                        entry.playerId === currentPlayerId && 'bg-primary/10'
-                      )}
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="tabular-nums text-xs"
+            <SideCompetitionCard
+              title="Group Longest Drives (Par 5)"
+              icon={<Star className="size-4 text-blue-500" />}
+              entries={groupLDBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Ruler className="size-4 text-cyan-500" />
+                  Longest Putt
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {longestPuttBoard.length === 0 ? (
+                  <EmptyState message="No longest putts logged yet." />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {longestPuttBoard.map((entry) => (
+                      <div
+                        key={entry.playerId}
+                        className={cn(
+                          'flex items-center gap-3 rounded-md px-2 py-2',
+                          entry.playerId === currentPlayerId && 'bg-primary/10'
+                        )}
                       >
-                        {entry.meters}m
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="tabular-nums text-xs"
+                        >
+                          {entry.meters}m
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Nearest to Pin (meters) */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Crosshair className="size-4 text-teal-500" />
-                Nearest to Pin
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {nearestToPinBoard.length === 0 ? (
-                <EmptyState message="No nearest to pin logged yet." />
-              ) : (
-                <div className="flex flex-col gap-0.5">
-                  {nearestToPinBoard.map((entry) => (
-                    <div
-                      key={entry.playerId}
-                      className={cn(
-                        'flex items-center gap-3 rounded-md px-2 py-2',
-                        entry.playerId === currentPlayerId && 'bg-primary/10'
-                      )}
-                    >
-                      <PlacingBadge placing={entry.placing} />
-                      <span className="flex-1 truncate text-sm font-medium">
-                        {getPlayerName(entry.playerId)}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="tabular-nums text-xs"
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Crosshair className="size-4 text-teal-500" />
+                  Nearest to Pin
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {nearestToPinBoard.length === 0 ? (
+                  <EmptyState message="No nearest to pin logged yet." />
+                ) : (
+                  <div className="flex flex-col gap-0.5">
+                    {nearestToPinBoard.map((entry) => (
+                      <div
+                        key={entry.playerId}
+                        className={cn(
+                          'flex items-center gap-3 rounded-md px-2 py-2',
+                          entry.playerId === currentPlayerId && 'bg-primary/10'
+                        )}
                       >
-                        {entry.meters}m
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        <PlacingBadge placing={entry.placing} />
+                        <span className="flex-1 truncate text-sm font-medium">
+                          {getPlayerName(entry.playerId)}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="tabular-nums text-xs"
+                        >
+                          {entry.meters}m
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </SideSection>
 
-          {/* Penalty King */}
-          <SideCompetitionCard
-            title="Penalty King"
-            icon={<AlertTriangle className="size-4 text-amber-500" />}
-            entries={penaltyBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            invertColor
-            currentPlayerId={currentPlayerId}
-          />
-
-          {/* Biggest Bettor */}
-          <SideCompetitionCard
-            title="Biggest Bettor"
-            icon={<CircleDollarSign className="size-4 text-violet-500" />}
-            entries={bettingBoard}
-            getPlayerName={getPlayerName}
-            unit=""
-            currentPlayerId={currentPlayerId}
-          />
+          {/* Penalties & Betting Section */}
+          <SideSection title="Penalties & Betting">
+            <SideCompetitionCard
+              title="Most Snopp"
+              icon={<Flame className="size-4 text-red-700" />}
+              entries={snoppBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              invertColor
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Penalty King"
+              icon={<AlertTriangle className="size-4 text-amber-500" />}
+              entries={penaltyBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              invertColor
+              currentPlayerId={currentPlayerId}
+            />
+            <SideCompetitionCard
+              title="Biggest Bettor"
+              icon={<CircleDollarSign className="size-4 text-violet-500" />}
+              entries={bettingBoard}
+              getPlayerName={getPlayerName}
+              unit=""
+              currentPlayerId={currentPlayerId}
+            />
+          </SideSection>
         </TabsContent>
       </Tabs>
     </div>
@@ -828,6 +824,28 @@ export function LeaderboardsPage() {
 }
 
 // --- Helper components ---
+
+function SideSection({
+  title,
+  children,
+}: {
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <Collapsible defaultOpen>
+      <CollapsibleTrigger className="group flex w-full items-center justify-between rounded-md px-1 py-2 text-left">
+        <span className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
+          {title}
+        </span>
+        <ChevronDown className="text-muted-foreground size-4 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="flex flex-col gap-3">
+        {children}
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
 
 function PlacingBadge({ placing }: { placing: number }) {
   const colors =
