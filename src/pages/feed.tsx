@@ -502,12 +502,12 @@ export function FeedPage() {
                 No bets yet
               </p>
             )}
-            <Link
-              to="/bets"
-              className="text-primary mt-2 block text-center text-xs font-medium hover:underline"
-            >
-              View All Bets
-            </Link>
+            <Button asChild variant="outline" className="mt-3 w-full">
+              <Link to="/bets">
+                <CircleDollarSign className="size-4" aria-hidden="true" />
+                Go to Bets
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       )}

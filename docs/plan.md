@@ -362,3 +362,8 @@
 - [x] Fix done tournament viewing: `/leaderboards?tournamentId=xxx` route param instead of changing activeTournamentId; "Viewing: X (Archived)" banner with "Back to active" link
 - [x] Demo data: countries seeded (Spain, Portugal), `countryId` set on both tournaments, cleared on reset
 - [x] Docs updated: plan.md, decisions.md
+
+### WP2: "Go to Bets" button + Feed notification count
+
+- [x] Rename "View All Bets" → "Go to Bets" as full-width `<Button variant="outline">` on Feed page
+- [x] Feed tab: red dot → count badge (shows number, "9+" for >9)

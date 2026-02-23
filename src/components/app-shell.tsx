@@ -114,9 +114,11 @@ export function AppShell() {
                 <Icon className="size-5" aria-hidden="true" />
                 {to === '/feed' && pendingBetCount > 0 && (
                   <span
-                    className="bg-destructive absolute -top-1 -right-1 size-2 rounded-full"
+                    className="bg-destructive text-destructive-foreground absolute -top-1.5 -right-2.5 flex size-4 items-center justify-center rounded-full text-[10px] font-bold leading-none"
                     aria-label={`${pendingBetCount} pending bet${pendingBetCount !== 1 ? 's' : ''}`}
-                  />
+                  >
+                    {pendingBetCount > 9 ? '9+' : pendingBetCount}
+                  </span>
                 )}
               </span>
               <span>{label}</span>
