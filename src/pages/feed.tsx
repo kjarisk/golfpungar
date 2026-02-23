@@ -41,6 +41,17 @@ import {
 } from 'lucide-react'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 
+/** Side event types that get prominent styling in the feed */
+const NOTABLE_SIDE_EVENTS = new Set(['birdie', 'eagle', 'hio', 'albatross'])
+
+/** Background/border classes for notable side events in feed */
+const NOTABLE_FEED_STYLES: Record<string, string> = {
+  birdie: 'border-l-4 border-l-green-500 bg-green-500/5',
+  eagle: 'border-l-4 border-l-yellow-500 bg-yellow-500/5',
+  hio: 'border-l-4 border-l-amber-500 bg-amber-500/5',
+  albatross: 'border-l-4 border-l-purple-500 bg-purple-500/5',
+}
+
 function formatDateRange(start: string, end: string) {
   const s = new Date(start)
   const e = new Date(end)
@@ -384,39 +395,43 @@ export function FeedPage() {
         </Card>
       )}
 
-      {/* Demo controls (always visible for testing) */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setRole(currentRole === 'admin' ? 'player' : 'admin')}
-          className="gap-1.5 text-xs"
-        >
-          Role: {currentRole}
-        </Button>
-        {tournament && !seeded && (
+      {/* Demo controls (dev only) */}
+      {import.meta.env.DEV && (
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleSeed}
+            onClick={() =>
+              setRole(currentRole === 'admin' ? 'player' : 'admin')
+            }
             className="gap-1.5 text-xs"
           >
-            <Database className="size-3.5" aria-hidden="true" />
-            Seed Demo Data
+            Role: {currentRole}
           </Button>
-        )}
-        {tournament && seeded && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClear}
-            className="gap-1.5 text-xs text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="size-3.5" aria-hidden="true" />
-            Clear Demo Data
-          </Button>
-        )}
-      </div>
+          {tournament && !seeded && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSeed}
+              className="gap-1.5 text-xs"
+            >
+              <Database className="size-3.5" aria-hidden="true" />
+              Seed Demo Data
+            </Button>
+          )}
+          {tournament && seeded && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleClear}
+              className="gap-1.5 text-xs text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              Clear Demo Data
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Live feed */}
       {tournament && (
@@ -454,17 +469,23 @@ export function FeedPage() {
                   const isHandicapChange =
                     item.type === 'feed' &&
                     item.feedEventType === 'handicap_changed'
+                  const isNotable =
+                    item.sideEventType != null &&
+                    NOTABLE_SIDE_EVENTS.has(item.sideEventType)
+                  const notableStyle = isNotable
+                    ? (NOTABLE_FEED_STYLES[item.sideEventType!] ?? '')
+                    : ''
 
                   return (
                     <div
                       key={item.id}
                       className={`animate-in fade-in slide-in-from-top-1 flex items-start gap-2.5 rounded-md px-2 py-2 ${
                         isAnnouncement ? 'bg-primary/5' : ''
-                      }`}
+                      } ${notableStyle}`}
                     >
                       {Icon ? (
                         <Icon
-                          className={`mt-0.5 size-4 shrink-0 ${config.className}`}
+                          className={`mt-0.5 shrink-0 ${isNotable ? 'size-5' : 'size-4'} ${config.className}`}
                         />
                       ) : isAnnouncement ? (
                         <Megaphone className="mt-0.5 size-4 shrink-0 text-blue-500" />
@@ -476,7 +497,13 @@ export function FeedPage() {
                         <div className="bg-muted mt-0.5 size-4 shrink-0 rounded-full" />
                       )}
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="text-sm">{item.message}</span>
+                        <span
+                          className={
+                            isNotable ? 'text-sm font-semibold' : 'text-sm'
+                          }
+                        >
+                          {item.message}
+                        </span>
                         <span className="text-muted-foreground text-[10px]">
                           {timeAgo(item.createdAt)}
                         </span>
