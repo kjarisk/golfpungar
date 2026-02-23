@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import { toast } from 'sonner'
 import {
   Card,
   CardContent,
@@ -38,6 +39,9 @@ import {
   Megaphone,
   ArrowUpDown,
   Medal,
+  TrendingUp,
+  Check,
+  X,
 } from 'lucide-react'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 
@@ -100,16 +104,19 @@ export function FeedPage() {
   const isAdmin = useIsAdmin()
   const tournament = useTournamentStore((s) => s.activeTournament())
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
-  const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
+  const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getEventsByTournament = useSideEventsStore(
     (s) => s.getEventsByTournament
   )
   const getPenaltyEntries = usePenaltiesStore((s) => s.getEntriesByTournament)
   const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
   const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
+  const getBetsForPlayer = useBettingStore((s) => s.getBetsForPlayer)
+  const acceptBet = useBettingStore((s) => s.acceptBet)
+  const rejectBet = useBettingStore((s) => s.rejectBet)
   const getRecentFeedEvents = useFeedStore((s) => s.getRecentEvents)
   const roundCount$ = useRoundsStore((s) => s.rounds.length)
   const seeded = roundCount$ > 0
@@ -128,8 +135,6 @@ export function FeedPage() {
   }
 
   const players = tournament ? getActivePlayers(tournament.id) : []
-  const rounds = tournament ? getRoundsByTournament(tournament.id) : []
-  const roundCount = rounds.length
 
   // Current user's player record
   const currentPlayer = players.find((p) => p.userId === user?.id)
@@ -142,6 +147,37 @@ export function FeedPage() {
   const myPoints =
     totalLeaderboard.find((e) => e.playerId === currentPlayer?.id)
       ?.totalPoints ?? 0
+  const myPlacing =
+    totalLeaderboard.find((e) => e.playerId === currentPlayer?.id)?.placing ??
+    null
+
+  // Pending bets that need current player's response
+  const pendingBetsForMe =
+    tournament && currentPlayer
+      ? getBetsForPlayer(tournament.id, currentPlayer.id).filter((bet) => {
+          if (bet.status !== 'pending') return false
+          // Only show if I'm a participant (not the creator) and haven't responded
+          if (bet.createdByPlayerId === currentPlayer.id) return false
+          const myP = getBetParticipants(bet.id).find(
+            (p) => p.playerId === currentPlayer.id
+          )
+          return myP?.accepted === null
+        })
+      : []
+
+  // Active bets count (accepted, not yet resolved)
+  const activeBetsCount =
+    tournament && currentPlayer
+      ? getBetsForPlayer(tournament.id, currentPlayer.id).filter(
+          (b) => b.status === 'accepted'
+        ).length
+      : 0
+
+  // My scorecard for active round
+  const myActiveScorecard =
+    activeRound && currentPlayer
+      ? getScorecardForPlayer(activeRound.id, currentPlayer.id)
+      : null
 
   // Active round leaders (top 5)
   const activeRoundLeaders = (() => {
@@ -309,19 +345,20 @@ export function FeedPage() {
       {/* Notable event announcements (animated) */}
       {tournament && <NotableEventBanner />}
 
-      {/* Stats row: Rounds + Your Points (Players card removed per v2) */}
+      {/* Stats row: Your Position + Your Points */}
       {tournament && (
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="flex flex-col items-center pt-4 pb-3">
-              <Flag className="text-primary mb-1 size-5" aria-hidden="true" />
-              <p className="text-2xl font-bold">{roundCount}</p>
+              <TrendingUp
+                className="text-primary mb-1 size-5"
+                aria-hidden="true"
+              />
+              <p className="text-2xl font-bold">
+                {myPlacing ? placingSuffix(myPlacing) : '—'}
+              </p>
               <p className="text-muted-foreground text-xs">
-                {roundCount === 0 ? (
-                  <span className="text-amber-600">Create a round</span>
-                ) : (
-                  'Rounds'
-                )}
+                {myPlacing ? `of ${totalLeaderboard.length}` : 'No scores yet'}
               </p>
             </CardContent>
           </Card>
@@ -373,6 +410,140 @@ export function FeedPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* My Round card — scorecard summary for active round */}
+      {tournament && activeRound && myActiveScorecard && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Flag className="text-primary size-4" aria-hidden="true" />
+              <CardTitle className="text-base">My Round</CardTitle>
+            </div>
+            <CardDescription>{activeRound.name}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-xl font-bold">
+                  {myActiveScorecard.grossTotal ?? '—'}
+                </p>
+                <p className="text-muted-foreground text-xs">Gross</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold">
+                  {myActiveScorecard.netTotal ?? '—'}
+                </p>
+                <p className="text-muted-foreground text-xs">Net</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold">
+                  {myActiveScorecard.stablefordPoints ?? '—'}
+                </p>
+                <p className="text-muted-foreground text-xs">Stableford</p>
+              </div>
+            </div>
+            {myActiveScorecard.holeStrokes.length > 0 && (
+              <p className="text-muted-foreground mt-2 text-center text-xs">
+                {
+                  myActiveScorecard.holeStrokes.filter(
+                    (s) => s !== null && s > 0
+                  ).length
+                }
+                /{myActiveScorecard.holeStrokes.length} holes completed
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Your Bets card */}
+      {tournament && currentPlayer && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CircleDollarSign
+                  className="text-primary size-4"
+                  aria-hidden="true"
+                />
+                <CardTitle className="text-base">Your Bets</CardTitle>
+              </div>
+              {activeBetsCount > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {activeBetsCount} active
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {pendingBetsForMe.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {pendingBetsForMe.map((bet) => {
+                  const creator = players.find(
+                    (p) => p.id === bet.createdByPlayerId
+                  )
+                  const metricLabel =
+                    bet.metricKey === 'custom' && bet.customDescription
+                      ? bet.customDescription
+                      : bet.metricKey === 'most_points'
+                        ? 'Most Points'
+                        : bet.metricKey === 'most_birdies'
+                          ? 'Most Birdies'
+                          : 'Head-to-Head'
+                  return (
+                    <div
+                      key={bet.id}
+                      className="flex items-center gap-2 rounded-md border px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {creator?.displayName ?? 'Unknown'} — {metricLabel}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          {bet.amount} units &middot; {bet.scope}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-green-600 hover:text-green-700"
+                        onClick={() => {
+                          acceptBet(bet.id, currentPlayer.id)
+                          toast('Bet accepted!')
+                        }}
+                        aria-label="Accept bet"
+                      >
+                        <Check className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-600 hover:text-red-700"
+                        onClick={() => {
+                          rejectBet(bet.id, currentPlayer.id)
+                          toast('Bet rejected.')
+                        }}
+                        aria-label="Reject bet"
+                      >
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : activeBetsCount > 0 ? (
+              <p className="text-muted-foreground text-center text-sm">
+                {activeBetsCount} active bet{activeBetsCount !== 1 ? 's' : ''}{' '}
+                in play
+              </p>
+            ) : (
+              <p className="text-muted-foreground text-center text-sm">
+                No bets yet
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
