@@ -5,14 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuthStore } from '@/features/auth/state/auth-store'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 /**
  * Golf-themed magic-link login page.
  * Inspired by the Greensbook screenshot — clean, centered, green gradient.
  *
- * In dev mode the user is auto-logged-in so this page redirects immediately.
- * When Supabase is connected, this will call supabase.auth.signInWithOtp().
+ * Calls supabase.auth.signInWithOtp() to email a magic link; clicking it
+ * redirects back here, where the auth listener picks up the new session.
  */
 export function LoginPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
@@ -25,7 +26,7 @@ export function LoginPage() {
     return <Navigate to="/feed" replace />
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = email.trim().toLowerCase()
     if (!trimmed || !trimmed.includes('@')) {
@@ -34,13 +35,18 @@ export function LoginPage() {
     }
 
     setIsSending(true)
+    const { error } = await supabase.auth.signInWithOtp({
+      email: trimmed,
+      options: { emailRedirectTo: window.location.origin },
+    })
+    setIsSending(false)
 
-    // Mock magic link — in production this calls Supabase signInWithOtp
-    setTimeout(() => {
-      setIsSending(false)
-      setIsSent(true)
-      toast.success('Magic link sent! Check your email.')
-    }, 1200)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    setIsSent(true)
+    toast.success('Magic link sent! Check your email.')
   }
 
   return (
@@ -142,7 +148,10 @@ export function LoginPage() {
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form
+              onSubmit={(e) => void handleSubmit(e)}
+              className="flex flex-col gap-4"
+            >
               <div className="text-center">
                 <h2 className="text-lg font-semibold text-foreground">
                   Welcome back

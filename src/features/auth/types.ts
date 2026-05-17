@@ -9,10 +9,16 @@ export interface User {
 }
 
 export interface AuthState {
+  /** The signed-in user, composed from the Supabase session + profile row. */
   user: User | null
   isAuthenticated: boolean
+  /** True until the initial session check resolves. */
   isLoading: boolean
-  login: (user: User) => void
-  logout: () => void
+  /** Replace the current user — called by the auth listener. */
+  setUser: (user: User | null) => void
+  setLoading: (loading: boolean) => void
+  /** Sign out of Supabase. */
+  logout: () => Promise<void>
+  /** Dev-only: preview the app as another role without re-authenticating. */
   setRole: (role: UserRole) => void
 }

@@ -1,94 +1,102 @@
 /// <reference types="vitest/globals" />
 import { renderHook, act } from '@testing-library/react'
-import { useAuthStore, TEST_USER } from '@/features/auth'
+
+vi.mock('@/lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+    },
+    from: vi.fn(),
+  },
+}))
+
+import { useAuthStore } from '@/features/auth'
+import type { User } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
+import { supabase } from '@/lib/supabase'
+
+const ADMIN_USER: User = {
+  id: 'u-admin',
+  email: 'admin@example.com',
+  displayName: 'Admin',
+  role: 'admin',
+  createdAt: '2026-01-01T00:00:00Z',
+}
 
 describe('useIsAdmin hook', () => {
   beforeEach(() => {
     useAuthStore.setState({
-      user: { ...TEST_USER, role: 'admin' },
+      user: ADMIN_USER,
       isAuthenticated: true,
       isLoading: false,
     })
   })
 
-  it('returns true when user is admin', () => {
+  it('returns true when the user is an admin', () => {
     const { result } = renderHook(() => useIsAdmin())
     expect(result.current).toBe(true)
   })
 
-  it('returns false when user is player', () => {
-    useAuthStore.setState({
-      user: { ...TEST_USER, role: 'player' },
-    })
+  it('returns false when the user is a player', () => {
+    useAuthStore.setState({ user: { ...ADMIN_USER, role: 'player' } })
     const { result } = renderHook(() => useIsAdmin())
     expect(result.current).toBe(false)
   })
 
-  it('returns false when no user is logged in', () => {
-    useAuthStore.setState({
-      user: null,
-      isAuthenticated: false,
-    })
+  it('returns false when no user is signed in', () => {
+    useAuthStore.setState({ user: null, isAuthenticated: false })
     const { result } = renderHook(() => useIsAdmin())
     expect(result.current).toBe(false)
   })
 
-  it('updates reactively when role changes via setRole', () => {
-    const { result: adminResult } = renderHook(() => useIsAdmin())
-    expect(adminResult.current).toBe(true)
-
-    act(() => {
-      useAuthStore.getState().setRole('player')
-    })
-
-    const { result: playerResult } = renderHook(() => useIsAdmin())
-    expect(playerResult.current).toBe(false)
+  it('updates reactively when the role changes via setRole', () => {
+    const { result } = renderHook(() => useIsAdmin())
+    expect(result.current).toBe(true)
+    act(() => useAuthStore.getState().setRole('player'))
+    expect(result.current).toBe(false)
   })
 })
 
-describe('auth store role management', () => {
+describe('auth store', () => {
   beforeEach(() => {
     useAuthStore.setState({
-      user: { ...TEST_USER, role: 'admin' },
+      user: ADMIN_USER,
       isAuthenticated: true,
       isLoading: false,
     })
+    vi.clearAllMocks()
   })
 
-  it('TEST_USER defaults to admin role', () => {
-    expect(TEST_USER.role).toBe('admin')
+  it('setUser stores the user and marks the session authenticated', () => {
+    useAuthStore.getState().setUser({ ...ADMIN_USER, role: 'player' })
+    expect(useAuthStore.getState().user?.role).toBe('player')
+    expect(useAuthStore.getState().isAuthenticated).toBe(true)
   })
 
-  it('setRole updates user role to player', () => {
+  it('setUser(null) clears the user and authentication', () => {
+    useAuthStore.getState().setUser(null)
+    expect(useAuthStore.getState().user).toBeNull()
+    expect(useAuthStore.getState().isAuthenticated).toBe(false)
+  })
+
+  it('setRole updates the current user role', () => {
     useAuthStore.getState().setRole('player')
     expect(useAuthStore.getState().user?.role).toBe('player')
   })
 
-  it('setRole updates user role back to admin', () => {
-    useAuthStore.getState().setRole('player')
-    useAuthStore.getState().setRole('admin')
-    expect(useAuthStore.getState().user?.role).toBe('admin')
-  })
-
-  it('setRole does nothing when user is null', () => {
+  it('setRole does nothing when no user is signed in', () => {
     useAuthStore.setState({ user: null })
     useAuthStore.getState().setRole('admin')
     expect(useAuthStore.getState().user).toBeNull()
   })
 
-  it('login preserves role from user object', () => {
-    const playerUser = {
-      ...TEST_USER,
-      id: 'player-002',
-      role: 'player' as const,
-    }
-    useAuthStore.getState().login(playerUser)
-    expect(useAuthStore.getState().user?.role).toBe('player')
-  })
-
-  it('logout clears user including role', () => {
-    useAuthStore.getState().logout()
+  it('logout clears the user and calls supabase signOut', async () => {
+    await useAuthStore.getState().logout()
     expect(useAuthStore.getState().user).toBeNull()
+    expect(useAuthStore.getState().isAuthenticated).toBe(false)
+    expect(supabase.auth.signOut).toHaveBeenCalledOnce()
   })
 })

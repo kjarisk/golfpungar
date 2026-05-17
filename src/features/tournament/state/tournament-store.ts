@@ -4,7 +4,10 @@ import type {
   TournamentStatus,
   CreateTournamentInput,
 } from '../types'
-import { TEST_USER } from '@/features/auth'
+
+// Mock-data placeholder. Real tournaments stamp created_by from the signed-in
+// user once tournaments move to Supabase (Phase 25).
+const MOCK_CREATOR_ID = ''
 
 interface TournamentState {
   tournaments: Tournament[]
@@ -36,7 +39,7 @@ const MOCK_TOURNAMENT: Tournament = {
   startDate: '2026-06-15',
   endDate: '2026-06-20',
   status: 'live',
-  createdByUserId: TEST_USER.id,
+  createdByUserId: MOCK_CREATOR_ID,
   createdAt: '2026-01-15T10:00:00Z',
 }
 
@@ -56,7 +59,7 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
       id: `tournament-${String(nextId++).padStart(3, '0')}`,
       ...input,
       status: 'draft',
-      createdByUserId: TEST_USER.id,
+      createdByUserId: MOCK_CREATOR_ID,
       createdAt: new Date().toISOString(),
     }
     set((state) => ({

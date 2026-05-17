@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  LogOut,
 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,7 @@ import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
 import { useTournamentStore } from '@/features/tournament'
 import { useBettingStore } from '@/features/betting'
+import { useAuthStore } from '@/features/auth'
 import { useCurrentPlayerId } from '@/hooks/use-current-player-id'
 
 const navItems = [
@@ -32,6 +34,7 @@ export function AppShell() {
   const location = useLocation()
   const tournament = useTournamentStore((s) => s.activeTournament())
   const { resolvedTheme, setTheme } = useTheme()
+  const logout = useAuthStore((s) => s.logout)
   const currentPlayerId = useCurrentPlayerId()
   const bets = useBettingStore((s) => s.bets)
   const participants = useBettingStore((s) => s.participants)
@@ -85,6 +88,15 @@ export function AppShell() {
             >
               <Sun className="size-5 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
               <Moon className="absolute size-5 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-11"
+              onClick={() => void logout()}
+              aria-label="Log out"
+            >
+              <LogOut className="size-5" aria-hidden="true" />
             </Button>
           </div>
         </div>

@@ -523,15 +523,19 @@ Built as 3 migrations in `supabase/migrations/`.
 
 **Phase 23 (backend foundation) complete.** Next: Phase 24 — Auth (magic link).
 
-## Phase 24 — Auth (magic link)
+## Phase 24 — Auth (magic link) ✅ done (2026-05-17)
 
-- [ ] Replace mock auth in `src/features/auth/` with Supabase magic link flow
-- [ ] Login page: real `signInWithOtp({ email })` call
-- [ ] Auth guard: real session check via `supabase.auth.getSession()` + `onAuthStateChange`
-- [ ] Logout: `supabase.auth.signOut()`
-- [ ] User → Player linking on first login (resolve invite by email, create player row, set role)
-- [ ] Admin role: bootstrap first user as admin via SQL or invite flow
-- [ ] Tests for auth state transitions (mock the supabase client)
+- [x] Replaced mock auth in `src/features/auth/` — store is now Supabase-session-backed; `initAuth()` (wired in `App.tsx`) syncs it via `onAuthStateChange`
+- [x] Login page: real `signInWithOtp({ email, emailRedirectTo })`
+- [x] Auth guard: reads the session-backed store (`onAuthStateChange`'s INITIAL_SESSION covers the initial check)
+- [x] Logout: `supabase.auth.signOut()` — logout button added to the app-shell header
+- [x] User → Player linking: `handle_new_user` trigger claims pre-created player rows by email + adopts pending-invite role + marks invites accepted. (Creating *new* player rows is admin-side, lands with Phase 25 when players move to Supabase.)
+- [x] Admin bootstrap: the first account to sign up becomes admin (in `handle_new_user`)
+- [x] Tests for auth state transitions (mocked supabase client) — 356 tests pass
+
+Note: tournaments/players/etc. remain Zustand mock data until Phase 25, so
+`useCurrentPlayerId` returns null for a real user until then (personalized
+bits degrade gracefully). The demo seed stays until the data layers migrate.
 
 ## Phase 25 — Tournaments + Countries + Players
 

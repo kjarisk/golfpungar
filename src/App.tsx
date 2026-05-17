@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router'
 import { AppShell } from '@/components/app-shell'
 import { Toaster } from '@/components/ui/sonner'
@@ -13,6 +14,7 @@ import {
   LoginPage,
 } from '@/pages'
 import { AuthGuard } from '@/components/auth-guard'
+import { initAuth } from '@/features/auth'
 import { seedDemoData, isDemoSeeded } from '@/lib/demo-data'
 
 // Auto-seed demo data on first load so the app is never empty
@@ -21,6 +23,9 @@ if (!isDemoSeeded()) {
 }
 
 function App() {
+  // Wire the auth store to the Supabase session for the app's lifetime.
+  useEffect(() => initAuth(), [])
+
   return (
     <BrowserRouter>
       <Routes>

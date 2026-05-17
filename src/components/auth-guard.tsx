@@ -5,8 +5,8 @@ import { useAuthStore } from '@/features/auth/state/auth-store'
  * Route guard that redirects unauthenticated users to /login.
  * Wrap protected routes with this as a layout route.
  *
- * In dev mode the mock auth store auto-logs in, so this is a no-op.
- * When Supabase is connected, this will check the real session.
+ * Reads the auth store, which `initAuth()` keeps in sync with the Supabase
+ * session. Shows a spinner until the initial session check resolves.
  */
 export function AuthGuard() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
