@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { useBettingStore } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
 import { useCurrentPlayerId } from '@/hooks/use-current-player-id'
@@ -32,7 +32,7 @@ const navItems = [
 
 export function AppShell() {
   const location = useLocation()
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const { resolvedTheme, setTheme } = useTheme()
   const logout = useAuthStore((s) => s.logout)
   const currentPlayerId = useCurrentPlayerId()

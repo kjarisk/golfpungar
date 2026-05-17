@@ -15,7 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useTournamentStore } from '@/features/tournament'
+import { toast } from 'sonner'
+import {
+  useTournaments,
+  useActiveTournament,
+  useSetActiveTournament,
+  useSetTournamentStatus,
+  useRemoveTournament,
+} from '@/features/tournament'
 import { useCountries } from '@/features/countries'
 import { TournamentStatusBadge } from './tournament-status-badge'
 import { EditTournamentDialog } from './edit-tournament-dialog'
@@ -45,11 +52,11 @@ interface TournamentListProps {
 }
 
 export function TournamentList({ onSelect }: TournamentListProps) {
-  const tournaments = useTournamentStore((s) => s.tournaments)
-  const activeTournamentId = useTournamentStore((s) => s.activeTournamentId)
-  const setActiveTournament = useTournamentStore((s) => s.setActiveTournament)
-  const setStatus = useTournamentStore((s) => s.setStatus)
-  const removeTournament = useTournamentStore((s) => s.removeTournament)
+  const { data: tournaments = [], isLoading, isError } = useTournaments()
+  const activeTournamentId = useActiveTournament()?.id
+  const setActiveTournament = useSetActiveTournament()
+  const setStatus = useSetTournamentStatus()
+  const removeTournament = useRemoveTournament()
   const { data: countries = [] } = useCountries()
   const isAdmin = useIsAdmin()
 
@@ -93,18 +100,31 @@ export function TournamentList({ onSelect }: TournamentListProps) {
     return countries.find((c) => c.id === countryId)?.name
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!deleteTournament) return
-    removeTournament(deleteTournament.id)
+    try {
+      await removeTournament.mutateAsync(deleteTournament.id)
+    } catch {
+      toast.error('Could not delete tournament')
+      return
+    }
     setDeleteTournament(null)
   }
 
   function handleStatusTransition(tournament: Tournament) {
-    if (tournament.status === 'draft') {
-      setStatus(tournament.id, 'live')
-    } else if (tournament.status === 'live') {
-      setStatus(tournament.id, 'done')
-    }
+    const next =
+      tournament.status === 'draft'
+        ? 'live'
+        : tournament.status === 'live'
+          ? 'done'
+          : null
+    if (!next) return
+    setStatus.mutate(
+      { id: tournament.id, status: next },
+      {
+        onError: () => toast.error('Could not update tournament status'),
+      }
+    )
   }
 
   function renderCard(t: Tournament) {
@@ -227,6 +247,24 @@ export function TournamentList({ onSelect }: TournamentListProps) {
   }
 
   const hasContent = sortedActive.length > 0 || sortedArchived.length > 0
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <p className="text-muted-foreground text-sm">Loading tournaments…</p>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-8 text-center">
+        <p className="text-muted-foreground text-sm">
+          Could not load tournaments.
+        </p>
+      </div>
+    )
+  }
 
   if (!hasContent) {
     return (

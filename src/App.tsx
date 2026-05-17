@@ -15,12 +15,6 @@ import {
 } from '@/pages'
 import { AuthGuard } from '@/components/auth-guard'
 import { initAuth } from '@/features/auth'
-import { seedDemoData, isDemoSeeded } from '@/lib/demo-data'
-
-// Auto-seed demo data on first load so the app is never empty
-if (!isDemoSeeded()) {
-  seedDemoData()
-}
 
 function App() {
   // Wire the auth store to the Supabase session for the app's lifetime.

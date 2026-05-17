@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
 import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
@@ -51,7 +51,7 @@ function persistGroupId(groupId: string) {
 }
 
 export function EnterPage() {
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)

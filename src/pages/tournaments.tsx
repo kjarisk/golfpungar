@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { TournamentList } from '@/features/tournament/components/tournament-list'
 import { CreateTournamentDialog } from '@/features/tournament/components/create-tournament-dialog'
-import { useTournamentStore } from '@/features/tournament'
+import { useSetActiveTournament } from '@/features/tournament'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { Plus } from 'lucide-react'
 import type { Tournament } from '@/features/tournament'
 
 export function TournamentsPage() {
   const isAdmin = useIsAdmin()
-  const setActiveTournament = useTournamentStore((s) => s.setActiveTournament)
+  const setActiveTournament = useSetActiveTournament()
   const navigate = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
 

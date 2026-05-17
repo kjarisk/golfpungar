@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { usePlayersStore } from '@/features/players'
 import type { Player } from '@/features/players'
 import { PlayerFormDialog } from '@/features/players/components/player-form-dialog'
@@ -24,7 +24,7 @@ function getInitials(name: string) {
 }
 
 export function PlayersPage() {
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getInvites = usePlayersStore((s) => s.getInvitesByTournament)
   const acceptInvite = usePlayersStore((s) => s.acceptInvite)

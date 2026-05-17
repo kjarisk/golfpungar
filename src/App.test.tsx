@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 vi.mock('@/lib/supabase', () => ({
   supabase: {
@@ -9,7 +10,19 @@ vi.mock('@/lib/supabase', () => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
     },
-    from: vi.fn(),
+    // Every table query (e.g. tournaments) resolves to an empty result.
+    from: vi.fn(() => {
+      const result = { data: [], error: null }
+      const chain: Record<string, unknown> = {}
+      for (const method of ['select', 'order', 'eq', 'insert', 'update']) {
+        chain[method] = vi.fn(() => chain)
+      }
+      chain.single = vi.fn(() => Promise.resolve(result))
+      chain.maybeSingle = vi.fn(() => Promise.resolve(result))
+      chain.then = (resolve: (value: typeof result) => unknown) =>
+        Promise.resolve(result).then(resolve)
+      return chain
+    }),
   },
 }))
 
@@ -25,6 +38,17 @@ const TEST_USER: User = {
   createdAt: '2026-01-01T00:00:00Z',
 }
 
+function renderApp() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  )
+}
+
 describe('App', () => {
   beforeEach(() => {
     window.history.pushState({}, '', '/feed')
@@ -37,7 +61,7 @@ describe('App', () => {
   })
 
   it('renders the app shell with bottom navigation', () => {
-    render(<App />)
+    renderApp()
     const nav = screen.getByRole('navigation')
     expect(nav).toBeInTheDocument()
 
@@ -54,15 +78,22 @@ describe('App', () => {
     expect(navLabels.some((l) => l.includes('Bets'))).toBe(true)
   })
 
-  it('shows the feed page with tournament name by default', () => {
-    render(<App />)
-    // With mock data, we should see the tournament name
+  it('shows the no-active-tournament empty state on the feed page', () => {
+    renderApp()
+    // With no tournaments in the database, the feed shows an empty state.
     expect(
-      screen.getByRole('heading', { name: /spain 2026/i })
+      screen.getByRole('heading', {
+        name: /good (morning|afternoon|evening), kjartan/i,
+      })
     ).toBeInTheDocument()
-    // And the welcome message (time-of-day greeting)
     expect(
-      screen.getByText(/good (morning|afternoon|evening), kjartan/i)
+      screen.getByText(
+        (_, el) =>
+          el?.tagName === 'P' &&
+          /no active tournament\.\s*create one to get started\./i.test(
+            el.textContent ?? ''
+          )
+      )
     ).toBeInTheDocument()
   })
 })

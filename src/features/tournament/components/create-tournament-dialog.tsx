@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useTournamentStore } from '@/features/tournament'
+import { useCreateTournament } from '@/features/tournament'
 import { CountrySelect } from '@/features/countries'
 
 interface CreateTournamentDialogProps {
@@ -22,24 +23,29 @@ export function CreateTournamentDialog({
   open,
   onOpenChange,
 }: CreateTournamentDialogProps) {
-  const createTournament = useTournamentStore((s) => s.createTournament)
+  const createTournament = useCreateTournament()
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [countryId, setCountryId] = useState<string | undefined>(undefined)
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !startDate || !endDate) return
 
-    createTournament({
-      name: name.trim(),
-      location: location.trim() || undefined,
-      countryId,
-      startDate,
-      endDate,
-    })
+    try {
+      await createTournament.mutateAsync({
+        name: name.trim(),
+        location: location.trim() || undefined,
+        countryId,
+        startDate,
+        endDate,
+      })
+    } catch {
+      toast.error('Could not create tournament')
+      return
+    }
 
     setName('')
     setLocation('')
@@ -110,9 +116,14 @@ export function CreateTournamentDialog({
             <Button
               type="submit"
               className="h-11"
-              disabled={!name.trim() || !startDate || !endDate}
+              disabled={
+                !name.trim() ||
+                !startDate ||
+                !endDate ||
+                createTournament.isPending
+              }
             >
-              Create
+              {createTournament.isPending ? 'Creating…' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

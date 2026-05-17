@@ -22,7 +22,7 @@ import { Separator } from '@/components/ui/separator'
 import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
-import { useTournamentStore } from '@/features/tournament'
+import { useTournament } from '@/features/tournament'
 import { useCountries } from '@/features/countries'
 import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { RoundFormat } from '@/features/rounds'
@@ -77,9 +77,7 @@ export function CreateRoundDialog({
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const createRound = useRoundsStore((s) => s.createRound)
-  const tournament = useTournamentStore((s) =>
-    s.tournaments.find((t) => t.id === tournamentId)
-  )
+  const tournament = useTournament(tournamentId)
   const { data: countries = [] } = useCountries()
 
   const courses = getCoursesByTournament(tournamentId)

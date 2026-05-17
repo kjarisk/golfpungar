@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useTournamentStore } from '@/features/tournament'
+import { useTournaments, useActiveTournament } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
 import { usePlayersStore } from '@/features/players'
 import {
@@ -65,8 +65,8 @@ import {
 export function LeaderboardsPage() {
   const [searchParams] = useSearchParams()
   const queryTournamentId = searchParams.get('tournamentId')
-  const tournaments = useTournamentStore((s) => s.tournaments)
-  const activeTournament = useTournamentStore((s) => s.activeTournament())
+  const { data: tournaments = [] } = useTournaments()
+  const activeTournament = useActiveTournament()
 
   // If a tournamentId query param is present, show that tournament (for browsing past/done tournaments)
   // Otherwise fall back to the active tournament

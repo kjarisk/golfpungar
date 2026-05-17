@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useFeedStore } from '@/features/feed'
@@ -26,7 +26,7 @@ function timeAgo(dateString: string): string {
 export function BetsPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getEventsByTournament = useFeedStore((s) => s.getEventsByTournament)

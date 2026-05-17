@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { useCoursesStore } from '@/features/courses'
 import { CourseCard } from '@/features/courses/components/course-card'
 import { ImportCourseDialog } from '@/features/courses/components/import-course-dialog'
@@ -60,7 +60,7 @@ const STATUS_LABEL: Record<RoundStatus, string> = {
 }
 
 export function RoundsPage() {
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const isAdmin = useIsAdmin()
   const getCoursesByTournament = useCoursesStore(
     (s) => s.getCoursesByTournament

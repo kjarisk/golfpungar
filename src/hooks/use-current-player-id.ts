@@ -1,6 +1,6 @@
 import { useAuthStore } from '@/features/auth'
 import { usePlayersStore } from '@/features/players'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 
 /**
  * Returns the current player ID (not userId) for the logged-in user
@@ -8,7 +8,7 @@ import { useTournamentStore } from '@/features/tournament'
  */
 export function useCurrentPlayerId(): string | null {
   const userId = useAuthStore((s) => s.user?.id ?? null)
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const players = usePlayersStore((s) => s.players)
 
   if (!userId || !tournament) return null

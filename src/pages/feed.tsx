@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { TournamentStatusBadge } from '@/features/tournament/components/tournament-status-badge'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
@@ -27,15 +27,12 @@ import {
 import { useActiveRound } from '@/hooks/use-active-round'
 import { NotableEventBanner } from '@/features/feed/components/notable-event-banner'
 import { AdminAnnouncementInput } from '@/features/feed/components/admin-announcement-input'
-import { seedDemoData, clearDemoData, isDemoSeeded } from '@/lib/demo-data'
 import {
   MapPin,
   Calendar,
   Flag,
   Trophy,
   CircleDollarSign,
-  Database,
-  Trash2,
   Megaphone,
   ArrowUpDown,
   Medal,
@@ -102,7 +99,7 @@ function placingSuffix(n: number): string {
 export function FeedPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
@@ -117,21 +114,9 @@ export function FeedPage() {
   const acceptBet = useBettingStore((s) => s.acceptBet)
   const rejectBet = useBettingStore((s) => s.rejectBet)
   const getRecentFeedEvents = useFeedStore((s) => s.getRecentEvents)
-  const roundCount$ = useRoundsStore((s) => s.rounds.length)
-  const seeded = roundCount$ > 0
   const setRole = useAuthStore((s) => s.setRole)
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
-
-  const handleSeed = () => {
-    if (!isDemoSeeded()) {
-      seedDemoData()
-    }
-  }
-
-  const handleClear = () => {
-    clearDemoData()
-  }
 
   const players = tournament ? getActivePlayers(tournament.id) : []
 
@@ -530,7 +515,7 @@ export function FeedPage() {
         </Card>
       )}
 
-      {/* Demo controls (dev only) */}
+      {/* Dev-only role toggle */}
       {import.meta.env.DEV && (
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -543,28 +528,6 @@ export function FeedPage() {
           >
             Role: {currentRole}
           </Button>
-          {tournament && !seeded && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSeed}
-              className="gap-1.5 text-xs"
-            >
-              <Database className="size-3.5" aria-hidden="true" />
-              Seed Demo Data
-            </Button>
-          )}
-          {tournament && seeded && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClear}
-              className="gap-1.5 text-xs text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="size-3.5" aria-hidden="true" />
-              Clear Demo Data
-            </Button>
-          )}
         </div>
       )}
 

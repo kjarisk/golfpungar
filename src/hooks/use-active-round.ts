@@ -1,4 +1,4 @@
-import { useTournamentStore } from '@/features/tournament'
+import { useActiveTournament } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
 
 /**
@@ -6,7 +6,7 @@ import { useRoundsStore } from '@/features/rounds'
  * An active round has status 'active'. Only one active round per tournament is allowed.
  */
 export function useActiveRound() {
-  const tournament = useTournamentStore((s) => s.activeTournament())
+  const tournament = useActiveTournament()
   const getActiveRound = useRoundsStore((s) => s.getActiveRound)
   return tournament ? getActiveRound(tournament.id) : undefined
 }

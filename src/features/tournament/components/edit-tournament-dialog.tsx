@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useTournamentStore } from '@/features/tournament'
+import { useUpdateTournament } from '@/features/tournament'
 import { CountrySelect } from '@/features/countries'
 import type { Tournament } from '@/features/tournament'
 
@@ -50,7 +51,7 @@ function EditTournamentForm({
   tournament: Tournament
   onClose: () => void
 }) {
-  const updateTournament = useTournamentStore((s) => s.updateTournament)
+  const updateTournament = useUpdateTournament()
   const [name, setName] = useState(tournament.name)
   const [location, setLocation] = useState(tournament.location ?? '')
   const [countryId, setCountryId] = useState<string | undefined>(
@@ -59,17 +60,25 @@ function EditTournamentForm({
   const [startDate, setStartDate] = useState(tournament.startDate)
   const [endDate, setEndDate] = useState(tournament.endDate)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim() || !startDate || !endDate) return
 
-    updateTournament(tournament.id, {
-      name: name.trim(),
-      location: location.trim() || undefined,
-      countryId,
-      startDate,
-      endDate,
-    })
+    try {
+      await updateTournament.mutateAsync({
+        id: tournament.id,
+        updates: {
+          name: name.trim(),
+          location: location.trim() || undefined,
+          countryId,
+          startDate,
+          endDate,
+        },
+      })
+    } catch {
+      toast.error('Could not update tournament')
+      return
+    }
 
     onClose()
   }
@@ -134,9 +143,11 @@ function EditTournamentForm({
         <Button
           type="submit"
           className="h-11"
-          disabled={!name.trim() || !startDate || !endDate}
+          disabled={
+            !name.trim() || !startDate || !endDate || updateTournament.isPending
+          }
         >
-          Save
+          {updateTournament.isPending ? 'Saving…' : 'Save'}
         </Button>
       </DialogFooter>
     </form>
