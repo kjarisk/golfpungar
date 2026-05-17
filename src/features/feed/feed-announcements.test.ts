@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 import { useFeedStore } from './state/feed-store'
-import { usePlayersStore } from '@/features/players'
 
 describe('feed store — announcements', () => {
   beforeEach(() => {
@@ -220,57 +219,5 @@ describe('feed store — handicap_changed event type', () => {
     })
 
     expect(event.type).toBe('announcement')
-  })
-})
-
-describe('players store — handicap change feed event', () => {
-  beforeEach(() => {
-    useFeedStore.setState({ events: [], announcements: [], notableEvents: [] })
-    // Reset players store to default mock state
-    usePlayersStore.setState({
-      players: [
-        {
-          id: 'player-test',
-          tournamentId: 'tournament-001',
-          userId: 'user-test',
-          displayName: 'TestPlayer',
-          groupHandicap: 18,
-          active: true,
-          createdAt: '2026-01-15T10:00:00Z',
-        },
-      ],
-    })
-  })
-
-  it('posts a feed event when handicap changes', () => {
-    usePlayersStore.getState().updatePlayer('player-test', {
-      groupHandicap: 16,
-    })
-
-    const events = useFeedStore.getState().getRecentEvents('tournament-001')
-    expect(events).toHaveLength(1)
-    expect(events[0].type).toBe('handicap_changed')
-    expect(events[0].message).toContain('TestPlayer')
-    expect(events[0].message).toContain('18')
-    expect(events[0].message).toContain('16')
-    expect(events[0].playerId).toBe('player-test')
-  })
-
-  it('does NOT post a feed event when handicap stays the same', () => {
-    usePlayersStore.getState().updatePlayer('player-test', {
-      groupHandicap: 18,
-    })
-
-    const events = useFeedStore.getState().getRecentEvents('tournament-001')
-    expect(events).toHaveLength(0)
-  })
-
-  it('does NOT post a feed event when updating non-handicap fields', () => {
-    usePlayersStore.getState().updatePlayer('player-test', {
-      displayName: 'NewName',
-    })
-
-    const events = useFeedStore.getState().getRecentEvents('tournament-001')
-    expect(events).toHaveLength(0)
   })
 })

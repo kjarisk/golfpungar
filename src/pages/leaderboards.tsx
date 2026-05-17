@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { useTournaments, useActiveTournament } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import {
   useScoringStore,
   ScorecardDetail,
@@ -77,7 +77,6 @@ export function LeaderboardsPage() {
     !!queryTournamentId && tournament?.id !== activeTournament?.id
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getAllRoundPoints = useScoringStore((s) => s.roundPoints)
   const allScorecards = useScoringStore((s) => s.scorecards)
   const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
@@ -104,7 +103,7 @@ export function LeaderboardsPage() {
   const [comparePlayerId, setComparePlayerId] = useState<string | null>(null)
 
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
-  const players = tournament ? getActivePlayers(tournament.id) : []
+  const players = useActivePlayers(tournament?.id)
   const playerIds = players.map((p) => p.id)
 
   // Course + holes for scorecard detail view

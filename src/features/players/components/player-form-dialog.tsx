@@ -11,7 +11,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { usePlayersStore } from '@/features/players'
+import {
+  useCreatePlayer,
+  useUpdatePlayer,
+  useSendInvite,
+} from '@/features/players'
 import type { Player } from '@/features/players'
 import { Mail } from 'lucide-react'
 
@@ -35,9 +39,9 @@ export function PlayerFormDialog({
   canEditHandicap = true,
   showEmail = false,
 }: PlayerFormDialogProps) {
-  const addPlayer = usePlayersStore((s) => s.addPlayer)
-  const updatePlayer = usePlayersStore((s) => s.updatePlayer)
-  const sendInvite = usePlayersStore((s) => s.sendInvite)
+  const createPlayer = useCreatePlayer()
+  const updatePlayer = useUpdatePlayer()
+  const sendInvite = useSendInvite()
 
   const [displayName, setDisplayName] = useState(player?.displayName ?? '')
   const [nickname, setNickname] = useState(player?.nickname ?? '')
@@ -51,31 +55,45 @@ export function PlayerFormDialog({
   const trimmedEmail = email.trim().toLowerCase()
   const hasValidEmail = trimmedEmail.includes('@')
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!displayName.trim()) return
 
     const hcp = parseInt(groupHandicap, 10)
 
-    if (isEditing) {
-      updatePlayer(player.id, {
-        displayName: displayName.trim(),
-        nickname: nickname.trim() || undefined,
-        email: email.trim() || undefined,
-        groupHandicap: isNaN(hcp) ? player.groupHandicap : hcp,
-      })
-    } else {
-      addPlayer(tournamentId, {
-        displayName: displayName.trim(),
-        nickname: nickname.trim() || undefined,
-        email: email.trim() || undefined,
-        groupHandicap: isNaN(hcp) ? 18 : hcp,
-      })
-      // Auto-send invite if email provided and toggle is on
-      if (showEmail && hasValidEmail && sendInviteOnCreate) {
-        sendInvite(tournamentId, trimmedEmail)
-        toast(`Invite sent to ${trimmedEmail}`, { duration: 3000 })
+    try {
+      if (isEditing) {
+        await updatePlayer.mutateAsync({
+          id: player.id,
+          updates: {
+            displayName: displayName.trim(),
+            nickname: nickname.trim() || undefined,
+            email: email.trim() || undefined,
+            groupHandicap: isNaN(hcp) ? player.groupHandicap : hcp,
+          },
+        })
+      } else {
+        await createPlayer.mutateAsync({
+          tournamentId,
+          input: {
+            displayName: displayName.trim(),
+            nickname: nickname.trim() || undefined,
+            email: email.trim() || undefined,
+            groupHandicap: isNaN(hcp) ? 18 : hcp,
+          },
+        })
+        // Auto-send invite if email provided and toggle is on
+        if (showEmail && hasValidEmail && sendInviteOnCreate) {
+          await sendInvite.mutateAsync({
+            tournamentId,
+            email: trimmedEmail,
+          })
+          toast(`Invite sent to ${trimmedEmail}`, { duration: 3000 })
+        }
       }
+    } catch {
+      toast.error(isEditing ? 'Could not save player' : 'Could not add player')
+      return
     }
 
     if (!isEditing) {
@@ -100,7 +118,10 @@ export function PlayerFormDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-2">
             <Label htmlFor="displayName">Name</Label>
             <Input
@@ -175,7 +196,11 @@ export function PlayerFormDialog({
             <Button
               type="submit"
               className="h-11"
-              disabled={!displayName.trim()}
+              disabled={
+                !displayName.trim() ||
+                createPlayer.isPending ||
+                updatePlayer.isPending
+              }
             >
               {isEditing ? 'Save' : 'Add Player'}
             </Button>

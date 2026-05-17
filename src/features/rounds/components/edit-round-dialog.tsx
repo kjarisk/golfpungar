@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useCoursesStore } from '@/features/courses'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { Round, RoundFormat } from '@/features/rounds'
@@ -142,10 +142,9 @@ function EditRoundForm({
     (s) => s.getCoursesByTournament
   )
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
+  const players = useActivePlayers(round.tournamentId)
 
   const courses = getCoursesByTournament(round.tournamentId)
-  const players = getActivePlayers(round.tournamentId)
 
   // Initialize groups from existing data
   const existingGroups = getGroupsByRound(round.id)

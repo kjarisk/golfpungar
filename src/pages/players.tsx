@@ -6,11 +6,16 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { useActiveTournament } from '@/features/tournament'
-import { usePlayersStore } from '@/features/players'
+import {
+  useActivePlayers,
+  useTournamentInvites,
+  usePlayers,
+  useInvites,
+} from '@/features/players'
 import type { Player } from '@/features/players'
 import { PlayerFormDialog } from '@/features/players/components/player-form-dialog'
 import { InvitePlayersDialog } from '@/features/players/components/invite-players-dialog'
-import { Check, Link2, Mail, Plus, UserPlus, Pencil } from 'lucide-react'
+import { Link2, Mail, Plus, UserPlus, Pencil } from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useAuthStore } from '@/features/auth'
 
@@ -25,10 +30,10 @@ function getInitials(name: string) {
 
 export function PlayersPage() {
   const tournament = useActiveTournament()
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
-  const getInvites = usePlayersStore((s) => s.getInvitesByTournament)
-  const acceptInvite = usePlayersStore((s) => s.acceptInvite)
-  const players = tournament ? getActivePlayers(tournament.id) : []
+  const players = useActivePlayers(tournament?.id)
+  const invites = useTournamentInvites(tournament?.id)
+  const playersQuery = usePlayers()
+  const invitesQuery = useInvites()
   const isAdmin = useIsAdmin()
   const authUser = useAuthStore((s) => s.user)
 
@@ -50,11 +55,33 @@ export function PlayersPage() {
     )
   }
 
-  const invites = getInvites(tournament.id)
+  const isLoading = playersQuery.isLoading || invitesQuery.isLoading
+  const isError = playersQuery.isError || invitesQuery.isError
+
   const pendingInvites = invites.filter((i) => i.status === 'pending')
 
   // Build a map of player ID → player name for linked invites
   const playerMap = new Map(players.map((p) => [p.id, p]))
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-2xl font-bold tracking-tight">Players</h1>
+        <p className="text-muted-foreground text-sm">Loading players…</p>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-2xl font-bold tracking-tight">Players</h1>
+        <p className="text-destructive text-sm">
+          Could not load players. Try again.
+        </p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -207,17 +234,6 @@ export function PlayersPage() {
                       <Badge variant="secondary" className="text-xs">
                         Pending
                       </Badge>
-                    )}
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => acceptInvite(invite.id)}
-                        aria-label={`Accept invite for ${invite.email}`}
-                        title="Accept invite (mock)"
-                      >
-                        <Check className="size-4" />
-                      </Button>
                     )}
                   </div>
                 </div>

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
-import { usePlayersStore } from '@/features/players'
+import { usePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { computeRoundLeaderboard } from '@/lib/leaderboard-calc'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
@@ -46,7 +46,7 @@ export function RoundCompletionDialog({
   const scorecards = useScoringStore((s) => s.scorecards)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const sideEvents = useSideEventsStore((s) => s.events)
-  const players = usePlayersStore((s) => s.players)
+  const { data: players = [] } = usePlayers()
   const getTeams = useRoundsStore((s) => s.getTeamsByRound)
 
   // Get scorecards and points for this round

@@ -13,7 +13,7 @@ import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveTournament } from '@/features/tournament'
 import { TournamentStatusBadge } from '@/features/tournament/components/tournament-status-badge'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
@@ -100,7 +100,6 @@ export function FeedPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
   const tournament = useActiveTournament()
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
@@ -118,7 +117,7 @@ export function FeedPage() {
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
 
-  const players = tournament ? getActivePlayers(tournament.id) : []
+  const players = useActivePlayers(tournament?.id)
 
   // Current user's player record
   const currentPlayer = players.find((p) => p.userId === user?.id)

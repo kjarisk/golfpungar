@@ -19,7 +19,7 @@ import { CreateRoundDialog } from '@/features/rounds/components/create-round-dia
 import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
 import { RoundCompletionDialog } from '@/features/rounds/components/round-completion-dialog'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useCountries } from '@/features/countries'
 import {
   Upload,
@@ -73,15 +73,13 @@ export function RoundsPage() {
   const removeRound = useRoundsStore((s) => s.removeRound)
   const getDeletedRounds = useRoundsStore((s) => s.getDeletedRounds)
   const restoreRound = useRoundsStore((s) => s.restoreRound)
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
-
   const { data: countries = [] } = useCountries()
 
   const courses = tournament ? getCoursesByTournament(tournament.id) : []
   const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
   const rounds = sortRounds(rawRounds)
   const deletedRounds = tournament ? getDeletedRounds(tournament.id) : []
-  const players = tournament ? getActivePlayers(tournament.id) : []
+  const players = useActivePlayers(tournament?.id)
 
   const [showImport, setShowImport] = useState(false)
   const [showCreateCourse, setShowCreateCourse] = useState(false)

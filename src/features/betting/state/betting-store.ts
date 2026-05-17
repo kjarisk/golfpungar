@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { useFeedStore } from '../../feed/state/feed-store'
-import { usePlayersStore } from '../../players/state/players-store'
+import { queryClient } from '@/lib/query-client'
+import { playersQueryKey, type Player } from '@/features/players'
 import type {
   Bet,
   BetParticipant,
@@ -9,12 +10,10 @@ import type {
   CreateBetInput,
 } from '../types'
 
-/** Look up a player's display name, falling back to the ID. */
+/** Look up a player's display name, falling back to a generic label. */
 function getPlayerName(playerId: string): string {
-  const player = usePlayersStore
-    .getState()
-    .players.find((p) => p.id === playerId)
-  return player?.displayName ?? playerId
+  const players = queryClient.getQueryData<Player[]>(playersQueryKey) ?? []
+  return players.find((p) => p.id === playerId)?.displayName ?? 'Someone'
 }
 
 /** Build a short description of the bet metric. */

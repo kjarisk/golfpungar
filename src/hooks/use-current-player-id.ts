@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/features/auth'
-import { usePlayersStore } from '@/features/players'
+import { usePlayers } from '@/features/players'
 import { useActiveTournament } from '@/features/tournament'
 
 /**
@@ -9,7 +9,7 @@ import { useActiveTournament } from '@/features/tournament'
 export function useCurrentPlayerId(): string | null {
   const userId = useAuthStore((s) => s.user?.id ?? null)
   const tournament = useActiveTournament()
-  const players = usePlayersStore((s) => s.players)
+  const { data: players = [] } = usePlayers()
 
   if (!userId || !tournament) return null
 

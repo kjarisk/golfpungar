@@ -11,7 +11,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
-import { usePlayersStore } from '@/features/players'
+import { toast } from 'sonner'
+import { useSendInvite } from '@/features/players'
 import { Mail, X } from 'lucide-react'
 
 interface InvitePlayersDialogProps {
@@ -25,7 +26,7 @@ export function InvitePlayersDialog({
   onOpenChange,
   tournamentId,
 }: InvitePlayersDialogProps) {
-  const sendInvite = usePlayersStore((s) => s.sendInvite)
+  const sendInvite = useSendInvite()
   const [email, setEmail] = useState('')
   const [pendingEmails, setPendingEmails] = useState<string[]>([])
 
@@ -49,9 +50,16 @@ export function InvitePlayersDialog({
     }
   }
 
-  function handleSend() {
-    for (const addr of pendingEmails) {
-      sendInvite(tournamentId, addr)
+  async function handleSend() {
+    try {
+      await Promise.all(
+        pendingEmails.map((addr) =>
+          sendInvite.mutateAsync({ tournamentId, email: addr })
+        )
+      )
+    } catch {
+      toast.error('Could not send invites')
+      return
     }
     setPendingEmails([])
     setEmail('')
@@ -118,8 +126,8 @@ export function InvitePlayersDialog({
             <Button
               type="button"
               className="h-11"
-              onClick={handleSend}
-              disabled={pendingEmails.length === 0}
+              onClick={() => void handleSend()}
+              disabled={pendingEmails.length === 0 || sendInvite.isPending}
             >
               Send {pendingEmails.length > 0 ? `${pendingEmails.length} ` : ''}
               Invite{pendingEmails.length !== 1 ? 's' : ''}

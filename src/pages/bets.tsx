@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuthStore } from '@/features/auth'
 import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveTournament } from '@/features/tournament'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useFeedStore } from '@/features/feed'
 import { BetList } from '@/features/betting'
@@ -27,12 +27,11 @@ export function BetsPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
   const tournament = useActiveTournament()
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getEventsByTournament = useFeedStore((s) => s.getEventsByTournament)
   const activeRound = useActiveRound()
 
-  const players = tournament ? getActivePlayers(tournament.id) : []
+  const players = useActivePlayers(tournament?.id)
   const rounds = tournament ? getRoundsByTournament(tournament.id) : []
   const currentPlayer = players.find((p) => p.userId === user?.id)
 

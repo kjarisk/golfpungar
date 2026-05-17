@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { useRoundsStore } from '@/features/rounds'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useFeedStore } from '@/features/feed'
 import type { Round } from '@/features/rounds'
 import { Users, Shuffle, Pencil } from 'lucide-react'
@@ -83,12 +83,11 @@ export function ConfigureTeamsDialog({
   const addTeamsToRound = useRoundsStore((s) => s.addTeamsToRound)
   const updateTeamName = useRoundsStore((s) => s.updateTeamName)
   const removeTeamsByRound = useRoundsStore((s) => s.removeTeamsByRound)
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
   const addFeedEvent = useFeedStore((s) => s.addEvent)
+  const players = useActivePlayers(tournamentId)
 
   const groups = getGroupsByRound(round.id)
   const existingTeams = getTeamsByRound(round.id)
-  const players = getActivePlayers(tournamentId)
 
   function getPlayerName(id: string): string {
     return players.find((p) => p.id === id)?.displayName ?? 'Unknown'

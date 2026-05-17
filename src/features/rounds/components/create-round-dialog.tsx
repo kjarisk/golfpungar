@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useCoursesStore } from '@/features/courses'
-import { usePlayersStore } from '@/features/players'
+import { useActivePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useTournament } from '@/features/tournament'
 import { useCountries } from '@/features/countries'
@@ -75,7 +75,7 @@ export function CreateRoundDialog({
     (s) => s.getCoursesByTournament
   )
   const getHoles = useCoursesStore((s) => s.getHolesByCourse)
-  const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
+  const players = useActivePlayers(tournamentId)
   const createRound = useRoundsStore((s) => s.createRound)
   const tournament = useTournament(tournamentId)
   const { data: countries = [] } = useCountries()
@@ -89,7 +89,6 @@ export function CreateRoundDialog({
   const otherCourses = tournamentCountryId
     ? courses.filter((c) => c.countryId !== tournamentCountryId)
     : []
-  const players = getActivePlayers(tournamentId)
 
   const [name, setName] = useState('')
   const [courseId, setCourseId] = useState('')
