@@ -7,6 +7,11 @@ import App from './App.tsx'
 
 const queryClient = new QueryClient()
 
+// Dev-only: confirm the Supabase client can reach the database on startup.
+if (import.meta.env.DEV) {
+  void import('./lib/supabase-smoke').then((m) => m.smokeTestSupabase())
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>

@@ -467,8 +467,8 @@ iterate, `get_advisors` to lint, `supabase db pull` to finalize the migration).
 - [x] Install `@supabase/supabase-js`
 - [x] `supabase init` + `supabase link` (project ref `wqksizhcnysvchrvptgz`, West EU / Ireland)
 - [x] Add project-scoped Supabase MCP server to `.mcp.json`
-- [ ] Create `src/lib/supabase.ts` — typed client reading `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from `import.meta.env`
-- [ ] Dev-only smoke test confirming the client connects
+- [x] Create `src/lib/supabase.ts` — typed client reading `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from `import.meta.env` (done in 23D)
+- [x] Dev-only smoke test confirming the client connects (done in 23D)
 
 ### 23B — Schema ✅ done (2026-05-17)
 
@@ -514,11 +514,14 @@ Built as 3 migrations in `supabase/migrations/`.
 - [x] Re-ran `get_advisors` (security): **zero findings**
 - [ ] (Deferred to 23D) Test RLS behaviour live as admin vs player with real auth users
 
-### 23D — Types & verification
+### 23D — Types & verification ✅ done (2026-05-17)
 
-- [ ] Generate `src/lib/supabase-types.ts` via `supabase gen types typescript --linked`
-- [ ] Verify client connects; test RLS behaviour as admin vs player
-- [ ] Smoke-test a real query from a dev page
+- [x] Generated `src/lib/supabase-types.ts` via `supabase gen types typescript --linked` (1132 lines)
+- [x] Created `src/lib/supabase.ts` typed client + `src/vite-env.d.ts` env typing
+- [x] Dev-only smoke test (`src/lib/supabase-smoke.ts`, called from `main.tsx` under `import.meta.env.DEV`)
+- [x] Verified RLS behaviour — 17-scenario behavioral test (admin / player / outsider / anon; read scoping, write gating, column guards) run in a rolled-back transaction, all PASS
+
+**Phase 23 (backend foundation) complete.** Next: Phase 24 — Auth (magic link).
 
 ## Phase 24 — Auth (magic link)
 
