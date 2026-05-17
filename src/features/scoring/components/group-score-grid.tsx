@@ -443,6 +443,16 @@ export function GroupScoreGrid({
               overlayHoleIdx === holeIdx && overlayPIdx === pIdx
             const events = getHoleEvents(hole.holeNumber, p.id)
             const uniqueTypes = [...new Set(events.map((e) => e.type))]
+            const stbPoints =
+              format === 'stableford' && strokes !== null
+                ? stablefordPointsForHole(
+                    strokes,
+                    hole.par,
+                    p.handicap,
+                    hole.strokeIndex,
+                    totalHoles as 9 | 18
+                  )
+                : null
 
             return (
               <td
@@ -454,7 +464,7 @@ export function GroupScoreGrid({
                   type="button"
                   onClick={() => !readOnly && openOverlay(holeIdx, pIdx)}
                   tabIndex={holeIdx === 0 && pIdx === 0 ? 0 : -1}
-                  aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}${readOnly ? ' (read-only)' : ''}`}
+                  aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes${stbPoints !== null ? `, ${stbPoints} stableford points` : ''}` : ', no score'}${readOnly ? ' (read-only)' : ''}`}
                   aria-disabled={readOnly || undefined}
                   className={`relative flex h-12 w-full min-w-[3rem] items-center justify-center px-1 text-base font-bold tabular-nums transition-all ${
                     readOnly
@@ -464,7 +474,18 @@ export function GroupScoreGrid({
                         : 'hover:ring-primary/30 hover:ring-1'
                   } ${getScoreCellClass(strokes, hole.par)}`}
                 >
-                  {strokes !== null ? strokes : '\u2013'}
+                  {stbPoints !== null ? (
+                    <span className="flex flex-col items-center leading-none">
+                      <span>{stbPoints}</span>
+                      <span className="text-[10px] font-normal opacity-60">
+                        ({strokes})
+                      </span>
+                    </span>
+                  ) : strokes !== null ? (
+                    strokes
+                  ) : (
+                    '\u2013'
+                  )}
                   {/* Side event icons */}
                   {uniqueTypes.length > 0 && (
                     <span
@@ -605,15 +626,19 @@ export function GroupScoreGrid({
           <div className="mt-1 flex gap-2">
             {[...participants]
               .sort((a, b) => {
+                const aHas = a.scorecard.grossTotal > 0
+                const bHas = b.scorecard.grossTotal > 0
                 // Players with scores sort before players without
-                if (a.scorecard.grossTotal === 0 && b.scorecard.grossTotal > 0)
-                  return 1
-                if (b.scorecard.grossTotal === 0 && a.scorecard.grossTotal > 0)
-                  return -1
-                return a.scorecard.grossTotal - b.scorecard.grossTotal
+                if (aHas !== bHas) return aHas ? -1 : 1
+                // Stableford: higher points win; otherwise lower gross wins
+                return format === 'stableford'
+                  ? (b.scorecard.stablefordPoints ?? 0) -
+                      (a.scorecard.stablefordPoints ?? 0)
+                  : a.scorecard.grossTotal - b.scorecard.grossTotal
               })
               .map((p, sortedIdx) => {
-                const isLeading = sortedIdx === 0 && p.scorecard.grossTotal > 0
+                const hasScore = p.scorecard.grossTotal > 0
+                const isLeading = sortedIdx === 0 && hasScore
                 return (
                   <div
                     key={p.id}
@@ -627,10 +652,17 @@ export function GroupScoreGrid({
                       {shortName(p.name)}
                     </span>
                     <span className="text-lg font-bold tabular-nums">
-                      {p.scorecard.grossTotal > 0
-                        ? p.scorecard.grossTotal
-                        : '\u2013'}
+                      {!hasScore
+                        ? '\u2013'
+                        : format === 'stableford'
+                          ? (p.scorecard.stablefordPoints ?? 0)
+                          : p.scorecard.grossTotal}
                     </span>
+                    {format === 'stableford' && hasScore && (
+                      <span className="text-muted-foreground text-[9px] leading-none">
+                        pts
+                      </span>
+                    )}
                   </div>
                 )
               })}
