@@ -439,3 +439,151 @@
 - [x] App shell: tournament header link `py-1` for bigger touch area
 - [x] All dialog footer buttons audited → primary action `h-11` (6 dialogs: create-round, edit-round, create-tournament, edit-tournament, create-course, import-course)
 - [x] Lint clean, build passes, 357 tests across 22 files
+
+---
+
+# Backend Migration (Supabase)
+
+Goal: replace Zustand mock-data stores with a real online backend so the app is usable by a real golf group. Done in vertical slices — after each phase, the app still runs end-to-end with progressively more features wired to Supabase.
+
+**Strategy:**
+
+- Server-owned data → TanStack Query hooks against Supabase (no Zustand cache).
+- UI-only state (dialogs, selectors, filters, role switcher) → stays in Zustand.
+- RLS enforces role-based access on the server (admin vs player), not just in the UI.
+- Schema versioned via Supabase CLI migrations in `supabase/migrations/`.
+- Manual dashboard setup steps tracked in `docs/supabase-setup.md`.
+
+## Phase 23 — Backend foundation
+
+Detailed plan produced 2026-05-17. Split into four sub-phases, smallest/safest
+first. Manual Supabase dashboard setup is complete (see `docs/supabase-setup.md`).
+Schema work runs through the project-scoped Supabase MCP server (`execute_sql` to
+iterate, `get_advisors` to lint, `supabase db pull` to finalize the migration).
+
+### 23A — Client & tooling ✅ done (2026-05-17)
+
+- [x] User completes manual setup in `docs/supabase-setup.md`
+- [x] Install `@supabase/supabase-js`
+- [x] `supabase init` + `supabase link` (project ref `wqksizhcnysvchrvptgz`, West EU / Ireland)
+- [x] Add project-scoped Supabase MCP server to `.mcp.json`
+- [ ] Create `src/lib/supabase.ts` — typed client reading `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from `import.meta.env`
+- [ ] Dev-only smoke test confirming the client connects
+
+### 23B — Schema
+
+~20 tables. Build via `supabase migration new` → iterate with MCP `execute_sql`
+→ finalize with `supabase db pull`.
+
+- **Identity:** `profiles` (mirrors `auth.users`: id, email, display_name, role), `players`, `invites`
+- **Setup:** `countries`, `tournaments`, `courses`, `holes`
+- **Play:** `rounds`, `groups`, `group_members`, `teams`, `team_members`, `scorecards`, `round_approvals`
+- **Activity:** `side_event_logs`, `evidence_images`, `ledger_entries`, `bets`, `bet_participants`, `announcements`, `feed_events`
+
+Locked design decisions:
+
+- `scorecards` store hole strokes as JSONB `int[]`; gross/net/stableford stay computed client-side (server stores raw strokes only).
+- `groups`/`teams` membership via join tables (`group_members`, `team_members`), not `uuid[]` columns — keeps the "write your own group" RLS check a clean `EXISTS`.
+- Roles: `profiles.role` + a `SECURITY DEFINER` helper in a private schema. Never use `user_metadata` for authorization (user-editable).
+- No `trophies` / `round_points` tables — both computed client-side from static defs + scorecards.
+- Postgres native `ENUM` types for status/format/metric fields. UUID PKs (`gen_random_uuid()`), `timestamptz` timestamps.
+
+Round lifecycle (`upcoming → active → pending_approval → completed`):
+
+- Multiple rounds may be `active` at once (the old "one active" rule is dropped). App default = most recent active round.
+- `round_approvals` table records per-player sign-off (`round_id`, `player_id`, `approved_at`, `approved_by`).
+- Auto-activation: `pg_cron` job flips `upcoming → active` 1 hour before `rounds.dateTime`.
+- Trigger: `active → pending_approval` automatically when every scorecard in the round is complete.
+- Trigger: `pending_approval → completed` when all the round's players have approved (or admin force-completes).
+
+- [ ] Create migration; define all tables + enums + FK constraints + indexes
+- [ ] `handle_new_user` trigger to populate `profiles` from `auth.users`
+- [ ] Round-lifecycle triggers + `pg_cron` auto-activation job
+- [ ] Run `get_advisors` (security + performance linter); fix findings
+
+### 23C — RLS
+
+Access model: admin = full; player = read own tournament + write own group's data.
+
+- [ ] Enable RLS on every table in `public`
+- [ ] Private-schema helper functions: `is_admin()`, `current_player_id()`, `is_in_round_group(round_id)`
+- [ ] Per-table policy matrix (SELECT / INSERT / UPDATE / DELETE)
+- [ ] Mind the traps: UPDATE needs a SELECT policy; any views need `security_invoker = true`
+- [ ] Re-run `get_advisors`; resolve all security findings
+
+### 23D — Types & verification
+
+- [ ] Generate `src/lib/supabase-types.ts` via `supabase gen types typescript --linked`
+- [ ] Verify client connects; test RLS behaviour as admin vs player
+- [ ] Smoke-test a real query from a dev page
+
+## Phase 24 — Auth (magic link)
+
+- [ ] Replace mock auth in `src/features/auth/` with Supabase magic link flow
+- [ ] Login page: real `signInWithOtp({ email })` call
+- [ ] Auth guard: real session check via `supabase.auth.getSession()` + `onAuthStateChange`
+- [ ] Logout: `supabase.auth.signOut()`
+- [ ] User → Player linking on first login (resolve invite by email, create player row, set role)
+- [ ] Admin role: bootstrap first user as admin via SQL or invite flow
+- [ ] Tests for auth state transitions (mock the supabase client)
+
+## Phase 25 — Tournaments + Countries + Players
+
+- [ ] TanStack Query hooks: `useTournaments`, `useTournament`, `useActiveTournament`, `useCreateTournament`, `useUpdateTournament`, `useRemoveTournament`, `useSetActiveTournament`
+- [ ] Same for countries + players
+- [ ] Replace `useTournamentStore`, `useCountriesStore`, `usePlayerStore` calls in components
+- [ ] Delete the Zustand server-data stores (keep types files)
+- [ ] Invite flow: create row in `invites` table; magic link signup auto-resolves to player
+- [ ] RLS: admin can create/edit/delete; players read all in their tournament
+- [ ] Tests updated to mock Supabase responses
+
+## Phase 26 — Courses + Rounds + Groups + Teams
+
+- [ ] Same conversion pattern: query hooks + mutations
+- [ ] CSV import → upload course + holes in a single transaction (Postgres function)
+- [ ] Round status transitions enforced via RLS + check constraint (only one `active` per tournament)
+- [ ] Group/team membership tables with FK constraints
+- [ ] Delete the corresponding Zustand stores
+
+## Phase 27 — Scoring
+
+- [ ] Scorecards table: per-player per-round (or per-team for scramble/best-ball)
+- [ ] `hole_strokes` as JSONB column or separate `score_holes` table — decide based on query patterns
+- [ ] Mutation hook `useSetHoleStroke` that writes through to Supabase + invalidates leaderboard queries
+- [ ] Keep client-side calc (gross/net/stableford/points) — server stores raw strokes only
+- [ ] Auto-detected side events: same logic, just persists to `side_event_logs` instead of Zustand
+- [ ] Optimistic updates via `useOptimistic` / TanStack Query optimistic mutations (score entry must feel instant on-course)
+
+## Phase 28 — Side events, penalties, bets, announcements, feed
+
+- [ ] All these entities → query hooks + mutations
+- [ ] Feed page reads from `feed_events` directly (no more local emission)
+- [ ] Bet lifecycle (create/accept/reject/resolve/paid) → mutations + RLS guards
+- [ ] Penalty entries → admin-only mutations
+- [ ] Announcements → admin-only mutations
+- [ ] Delete remaining server-data Zustand stores
+
+## Phase 29 — Real-time (live leaderboards + feed)
+
+- [ ] Subscribe to `feed_events` inserts → invalidate feed queries + show notable-event banner
+- [ ] Subscribe to `scorecards` updates → invalidate leaderboard queries
+- [ ] Subscribe to `bets` + `bet_participants` updates → notification badge on Feed tab
+- [ ] Connection state indicator (offline banner if disconnected)
+- [ ] Cleanup: unsubscribe on unmount; reconnect on focus
+
+## Phase 30 — Storage + polish
+
+- [ ] Upload longest-drive photos to `evidence` bucket
+- [ ] Generate signed URLs (60min TTL) for display
+- [ ] Storage RLS policies: player can upload to own group's events; everyone in tournament can read
+- [ ] Image compression before upload (target <500KB)
+- [ ] Production deploy: update Site URL + redirect URLs in Supabase
+- [ ] Remove demo seed data UI from production builds (keep in dev)
+- [ ] Final test pass + bump test count
+
+## Phase 31 — Decommission mock data
+
+- [ ] Delete `src/lib/demo-data.ts` (or move to `docs/seed.sql` for re-seeding a dev DB)
+- [ ] Delete role switcher (real auth = real role)
+- [ ] Delete any `useXxxStore` shells that are now empty
+- [ ] Final docs pass: README, decisions.md, outline.md (remove "Supabase deferred" note)

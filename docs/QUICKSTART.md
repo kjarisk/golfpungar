@@ -37,7 +37,8 @@ Use the **role switcher** on the Feed page (dev only) to toggle between admin an
 - **Enter**: group-based score entry grid (select your group, persisted across sessions)
 - **Leaderboards**: round/total/gross/net standings, side event leaderboards, tap player to expand scorecard
 - **Rounds**: round list (active/upcoming/completed), course cards with hole data
-- **Players**: player list, invite management
+- **Bets**: create, accept/reject, and track peer-to-peer bets
+- **Players** (header icon): player list, invite management
 
 ## Multi-Tournament
 

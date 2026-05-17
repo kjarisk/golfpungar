@@ -71,12 +71,14 @@ Required columns:
   - Custom team name allowed (editable by team members or admin)
   - Team name changes during active round appear in feed
 - Configure round points model (default top-10, customizable)
-- Round status: upcoming → active → completed
-  - Only one round can be active at a time
-  - Admin controls status transitions
-  - Active round is the default across the app (Enter, Leaderboards)
+- Round status: upcoming → active → pending_approval → completed
+  - Multiple rounds can be active at once; the round dropdown shows each round's status
+  - Admin controls status transitions; a round with a scheduled start time auto-activates 1 hour before start
+  - Round moves to pending_approval automatically once every scorecard is complete
+  - Every player in the round must approve their scores; admin sees the approval roster and can approve on a player's behalf or force-complete the round
+  - The most recent active round is the default across the app (Enter, Leaderboards)
 - Edit round after creation (name, format, groups, teams, status)
-- Completed rounds sort to bottom of round list
+- Completed rounds are locked (admin-only edits) and sort to bottom of round list
 
 ### 4.5 Score Entry
 
@@ -273,7 +275,8 @@ Winner logic:
 - name
 - format
 - holesPlayed
-- status (upcoming | active | completed)
+- dateTime (optional scheduled start; drives 1-hour-before auto-activation)
+- status (upcoming | active | pending_approval | completed)
 
 ### Group
 
@@ -307,6 +310,14 @@ Winner logic:
 - participantId
 - placing
 - pointsAwarded
+
+### RoundApproval
+
+- id
+- roundId
+- playerId
+- approvedAt
+- approvedBy (the player who approved; admin id when overridden)
 
 ### SideEventDefinition
 
@@ -410,7 +421,8 @@ Winner logic:
 ### Admin
 
 - Create and manage tournaments (set active)
-- Create and manage rounds (set status: upcoming/active/completed)
+- Create and manage rounds (set status: upcoming/active/pending_approval/completed)
+- Review and override round approvals (approve on a player's behalf, force-complete a round)
 - Add, edit, remove players
 - Update player handicaps (changes appear in feed)
 - Invite players via email
@@ -421,7 +433,8 @@ Winner logic:
 ### Player
 
 - View active tournament only (plus past tournaments read-only)
-- Enter scores for their group
+- Enter scores for their group (active rounds only)
+- Approve their round's scores once entry is complete
 - Log side events for their group
 - Create and manage their own bets
 - Edit their own profile data
