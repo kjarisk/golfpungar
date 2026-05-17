@@ -537,15 +537,17 @@ Note: tournaments/players/etc. remain Zustand mock data until Phase 25, so
 `useCurrentPlayerId` returns null for a real user until then (personalized
 bits degrade gracefully). The demo seed stays until the data layers migrate.
 
-## Phase 25 — Tournaments + Countries + Players
+## Phase 25 — Tournaments + Countries + Players ✅ done (2026-05-17)
 
-- [ ] TanStack Query hooks: `useTournaments`, `useTournament`, `useActiveTournament`, `useCreateTournament`, `useUpdateTournament`, `useRemoveTournament`, `useSetActiveTournament`
-- [ ] Same for countries + players
-- [ ] Replace `useTournamentStore`, `useCountriesStore`, `usePlayerStore` calls in components
-- [ ] Delete the Zustand server-data stores (keep types files)
-- [ ] Invite flow: create row in `invites` table; magic link signup auto-resolves to player
-- [ ] RLS: admin can create/edit/delete; players read all in their tournament
-- [ ] Tests updated to mock Supabase responses
+Done in 3 commits, sliced by entity (`f99eafc` countries, `fe72426` tournaments,
+`68daeca` players + invites).
+
+- [x] TanStack Query hooks for tournaments, countries, players, invites — each feature now has `api/<entity>-api.ts` + `api/use-<entity>.ts`
+- [x] Replaced all `useTournamentStore` / `useCountriesStore` / `usePlayersStore` calls; deleted the three Zustand server-data stores (kept types files)
+- [x] "Active tournament" = a small Zustand UI-selector store + `useActiveTournament()` deriving a default
+- [x] Invite flow: `sendInvite` writes an `invites` row; magic-link signup auto-resolves via the `handle_new_user` trigger (server-side — no client `acceptInvite`)
+- [x] RLS already enforced (Phase 23C): admin full, players read their tournament's data
+- [x] Tests rewritten against a mocked supabase client; demo-data system retired (`demo-data.ts` deleted, app starts on real data) — 342 tests pass
 
 ## Phase 26 — Courses + Rounds + Groups + Teams
 
