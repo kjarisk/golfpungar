@@ -470,10 +470,10 @@ iterate, `get_advisors` to lint, `supabase db pull` to finalize the migration).
 - [ ] Create `src/lib/supabase.ts` — typed client reading `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from `import.meta.env`
 - [ ] Dev-only smoke test confirming the client connects
 
-### 23B — Schema
+### 23B — Schema ✅ done (2026-05-17)
 
-~20 tables. Build via `supabase migration new` → iterate with MCP `execute_sql`
-→ finalize with `supabase db pull`.
+21 tables, built via 4 MCP `apply_migration` calls and synced to local files in
+`supabase/migrations/` (`supabase migration list` confirms local ↔ remote match).
 
 - **Identity:** `profiles` (mirrors `auth.users`: id, email, display_name, role), `players`, `invites`
 - **Setup:** `countries`, `tournaments`, `courses`, `holes`
@@ -496,16 +496,17 @@ Round lifecycle (`upcoming → active → pending_approval → completed`):
 - Trigger: `active → pending_approval` automatically when every scorecard in the round is complete.
 - Trigger: `pending_approval → completed` when all the round's players have approved (or admin force-completes).
 
-- [ ] Create migration; define all tables + enums + FK constraints + indexes
-- [ ] `handle_new_user` trigger to populate `profiles` from `auth.users`
-- [ ] Round-lifecycle triggers + `pg_cron` auto-activation job
-- [ ] Run `get_advisors` (security + performance linter); fix findings
+- [x] Migrations define all 21 tables + 11 enums + FK/check constraints + FK indexes
+- [x] `handle_new_user` trigger to populate `profiles` from `auth.users`
+- [x] Round-lifecycle triggers (`active→pending_approval`, `pending_approval→completed`) + `pg_cron` auto-activation job
+- [x] Ran `get_advisors`: no ERROR/WARN findings. Remaining INFO lints are `rls_enabled_no_policy` (×21, resolved in 23C) and `unused_index` (×37, false-positive on an empty DB)
+- [x] RLS **enabled** on all 21 tables already (in 23B, to avoid an anon-access window); 23C only needs to add the policies
 
 ### 23C — RLS
 
 Access model: admin = full; player = read own tournament + write own group's data.
 
-- [ ] Enable RLS on every table in `public`
+- [x] Enable RLS on every table in `public` (done in 23B)
 - [ ] Private-schema helper functions: `is_admin()`, `current_player_id()`, `is_in_round_group(round_id)`
 - [ ] Per-table policy matrix (SELECT / INSERT / UPDATE / DELETE)
 - [ ] Mind the traps: UPDATE needs a SELECT policy; any views need `security_invoker = true`
