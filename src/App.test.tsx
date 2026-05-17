@@ -23,7 +23,7 @@ describe('App', () => {
     expect(navLabels.some((l) => l.includes('Enter'))).toBe(true)
     expect(navLabels.some((l) => l.includes('Leaders'))).toBe(true)
     expect(navLabels.some((l) => l.includes('Rounds'))).toBe(true)
-    expect(navLabels.some((l) => l.includes('Players'))).toBe(true)
+    expect(navLabels.some((l) => l.includes('Bets'))).toBe(true)
   })
 
   it('shows the feed page with tournament name by default', () => {

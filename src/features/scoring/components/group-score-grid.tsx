@@ -25,6 +25,7 @@ import type { Player } from '@/features/players/types'
 import type { SideEventLog, SideEventType } from '@/features/side-events'
 import { stablefordPointsForHole } from '@/features/scoring/lib/scoring-calc'
 import { Minus, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 import { useIsMobile } from '@/hooks/use-is-mobile'
 
@@ -455,7 +456,7 @@ export function GroupScoreGrid({
                   tabIndex={holeIdx === 0 && pIdx === 0 ? 0 : -1}
                   aria-label={`Hole ${hole.holeNumber}, ${p.name}${strokes !== null ? `, ${strokes} strokes` : ', no score'}${readOnly ? ' (read-only)' : ''}`}
                   aria-disabled={readOnly || undefined}
-                  className={`relative flex w-full min-w-[2.8rem] items-center justify-center px-1 py-1.5 text-sm font-bold tabular-nums transition-all ${
+                  className={`relative flex h-12 w-full min-w-[3rem] items-center justify-center px-1 text-base font-bold tabular-nums transition-all ${
                     readOnly
                       ? 'cursor-default'
                       : isHighlighted
@@ -709,9 +710,23 @@ export function GroupScoreGrid({
           overlayHoleIdx !== null &&
           decrementStroke(overlayHoleIdx, overlayPIdx)
         }
-        onSetStroke={(n) =>
-          overlayHoleIdx !== null && setStroke(overlayHoleIdx, overlayPIdx, n)
-        }
+        onSetStroke={(n) => {
+          if (overlayHoleIdx === null) return
+          const holeIdx = overlayHoleIdx
+          const pIdx = overlayPIdx
+          setStroke(holeIdx, pIdx, n)
+          toast.success(`Saved · ${n}`, { duration: 1000 })
+          // Advance: next participant on same hole with no score, else next hole
+          const nextOnHole = participants.findIndex(
+            (p, i) => i !== pIdx && p.scorecard.holeStrokes[holeIdx] === null
+          )
+          if (nextOnHole !== -1) {
+            setOverlayPIdx(nextOnHole)
+          } else if (holeIdx < totalHoles - 1) {
+            setOverlayHoleIdx(holeIdx + 1)
+            setOverlayPIdx(0)
+          }
+        }}
         onPrevHole={() =>
           overlayHoleIdx !== null &&
           overlayHoleIdx > 0 &&

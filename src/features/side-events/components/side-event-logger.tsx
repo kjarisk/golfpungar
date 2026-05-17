@@ -123,7 +123,7 @@ export function SideEventLogger({
   const getLastSnakeInGroup = useSideEventsStore((s) => s.getLastSnakeInGroup)
   const user = useAuthStore((s) => s.user)
 
-  const [selectedHole, setSelectedHole] = useState<number | null>(null)
+  const [selectedHole, setSelectedHole] = useState<number | null>(1)
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>('')
   const [valueMeters, setValueMeters] = useState<string>('')
   /** Which value-input panel is currently open (null = hidden) */

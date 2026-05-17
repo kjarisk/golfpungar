@@ -14,6 +14,7 @@ coverage
 *.local
 screenshots
 moodboard
+.playwright-mcp
 
 # Editor directories and files
 .vscode/*

@@ -466,8 +466,8 @@ export function FeedPage() {
                       </div>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 text-green-600 hover:text-green-700"
+                        size="icon"
+                        className="size-11 text-green-600 hover:text-green-700"
                         onClick={() => {
                           acceptBet(bet.id, currentPlayer.id)
                           toast('Bet accepted!')
@@ -478,8 +478,8 @@ export function FeedPage() {
                       </Button>
                       <Button
                         variant="ghost"
-                        size="sm"
-                        className="h-9 w-9 p-0 text-red-600 hover:text-red-700"
+                        size="icon"
+                        className="size-11 text-red-600 hover:text-red-700"
                         onClick={() => {
                           rejectBet(bet.id, currentPlayer.id)
                           toast('Bet rejected.')

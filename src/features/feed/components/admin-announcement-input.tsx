@@ -38,16 +38,11 @@ export function AdminAnnouncementInput({
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder="Post an announcement..."
-        className="flex-1"
+        className="h-11 flex-1"
         aria-label="Announcement message"
       />
-      <Button
-        type="submit"
-        size="sm"
-        disabled={!message.trim()}
-        className="gap-1.5"
-      >
-        <Send className="size-3.5" aria-hidden="true" />
+      <Button type="submit" disabled={!message.trim()} className="h-11 gap-1.5">
+        <Send className="size-4" aria-hidden="true" />
         Post
       </Button>
     </form>
