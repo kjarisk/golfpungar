@@ -502,15 +502,17 @@ Round lifecycle (`upcoming → active → pending_approval → completed`):
 - [x] Ran `get_advisors`: no ERROR/WARN findings. Remaining INFO lints are `rls_enabled_no_policy` (×21, resolved in 23C) and `unused_index` (×37, false-positive on an empty DB)
 - [x] RLS **enabled** on all 21 tables already (in 23B, to avoid an anon-access window); 23C only needs to add the policies
 
-### 23C — RLS
+### 23C — RLS ✅ done (2026-05-17)
 
 Access model: admin = full; player = read own tournament + write own group's data.
+Built as 3 migrations in `supabase/migrations/`.
 
 - [x] Enable RLS on every table in `public` (done in 23B)
-- [ ] Private-schema helper functions: `is_admin()`, `current_player_id()`, `is_in_round_group(round_id)`
-- [ ] Per-table policy matrix (SELECT / INSERT / UPDATE / DELETE)
-- [ ] Mind the traps: UPDATE needs a SELECT policy; any views need `security_invoker = true`
-- [ ] Re-run `get_advisors`; resolve all security findings
+- [x] Private-schema helpers: `is_admin()`, `is_tournament_member(tournament_id)`, `is_in_round_group(round_id)`, `owns_player(player_id)`, `round_has_status(round_id, status)` — `current_player_id()` was dropped (players are per-tournament, so no single global player id; `owns_player()` covers the need)
+- [x] Per-table policy matrix — 84 policies, one per action per table (admin folded in with `OR`, so no overlapping permissives)
+- [x] Column-guard `BEFORE UPDATE` triggers on `players` + `teams` (RLS gates rows, not columns; non-admins limited to name/nickname / team-name)
+- [x] Re-ran `get_advisors` (security): **zero findings**
+- [ ] (Deferred to 23D) Test RLS behaviour live as admin vs player with real auth users
 
 ### 23D — Types & verification
 
