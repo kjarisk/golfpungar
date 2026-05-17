@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { parseCourseCSV, useCoursesStore } from '@/features/courses'
+import { parseCourseCSV, useCreateCourse } from '@/features/courses'
 import type { CsvParseResult } from '@/features/courses'
 import { CountrySelect } from '@/features/countries/components/country-select'
 import { Upload, CheckCircle, AlertCircle, FileSpreadsheet } from 'lucide-react'
@@ -26,7 +27,7 @@ export function ImportCourseDialog({
   onOpenChange,
   tournamentId,
 }: ImportCourseDialogProps) {
-  const addCourse = useCoursesStore((s) => s.addCourse)
+  const createCourse = useCreateCourse()
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [courseName, setCourseName] = useState('')
@@ -59,16 +60,21 @@ export function ImportCourseDialog({
     reader.readAsText(file)
   }
 
-  function handleImport() {
+  async function handleImport() {
     if (!parseResult || !courseName.trim()) return
 
-    addCourse(
-      tournamentId,
-      courseName.trim(),
-      parseResult.holes,
-      'csv',
-      countryId
-    )
+    try {
+      await createCourse.mutateAsync({
+        tournamentId,
+        name: courseName.trim(),
+        holes: parseResult.holes,
+        source: 'csv',
+        countryId,
+      })
+    } catch {
+      toast.error('Could not import course')
+      return
+    }
 
     // Reset
     setCourseName('')
@@ -222,10 +228,12 @@ export function ImportCourseDialog({
             <Button
               type="button"
               className="h-11"
-              onClick={handleImport}
-              disabled={!parseResult || !courseName.trim()}
+              onClick={() => void handleImport()}
+              disabled={
+                !parseResult || !courseName.trim() || createCourse.isPending
+              }
             >
-              Import Course
+              {createCourse.isPending ? 'Importing…' : 'Import Course'}
             </Button>
           </DialogFooter>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useCoursesStore } from '@/features/courses'
+import { useCreateCourse } from '@/features/courses'
 import { CountrySelect } from '@/features/countries/components/country-select'
 import { Plus } from 'lucide-react'
 import type { ParsedHole } from '@/features/courses'
@@ -47,7 +48,7 @@ export function CreateCourseDialog({
   onOpenChange,
   tournamentId,
 }: CreateCourseDialogProps) {
-  const addCourse = useCoursesStore((s) => s.addCourse)
+  const createCourse = useCreateCourse()
 
   const [name, setName] = useState('')
   const [countryId, setCountryId] = useState<string | undefined>(undefined)
@@ -95,7 +96,7 @@ export function CreateCourseDialog({
     return validate().length === 0
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit()) return
 
     const parsedHoles: ParsedHole[] = holes.map((h, i) => ({
@@ -104,8 +105,18 @@ export function CreateCourseDialog({
       strokeIndex: h.strokeIndex as number,
     }))
 
-    addCourse(tournamentId, name.trim(), parsedHoles, 'manual', countryId)
-    handleClose(false)
+    try {
+      await createCourse.mutateAsync({
+        tournamentId,
+        name: name.trim(),
+        holes: parsedHoles,
+        source: 'manual',
+        countryId,
+      })
+      handleClose(false)
+    } catch {
+      toast.error('Could not create course')
+    }
   }
 
   function handleClose(openState: boolean) {
@@ -200,11 +211,11 @@ export function CreateCourseDialog({
           </Button>
           <Button
             className="h-11"
-            onClick={handleSubmit}
-            disabled={!canSubmit()}
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit() || createCourse.isPending}
           >
             <Plus className="size-4" />
-            Create Course
+            {createCourse.isPending ? 'Creating…' : 'Create Course'}
           </Button>
         </DialogFooter>
       </DialogContent>

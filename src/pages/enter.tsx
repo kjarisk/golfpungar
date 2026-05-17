@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { useActiveTournament } from '@/features/tournament'
 import { useRoundsStore } from '@/features/rounds'
-import { useCoursesStore } from '@/features/courses'
+import { useCourses, useHolesByCourse } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
 import { useScoringStore } from '@/features/scoring'
 import { GroupScoreGrid } from '@/features/scoring/components/group-score-grid'
@@ -55,12 +55,11 @@ export function EnterPage() {
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
   const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
-  const getHoles = useCoursesStore((s) => s.getHolesByCourse)
   const allScorecards = useScoringStore((s) => s.scorecards)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
   const createScorecard = useScoringStore((s) => s.createScorecard)
-  const allCourses = useCoursesStore((s) => s.courses)
+  const { data: allCourses = [] } = useCourses()
   const sideEvents = useSideEventsStore((s) => s.events)
   const authUser = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
@@ -84,7 +83,7 @@ export function EnterPage() {
   const effectiveRoundId = selectedRoundId || defaultRoundId
 
   const selectedRound = rounds.find((r) => r.id === effectiveRoundId)
-  const holes = selectedRound ? getHoles(selectedRound.courseId) : []
+  const holes = useHolesByCourse(selectedRound?.courseId)
   const coursePar = holes.reduce((s, h) => s + h.par, 0)
   const groups = selectedRound ? getGroupsByRound(selectedRound.id) : []
   const teams = selectedRound ? getTeamsByRound(selectedRound.id) : []

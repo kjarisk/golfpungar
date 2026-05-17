@@ -26,7 +26,7 @@ import {
   SideEventBadges,
 } from '@/features/scoring'
 import { useSideEventsStore, EvidenceGallery } from '@/features/side-events'
-import { useCoursesStore } from '@/features/courses'
+import { useHoles } from '@/features/courses'
 import { usePenaltiesStore } from '@/features/penalties'
 import { useBettingStore } from '@/features/betting'
 import { computeTrophyStandings, RoadToWinner } from '@/features/trophies'
@@ -107,7 +107,14 @@ export function LeaderboardsPage() {
   const playerIds = players.map((p) => p.id)
 
   // Course + holes for scorecard detail view
-  const getHolesByCourse = useCoursesStore((s) => s.getHolesByCourse)
+  const { data: allHoles = [] } = useHoles()
+  const getHolesByCourse = useCallback(
+    (courseId: string) =>
+      allHoles
+        .filter((h) => h.courseId === courseId)
+        .sort((a, b) => a.holeNumber - b.holeNumber),
+    [allHoles]
+  )
   const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
 
   const toggleExpand = useCallback((playerId: string) => {

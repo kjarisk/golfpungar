@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { useCoursesStore } from '@/features/courses'
+import { useCoursesByTournament, useHoles } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useTournament } from '@/features/tournament'
@@ -71,16 +71,16 @@ export function CreateRoundDialog({
   onOpenChange,
   tournamentId,
 }: CreateRoundDialogProps) {
-  const getCoursesByTournament = useCoursesStore(
-    (s) => s.getCoursesByTournament
-  )
-  const getHoles = useCoursesStore((s) => s.getHolesByCourse)
+  const courses = useCoursesByTournament(tournamentId)
+  const { data: allHoles = [] } = useHoles()
+  const getHoles = (courseId: string) =>
+    allHoles
+      .filter((h) => h.courseId === courseId)
+      .sort((a, b) => a.holeNumber - b.holeNumber)
   const players = useActivePlayers(tournamentId)
   const createRound = useRoundsStore((s) => s.createRound)
   const tournament = useTournament(tournamentId)
   const { data: countries = [] } = useCountries()
-
-  const courses = getCoursesByTournament(tournamentId)
   // Separate courses into tournament country vs. others
   const tournamentCountryId = tournament?.countryId
   const countryCourses = tournamentCountryId

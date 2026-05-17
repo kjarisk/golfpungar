@@ -10,7 +10,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { useActiveTournament } from '@/features/tournament'
-import { useCoursesStore } from '@/features/courses'
+import { useCoursesByTournament, useHoles } from '@/features/courses'
 import { CourseCard } from '@/features/courses/components/course-card'
 import { ImportCourseDialog } from '@/features/courses/components/import-course-dialog'
 import { CreateCourseDialog } from '@/features/courses/components/create-course-dialog'
@@ -62,10 +62,12 @@ const STATUS_LABEL: Record<RoundStatus, string> = {
 export function RoundsPage() {
   const tournament = useActiveTournament()
   const isAdmin = useIsAdmin()
-  const getCoursesByTournament = useCoursesStore(
-    (s) => s.getCoursesByTournament
-  )
-  const getHoles = useCoursesStore((s) => s.getHolesByCourse)
+  const courses = useCoursesByTournament(tournament?.id)
+  const { data: allHoles = [] } = useHoles()
+  const getHoles = (courseId: string) =>
+    allHoles
+      .filter((h) => h.courseId === courseId)
+      .sort((a, b) => a.holeNumber - b.holeNumber)
   const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
   const getGroups = useRoundsStore((s) => s.getGroupsByRound)
   const getTeams = useRoundsStore((s) => s.getTeamsByRound)
@@ -75,7 +77,6 @@ export function RoundsPage() {
   const restoreRound = useRoundsStore((s) => s.restoreRound)
   const { data: countries = [] } = useCountries()
 
-  const courses = tournament ? getCoursesByTournament(tournament.id) : []
   const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
   const rounds = sortRounds(rawRounds)
   const deletedRounds = tournament ? getDeletedRounds(tournament.id) : []
