@@ -19,7 +19,6 @@ import { useBettingStore } from '@/features/betting'
 import { useCoursesStore } from '@/features/courses'
 import { useTournamentStore } from '@/features/tournament'
 import { usePlayersStore } from '@/features/players'
-import { useCountriesStore } from '@/features/countries'
 import type { RoundFormat } from '@/features/rounds'
 import type { Player } from '@/features/players'
 import type { Tournament } from '@/features/tournament'
@@ -830,32 +829,14 @@ export function seedDemoData(): void {
   const holesSpain = useCoursesStore.getState().getHolesByCourse(COURSE_SPAIN)
 
   // -----------------------------------------------------------------------
-  // 0. Add countries, past tournament, extra players, and Portugal course
+  // 0. Past tournament, extra players, and Portugal course
   // -----------------------------------------------------------------------
-
-  // Add countries
-  const countriesStore = useCountriesStore.getState()
-  const spain = countriesStore.addCountry('Spain')
-  const portugal = countriesStore.addCountry('Portugal')
-
-  // Set country on active tournament (Spain 2026)
-  useTournamentStore.getState().updateTournament(T1, {
-    countryId: spain?.id,
-  })
-
-  // Set country on existing Los Naranjos course (Spain)
-  useCoursesStore.setState((s) => ({
-    courses: s.courses.map((c) =>
-      c.id === COURSE_SPAIN ? { ...c, countryId: spain?.id } : c
-    ),
-  }))
 
   // Add Portugal 2025 tournament
   const pastTournament: Tournament = {
     id: T2,
     name: 'Portugal 2025',
     location: 'Vilamoura, Portugal',
-    countryId: portugal?.id,
     startDate: '2025-09-10',
     endDate: '2025-09-14',
     status: 'done',
@@ -925,7 +906,6 @@ export function seedDemoData(): void {
     id: COURSE_PORTUGAL,
     tournamentId: T2,
     name: 'Quinta do Lago South',
-    countryId: portugal?.id,
     source: 'csv',
     createdAt: '2025-08-20T10:00:00Z',
   }
@@ -1358,9 +1338,6 @@ export function clearDemoData(): void {
     courses: s.courses.filter((c) => c.id === 'course-001'),
     holes: s.holes.filter((h) => h.courseId === 'course-001'),
   }))
-
-  // Clear countries
-  useCountriesStore.setState({ countries: [] })
 }
 
 // ---------------------------------------------------------------------------

@@ -20,7 +20,7 @@ import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
 import { RoundCompletionDialog } from '@/features/rounds/components/round-completion-dialog'
 import { usePlayersStore } from '@/features/players'
-import { useCountriesStore } from '@/features/countries'
+import { useCountries } from '@/features/countries'
 import {
   Upload,
   Plus,
@@ -75,7 +75,7 @@ export function RoundsPage() {
   const restoreRound = useRoundsStore((s) => s.restoreRound)
   const getActivePlayers = usePlayersStore((s) => s.getActivePlayers)
 
-  const countries = useCountriesStore((s) => s.countries)
+  const { data: countries = [] } = useCountries()
 
   const courses = tournament ? getCoursesByTournament(tournament.id) : []
   const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []

@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useTournamentStore } from '@/features/tournament'
-import { useCountriesStore } from '@/features/countries'
+import { useCountries } from '@/features/countries'
 import { TournamentStatusBadge } from './tournament-status-badge'
 import { EditTournamentDialog } from './edit-tournament-dialog'
 import { useIsAdmin } from '@/hooks/use-is-admin'
@@ -50,7 +50,7 @@ export function TournamentList({ onSelect }: TournamentListProps) {
   const setActiveTournament = useTournamentStore((s) => s.setActiveTournament)
   const setStatus = useTournamentStore((s) => s.setStatus)
   const removeTournament = useTournamentStore((s) => s.removeTournament)
-  const countries = useCountriesStore((s) => s.countries)
+  const { data: countries = [] } = useCountries()
   const isAdmin = useIsAdmin()
 
   const [editTournament, setEditTournament] = useState<Tournament | null>(null)

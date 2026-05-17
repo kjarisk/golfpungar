@@ -23,7 +23,7 @@ import { useCoursesStore } from '@/features/courses'
 import { usePlayersStore } from '@/features/players'
 import { useRoundsStore } from '@/features/rounds'
 import { useTournamentStore } from '@/features/tournament'
-import { useCountriesStore } from '@/features/countries'
+import { useCountries } from '@/features/countries'
 import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { RoundFormat } from '@/features/rounds'
 import { PointsTableEditor } from './points-table-editor'
@@ -80,7 +80,7 @@ export function CreateRoundDialog({
   const tournament = useTournamentStore((s) =>
     s.tournaments.find((t) => t.id === tournamentId)
   )
-  const countries = useCountriesStore((s) => s.countries)
+  const { data: countries = [] } = useCountries()
 
   const courses = getCoursesByTournament(tournamentId)
   // Separate courses into tournament country vs. others

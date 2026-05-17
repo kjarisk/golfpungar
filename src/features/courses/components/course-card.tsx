@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import type { Course, Hole } from '@/features/courses'
-import { useCountriesStore } from '@/features/countries'
+import { useCountries } from '@/features/countries'
 
 interface CourseCardProps {
   course: Course
@@ -10,7 +10,7 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, holes, onClick }: CourseCardProps) {
-  const countries = useCountriesStore((s) => s.countries)
+  const { data: countries = [] } = useCountries()
   const country = course.countryId
     ? countries.find((c) => c.id === course.countryId)
     : undefined
