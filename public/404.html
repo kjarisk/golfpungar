@@ -6,7 +6,7 @@
     <script>
       // SPA redirect for GitHub Pages
       // Converts the path to a query string so index.html can handle it
-      var pathSegmentsToKeep = 1; // /golfpungar/ = 1 segment
+      var pathSegmentsToKeep = 0; // root deploy = 0 segments
       var l = window.location;
       l.replace(
         l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +

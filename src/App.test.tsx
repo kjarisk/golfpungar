@@ -4,8 +4,7 @@ import App from './App'
 
 describe('App', () => {
   beforeEach(() => {
-    // Set URL to match BrowserRouter basename for GitHub Pages
-    window.history.pushState({}, '', '/golfpungar/feed')
+    window.history.pushState({}, '', '/feed')
   })
 
   it('renders the app shell with bottom navigation', () => {

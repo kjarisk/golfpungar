@@ -22,7 +22,7 @@ if (!isDemoSeeded()) {
 
 function App() {
   return (
-    <BrowserRouter basename="/golfpungar">
+    <BrowserRouter>
       <Routes>
         {/* Login — outside AppShell, no bottom nav */}
         <Route path="login" element={<LoginPage />} />

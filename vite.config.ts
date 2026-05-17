@@ -6,7 +6,7 @@ import { resolve } from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/golfpungar/',
+  base: '/',
   plugins: [
     react(),
     tailwindcss(),
@@ -20,8 +20,8 @@ export default defineConfig({
         theme_color: '#16a34a',
         background_color: '#09090b',
         display: 'standalone',
-        scope: '/golfpungar/',
-        start_url: '/golfpungar/',
+        scope: '/',
+        start_url: '/',
         icons: [
           {
             src: 'icon.svg',
