@@ -549,13 +549,16 @@ Done in 3 commits, sliced by entity (`f99eafc` countries, `fe72426` tournaments,
 - [x] RLS already enforced (Phase 23C): admin full, players read their tournament's data
 - [x] Tests rewritten against a mocked supabase client; demo-data system retired (`demo-data.ts` deleted, app starts on real data) — 342 tests pass
 
-## Phase 26 — Courses + Rounds + Groups + Teams
+## Phase 26 — Courses + Rounds + Groups + Teams ✅ done (2026-05-19)
 
-- [ ] Same conversion pattern: query hooks + mutations
-- [ ] CSV import → upload course + holes in a single transaction (Postgres function)
-- [ ] Round status transitions enforced via RLS + check constraint (only one `active` per tournament)
-- [ ] Group/team membership tables with FK constraints
-- [ ] Delete the corresponding Zustand stores
+Done in 2 commits (`7e53d99` courses + holes, `bfb3e6e` rounds + groups + teams).
+
+- [x] Query hooks + mutations for courses, holes, rounds, groups, teams (`api/` layer per feature)
+- [x] CSV/manual course creation inserts course + holes; a holes-insert failure compensates by deleting the course (effective atomicity without an RPC)
+- [x] Groups/teams membership via the `group_members` / `team_members` join tables — `fetchGroups`/`fetchTeams` use nested selects and assemble `playerIds[]`
+- [x] `RoundStatus` extended to the 4-value DB enum (`upcoming | active | pending_approval | completed`); the "one active round" rule is dropped (lifecycle redesign — multiple may be active)
+- [x] Deleted the courses + rounds Zustand stores; `scoring-store` reads the rounds query cache via the shared `queryClient`
+- [x] api-layer tests vs a mocked supabase client — 327 tests pass
 
 ## Phase 27 — Scoring
 
