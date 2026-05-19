@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +22,14 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { useCoursesByTournament, useHoles } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
-import { useRoundsStore } from '@/features/rounds'
+import {
+  useGroupsByRound,
+  useTeamsByRound,
+  useUpdateRound,
+  useUpdateGroups,
+  useAddTeamsToRound,
+  useRemoveTeamsByRound,
+} from '@/features/rounds'
 import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
 import type { Round, RoundFormat } from '@/features/rounds'
 import { PointsTableEditor } from './points-table-editor'
@@ -132,12 +140,12 @@ function EditRoundForm({
   round: Round
   onOpenChange: (open: boolean) => void
 }) {
-  const updateRound = useRoundsStore((s) => s.updateRound)
-  const updateGroups = useRoundsStore((s) => s.updateGroups)
-  const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
-  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
-  const addTeamsToRound = useRoundsStore((s) => s.addTeamsToRound)
-  const removeTeamsByRound = useRoundsStore((s) => s.removeTeamsByRound)
+  const updateRound = useUpdateRound()
+  const updateGroups = useUpdateGroups()
+  const addTeamsToRound = useAddTeamsToRound()
+  const removeTeamsByRound = useRemoveTeamsByRound()
+  const existingGroups = useGroupsByRound(round.id)
+  const existingTeams = useTeamsByRound(round.id)
   const courses = useCoursesByTournament(round.tournamentId)
   const { data: allHoles = [] } = useHoles()
   const getHoles = (courseId: string) =>
@@ -147,8 +155,6 @@ function EditRoundForm({
   const players = useActivePlayers(round.tournamentId)
 
   // Initialize groups from existing data
-  const existingGroups = getGroupsByRound(round.id)
-  const existingTeams = getTeamsByRound(round.id)
   const initialGroups: GroupDraft[] =
     existingGroups.length > 0
       ? existingGroups.map((g) => ({
@@ -264,7 +270,13 @@ function EditRoundForm({
     return hasPlayers
   }
 
-  function handleSubmit() {
+  const isSaving =
+    updateRound.isPending ||
+    updateGroups.isPending ||
+    addTeamsToRound.isPending ||
+    removeTeamsByRound.isPending
+
+  async function handleSubmit() {
     if (!canSubmit()) return
 
     // Check if points table differs from default
@@ -272,34 +284,46 @@ function EditRoundForm({
       pointsTable.length === DEFAULT_POINTS.length &&
       pointsTable.every((p, i) => p === DEFAULT_POINTS[i])
 
-    // Update round fields
-    updateRound(round.id, {
-      name: name.trim(),
-      format,
-      holesPlayed,
-      courseId,
-      dateTime: dateTime || undefined,
-      pointsTable: isDefaultPoints ? undefined : pointsTable,
-    })
-
-    // Update groups (replace all groups for this round)
     const validGroups = groups
       .filter((g) => g.playerIds.length > 0)
       .map((g) => ({ name: g.name, playerIds: g.playerIds }))
-    updateGroups(round.id, validGroups)
 
-    // Update teams: remove old, add new (if team format)
-    removeTeamsByRound(round.id)
-    if (isTeamFormat) {
-      const teamInputs = teamConfigs.flatMap((cfg) =>
-        cfg.teams.map((t) => ({
-          name: t.name,
-          playerIds: [...t.playerIds],
-        }))
-      )
-      if (teamInputs.length > 0) {
-        addTeamsToRound(round.id, teamInputs)
+    try {
+      // Update round fields
+      await updateRound.mutateAsync({
+        roundId: round.id,
+        input: {
+          name: name.trim(),
+          format,
+          holesPlayed,
+          courseId,
+          dateTime: dateTime || undefined,
+          pointsTable: isDefaultPoints ? undefined : pointsTable,
+        },
+      })
+
+      // Update groups (replace all groups for this round)
+      await updateGroups.mutateAsync({ roundId: round.id, groups: validGroups })
+
+      // Update teams: remove old, add new (if team format)
+      await removeTeamsByRound.mutateAsync(round.id)
+      if (isTeamFormat) {
+        const teamInputs = teamConfigs.flatMap((cfg) =>
+          cfg.teams.map((t) => ({
+            name: t.name,
+            playerIds: [...t.playerIds],
+          }))
+        )
+        if (teamInputs.length > 0) {
+          await addTeamsToRound.mutateAsync({
+            roundId: round.id,
+            teams: teamInputs,
+          })
+        }
       }
+    } catch {
+      toast.error('Failed to save round changes')
+      return
     }
 
     onOpenChange(false)
@@ -571,8 +595,12 @@ function EditRoundForm({
         >
           Cancel
         </Button>
-        <Button className="h-11" onClick={handleSubmit} disabled={!canSubmit()}>
-          Save Changes
+        <Button
+          className="h-11"
+          onClick={handleSubmit}
+          disabled={!canSubmit() || isSaving}
+        >
+          {isSaving ? 'Saving…' : 'Save Changes'}
         </Button>
       </DialogFooter>
     </>

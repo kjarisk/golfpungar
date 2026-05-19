@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -21,7 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { useCoursesByTournament, useHoles } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
-import { useRoundsStore } from '@/features/rounds'
+import { useCreateRound } from '@/features/rounds'
 import { useTournament } from '@/features/tournament'
 import { useCountries } from '@/features/countries'
 import { DEFAULT_POINTS } from '@/features/scoring/lib/points-calc'
@@ -78,7 +79,7 @@ export function CreateRoundDialog({
       .filter((h) => h.courseId === courseId)
       .sort((a, b) => a.holeNumber - b.holeNumber)
   const players = useActivePlayers(tournamentId)
-  const createRound = useRoundsStore((s) => s.createRound)
+  const createRound = useCreateRound()
   const tournament = useTournament(tournamentId)
   const { data: countries = [] } = useCountries()
   // Separate courses into tournament country vs. others
@@ -198,7 +199,7 @@ export function CreateRoundDialog({
     return hasPlayers
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!canSubmit()) return
 
     // Filter out empty groups
@@ -221,16 +222,24 @@ export function CreateRoundDialog({
         )
       : undefined
 
-    createRound(tournamentId, {
-      courseId,
-      name: name.trim(),
-      dateTime: dateTime || undefined,
-      format,
-      holesPlayed,
-      pointsTable: isDefaultPoints ? undefined : pointsTable,
-      groups: validGroups,
-      teams: teams && teams.length > 0 ? teams : undefined,
-    })
+    try {
+      await createRound.mutateAsync({
+        tournamentId,
+        input: {
+          courseId,
+          name: name.trim(),
+          dateTime: dateTime || undefined,
+          format,
+          holesPlayed,
+          pointsTable: isDefaultPoints ? undefined : pointsTable,
+          groups: validGroups,
+          teams: teams && teams.length > 0 ? teams : undefined,
+        },
+      })
+    } catch {
+      toast.error('Failed to create round')
+      return
+    }
 
     handleClose(false)
   }
@@ -545,9 +554,9 @@ export function CreateRoundDialog({
           <Button
             className="h-11"
             onClick={handleSubmit}
-            disabled={!canSubmit()}
+            disabled={!canSubmit() || createRound.isPending}
           >
-            Create Round
+            {createRound.isPending ? 'Creating…' : 'Create Round'}
           </Button>
         </DialogFooter>
       </DialogContent>

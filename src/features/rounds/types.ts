@@ -1,5 +1,9 @@
 export type RoundFormat = 'scramble' | 'stableford' | 'bestball' | 'handicap'
-export type RoundStatus = 'upcoming' | 'active' | 'completed'
+export type RoundStatus =
+  | 'upcoming'
+  | 'active'
+  | 'pending_approval'
+  | 'completed'
 
 export interface Round {
   id: string

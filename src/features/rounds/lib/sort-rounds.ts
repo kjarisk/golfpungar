@@ -1,10 +1,11 @@
 import type { Round, RoundStatus } from '../types'
 
-/** Status sort priority: active first, upcoming next, completed last */
+/** Status sort priority: active first, then upcoming, pending, completed last */
 const STATUS_ORDER: Record<RoundStatus, number> = {
   active: 0,
   upcoming: 1,
-  completed: 2,
+  pending_approval: 2,
+  completed: 3,
 }
 
 /**

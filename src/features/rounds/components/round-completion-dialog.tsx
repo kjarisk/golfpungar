@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import { usePlayers } from '@/features/players'
-import { useRoundsStore } from '@/features/rounds'
+import { useTeamsByRound } from '@/features/rounds'
 import { computeRoundLeaderboard } from '@/lib/leaderboard-calc'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 import { CheckCircle, Trophy, Sparkles } from 'lucide-react'
@@ -47,12 +47,11 @@ export function RoundCompletionDialog({
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const sideEvents = useSideEventsStore((s) => s.events)
   const { data: players = [] } = usePlayers()
-  const getTeams = useRoundsStore((s) => s.getTeamsByRound)
+  const teams = useTeamsByRound(round.id)
 
   // Get scorecards and points for this round
   const roundScorecards = scorecards.filter((sc) => sc.roundId === round.id)
   const roundPoints = allRoundPoints.filter((rp) => rp.roundId === round.id)
-  const teams = getTeams(round.id)
   const isTeamFormat =
     round.format === 'scramble' || round.format === 'bestball'
 

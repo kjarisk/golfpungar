@@ -1,12 +1,12 @@
 import { useActiveTournament } from '@/features/tournament'
-import { useRoundsStore } from '@/features/rounds'
+import { useActiveRound as useActiveRoundForTournament } from '@/features/rounds'
 
 /**
  * Returns the currently active round for the active tournament, if any.
- * An active round has status 'active'. Only one active round per tournament is allowed.
+ * An active round has status 'active'. When several rounds are active, the
+ * most recently created one is returned.
  */
 export function useActiveRound() {
   const tournament = useActiveTournament()
-  const getActiveRound = useRoundsStore((s) => s.getActiveRound)
-  return tournament ? getActiveRound(tournament.id) : undefined
+  return useActiveRoundForTournament(tournament?.id)
 }

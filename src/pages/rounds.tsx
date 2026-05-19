@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,15 @@ import { useCoursesByTournament, useHoles } from '@/features/courses'
 import { CourseCard } from '@/features/courses/components/course-card'
 import { ImportCourseDialog } from '@/features/courses/components/import-course-dialog'
 import { CreateCourseDialog } from '@/features/courses/components/create-course-dialog'
-import { useRoundsStore } from '@/features/rounds'
+import {
+  useRoundsByTournament,
+  useDeletedRounds,
+  useGroupsByRound,
+  useTeamsByRound,
+  useSetRoundStatus,
+  useRemoveRound,
+  useRestoreRound,
+} from '@/features/rounds'
 import { CreateRoundDialog } from '@/features/rounds/components/create-round-dialog'
 import { EditRoundDialog } from '@/features/rounds/components/edit-round-dialog'
 import { ConfigureTeamsDialog } from '@/features/rounds/components/configure-teams-dialog'
@@ -50,12 +59,14 @@ const STATUS_VARIANT: Record<RoundStatus, 'default' | 'secondary' | 'outline'> =
   {
     upcoming: 'outline',
     active: 'default',
+    pending_approval: 'outline',
     completed: 'secondary',
   }
 
 const STATUS_LABEL: Record<RoundStatus, string> = {
   upcoming: 'Upcoming',
   active: 'Active',
+  pending_approval: 'Pending Approval',
   completed: 'Completed',
 }
 
@@ -68,18 +79,14 @@ export function RoundsPage() {
     allHoles
       .filter((h) => h.courseId === courseId)
       .sort((a, b) => a.holeNumber - b.holeNumber)
-  const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
-  const getGroups = useRoundsStore((s) => s.getGroupsByRound)
-  const getTeams = useRoundsStore((s) => s.getTeamsByRound)
-  const setRoundStatus = useRoundsStore((s) => s.setRoundStatus)
-  const removeRound = useRoundsStore((s) => s.removeRound)
-  const getDeletedRounds = useRoundsStore((s) => s.getDeletedRounds)
-  const restoreRound = useRoundsStore((s) => s.restoreRound)
+  const rawRounds = useRoundsByTournament(tournament?.id)
+  const rounds = sortRounds(rawRounds)
+  const deletedRounds = useDeletedRounds(tournament?.id)
+  const setRoundStatus = useSetRoundStatus()
+  const removeRound = useRemoveRound()
+  const restoreRound = useRestoreRound()
   const { data: countries = [] } = useCountries()
 
-  const rawRounds = tournament ? getRoundsByTournament(tournament.id) : []
-  const rounds = sortRounds(rawRounds)
-  const deletedRounds = tournament ? getDeletedRounds(tournament.id) : []
   const players = useActivePlayers(tournament?.id)
 
   const [showImport, setShowImport] = useState(false)
@@ -110,8 +117,12 @@ export function RoundsPage() {
     return player?.displayName ?? 'Unknown'
   }
 
-  function handleSetActive(roundId: string) {
-    setRoundStatus(roundId, 'active')
+  async function handleSetActive(roundId: string) {
+    try {
+      await setRoundStatus.mutateAsync({ roundId, status: 'active' })
+    } catch {
+      toast.error('Failed to set round active')
+    }
   }
 
   function handleComplete(roundId: string) {
@@ -119,17 +130,37 @@ export function RoundsPage() {
     if (round) setCompletingRound(round)
   }
 
-  function confirmComplete(roundId: string) {
-    setRoundStatus(roundId, 'completed')
+  async function confirmComplete(roundId: string) {
+    try {
+      await setRoundStatus.mutateAsync({ roundId, status: 'completed' })
+    } catch {
+      toast.error('Failed to complete round')
+    }
   }
 
-  function handleReopen(roundId: string) {
-    setRoundStatus(roundId, 'upcoming')
+  async function handleReopen(roundId: string) {
+    try {
+      await setRoundStatus.mutateAsync({ roundId, status: 'upcoming' })
+    } catch {
+      toast.error('Failed to reopen round')
+    }
   }
 
-  function handleDelete(roundId: string) {
-    removeRound(roundId)
-    setConfirmDelete(null)
+  async function handleDelete(roundId: string) {
+    try {
+      await removeRound.mutateAsync(roundId)
+      setConfirmDelete(null)
+    } catch {
+      toast.error('Failed to delete round')
+    }
+  }
+
+  async function handleRestore(roundId: string) {
+    try {
+      await restoreRound.mutateAsync(roundId)
+    } catch {
+      toast.error('Failed to restore round')
+    }
   }
 
   return (
@@ -191,211 +222,23 @@ export function RoundsPage() {
               </CardContent>
             </Card>
           ) : (
-            rounds.map((round) => {
-              const course = courses.find((c) => c.id === round.courseId)
-              const groups = getGroups(round.id)
-              const teams = getTeams(round.id)
-              const isTeamFormat =
-                round.format === 'scramble' || round.format === 'bestball'
-              const isDeleting = confirmDelete === round.id
-
-              return (
-                <Card
-                  key={round.id}
-                  className={
-                    round.status === 'active'
-                      ? 'border-primary/40 ring-primary/20 ring-1'
-                      : round.status === 'completed'
-                        ? 'opacity-80'
-                        : ''
-                  }
-                >
-                  <CardHeader className="pb-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-base">
-                          {round.name}
-                        </CardTitle>
-                        <Badge
-                          variant={STATUS_VARIANT[round.status]}
-                          className={
-                            round.status === 'active'
-                              ? 'bg-primary text-primary-foreground text-xs'
-                              : 'text-xs'
-                          }
-                        >
-                          {STATUS_LABEL[round.status]}
-                        </Badge>
-                      </div>
-                    </div>
-                    {/* Compact info line: course · format · holes · date */}
-                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
-                      {course && (
-                        <span className="flex items-center gap-0.5">
-                          <MapPin className="size-3" />
-                          {course.name}
-                        </span>
-                      )}
-                      <span className="text-muted-foreground/40">|</span>
-                      <span>{FORMAT_LABELS[round.format]}</span>
-                      <span className="text-muted-foreground/40">|</span>
-                      <span>{round.holesPlayed}H</span>
-                      {round.dateTime && (
-                        <>
-                          <span className="text-muted-foreground/40">|</span>
-                          <span className="flex items-center gap-0.5">
-                            <Calendar className="size-3" />
-                            {new Date(round.dateTime).toLocaleDateString(
-                              'en-GB',
-                              {
-                                day: 'numeric',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              }
-                            )}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-1.5">
-                    {/* Compact groups */}
-                    {groups.length > 0 ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                          {groups.map((group) => {
-                            const groupTeams = teams.filter((t) =>
-                              t.playerIds.some((pid) =>
-                                group.playerIds.includes(pid)
-                              )
-                            )
-
-                            return (
-                              <div
-                                key={group.id}
-                                className="bg-muted/50 flex items-baseline gap-1.5 rounded px-2 py-1"
-                              >
-                                <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">
-                                  {group.name}
-                                </span>
-                                <span className="text-muted-foreground text-xs">
-                                  {isTeamFormat && groupTeams.length > 0
-                                    ? groupTeams.map((t) => t.name).join(' vs ')
-                                    : group.playerIds
-                                        .map((pid) => getPlayerName(pid))
-                                        .join(', ')}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        {/* Configure Teams button for team formats */}
-                        {isAdmin && isTeamFormat && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setConfiguringTeamsRound(round)}
-                            className="mt-0.5 w-fit gap-1.5"
-                          >
-                            <Users className="size-3.5" />
-                            {teams.length > 0
-                              ? 'Edit Teams'
-                              : 'Configure Teams'}
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-muted-foreground text-xs">
-                        No groups assigned yet.
-                      </p>
-                    )}
-
-                    {/* Admin actions */}
-                    {isAdmin && (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
-                        {round.status === 'upcoming' && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleSetActive(round.id)}
-                            className="h-7 gap-1 text-xs"
-                          >
-                            <Play className="size-3" />
-                            Set Active
-                          </Button>
-                        )}
-                        {round.status === 'active' && (
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleComplete(round.id)}
-                            className="h-7 gap-1 text-xs"
-                          >
-                            <CheckCircle className="size-3" />
-                            Complete
-                          </Button>
-                        )}
-                        {round.status === 'completed' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleReopen(round.id)}
-                            className="h-7 gap-1 text-xs"
-                          >
-                            <RotateCcw className="size-3" />
-                            Reopen
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setEditingRound(round)}
-                          className="h-7 gap-1 text-xs"
-                        >
-                          <Pencil className="size-3" />
-                          Edit
-                        </Button>
-                        {isDeleting ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs text-red-600">
-                              Delete?
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(round.id)}
-                              className="h-7 text-xs"
-                            >
-                              Yes
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => setConfirmDelete(null)}
-                              className="h-7 text-xs"
-                            >
-                              No
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setConfirmDelete(round.id)}
-                            className="text-muted-foreground hover:text-destructive h-7 gap-1 text-xs"
-                          >
-                            <Trash2 className="size-3" />
-                            Delete
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })
+            rounds.map((round) => (
+              <RoundCard
+                key={round.id}
+                round={round}
+                courseName={courses.find((c) => c.id === round.courseId)?.name}
+                isAdmin={isAdmin}
+                isDeleting={confirmDelete === round.id}
+                getPlayerName={getPlayerName}
+                onSetActive={handleSetActive}
+                onComplete={handleComplete}
+                onReopen={handleReopen}
+                onEdit={setEditingRound}
+                onConfigureTeams={setConfiguringTeamsRound}
+                onConfirmDelete={setConfirmDelete}
+                onDelete={handleDelete}
+              />
+            ))
           )}
 
           {/* Deleted rounds section (admin only) */}
@@ -430,7 +273,7 @@ export function RoundsPage() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => restoreRound(round.id)}
+                          onClick={() => handleRestore(round.id)}
                           className="h-7 gap-1 text-xs"
                         >
                           <Undo2 className="size-3" />
@@ -556,6 +399,230 @@ export function RoundsPage() {
         />
       )}
     </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RoundCard — a single round with its groups, teams, and admin actions
+// ---------------------------------------------------------------------------
+
+interface RoundCardProps {
+  round: Round
+  courseName: string | undefined
+  isAdmin: boolean
+  isDeleting: boolean
+  getPlayerName: (playerId: string) => string
+  onSetActive: (roundId: string) => void
+  onComplete: (roundId: string) => void
+  onReopen: (roundId: string) => void
+  onEdit: (round: Round) => void
+  onConfigureTeams: (round: Round) => void
+  onConfirmDelete: (roundId: string | null) => void
+  onDelete: (roundId: string) => void
+}
+
+function RoundCard({
+  round,
+  courseName,
+  isAdmin,
+  isDeleting,
+  getPlayerName,
+  onSetActive,
+  onComplete,
+  onReopen,
+  onEdit,
+  onConfigureTeams,
+  onConfirmDelete,
+  onDelete,
+}: RoundCardProps) {
+  const groups = useGroupsByRound(round.id)
+  const teams = useTeamsByRound(round.id)
+  const isTeamFormat =
+    round.format === 'scramble' || round.format === 'bestball'
+
+  return (
+    <Card
+      className={
+        round.status === 'active'
+          ? 'border-primary/40 ring-primary/20 ring-1'
+          : round.status === 'completed'
+            ? 'opacity-80'
+            : ''
+      }
+    >
+      <CardHeader className="pb-1.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base">{round.name}</CardTitle>
+            <Badge
+              variant={STATUS_VARIANT[round.status]}
+              className={
+                round.status === 'active'
+                  ? 'bg-primary text-primary-foreground text-xs'
+                  : 'text-xs'
+              }
+            >
+              {STATUS_LABEL[round.status]}
+            </Badge>
+          </div>
+        </div>
+        {/* Compact info line: course · format · holes · date */}
+        <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs">
+          {courseName && (
+            <span className="flex items-center gap-0.5">
+              <MapPin className="size-3" />
+              {courseName}
+            </span>
+          )}
+          <span className="text-muted-foreground/40">|</span>
+          <span>{FORMAT_LABELS[round.format]}</span>
+          <span className="text-muted-foreground/40">|</span>
+          <span>{round.holesPlayed}H</span>
+          {round.dateTime && (
+            <>
+              <span className="text-muted-foreground/40">|</span>
+              <span className="flex items-center gap-0.5">
+                <Calendar className="size-3" />
+                {new Date(round.dateTime).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pt-1.5">
+        {/* Compact groups */}
+        {groups.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
+              {groups.map((group) => {
+                const groupTeams = teams.filter((t) =>
+                  t.playerIds.some((pid) => group.playerIds.includes(pid))
+                )
+
+                return (
+                  <div
+                    key={group.id}
+                    className="bg-muted/50 flex items-baseline gap-1.5 rounded px-2 py-1"
+                  >
+                    <span className="text-[10px] font-semibold uppercase tracking-wider opacity-60">
+                      {group.name}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {isTeamFormat && groupTeams.length > 0
+                        ? groupTeams.map((t) => t.name).join(' vs ')
+                        : group.playerIds
+                            .map((pid) => getPlayerName(pid))
+                            .join(', ')}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Configure Teams button for team formats */}
+            {isAdmin && isTeamFormat && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onConfigureTeams(round)}
+                className="mt-0.5 w-fit gap-1.5"
+              >
+                <Users className="size-3.5" />
+                {teams.length > 0 ? 'Edit Teams' : 'Configure Teams'}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-xs">
+            No groups assigned yet.
+          </p>
+        )}
+
+        {/* Admin actions */}
+        {isAdmin && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
+            {round.status === 'upcoming' && (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => onSetActive(round.id)}
+                className="h-7 gap-1 text-xs"
+              >
+                <Play className="size-3" />
+                Set Active
+              </Button>
+            )}
+            {round.status === 'active' && (
+              <Button
+                size="sm"
+                variant="default"
+                onClick={() => onComplete(round.id)}
+                className="h-7 gap-1 text-xs"
+              >
+                <CheckCircle className="size-3" />
+                Complete
+              </Button>
+            )}
+            {round.status === 'completed' && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onReopen(round.id)}
+                className="h-7 gap-1 text-xs"
+              >
+                <RotateCcw className="size-3" />
+                Reopen
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onEdit(round)}
+              className="h-7 gap-1 text-xs"
+            >
+              <Pencil className="size-3" />
+              Edit
+            </Button>
+            {isDeleting ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-red-600">Delete?</span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onDelete(round.id)}
+                  className="h-7 text-xs"
+                >
+                  Yes
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onConfirmDelete(null)}
+                  className="h-7 text-xs"
+                >
+                  No
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onConfirmDelete(round.id)}
+                className="text-muted-foreground hover:text-destructive h-7 gap-1 text-xs"
+              >
+                <Trash2 className="size-3" />
+                Delete
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

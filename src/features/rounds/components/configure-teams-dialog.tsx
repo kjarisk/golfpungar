@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,7 +13,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import { useRoundsStore } from '@/features/rounds'
+import {
+  useGroupsByRound,
+  useTeamsByRound,
+  useAddTeamsToRound,
+  useUpdateTeamName,
+  useRemoveTeamsByRound,
+} from '@/features/rounds'
 import { useActivePlayers } from '@/features/players'
 import { useFeedStore } from '@/features/feed'
 import type { Round } from '@/features/rounds'
@@ -78,16 +85,14 @@ export function ConfigureTeamsDialog({
   round,
   tournamentId,
 }: ConfigureTeamsDialogProps) {
-  const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
-  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
-  const addTeamsToRound = useRoundsStore((s) => s.addTeamsToRound)
-  const updateTeamName = useRoundsStore((s) => s.updateTeamName)
-  const removeTeamsByRound = useRoundsStore((s) => s.removeTeamsByRound)
+  const addTeamsToRound = useAddTeamsToRound()
+  const updateTeamName = useUpdateTeamName()
+  const removeTeamsByRound = useRemoveTeamsByRound()
   const addFeedEvent = useFeedStore((s) => s.addEvent)
   const players = useActivePlayers(tournamentId)
 
-  const groups = getGroupsByRound(round.id)
-  const existingTeams = getTeamsByRound(round.id)
+  const groups = useGroupsByRound(round.id)
+  const existingTeams = useTeamsByRound(round.id)
 
   function getPlayerName(id: string): string {
     return players.find((p) => p.id === id)?.displayName ?? 'Unknown'
@@ -181,7 +186,12 @@ export function ConfigureTeamsDialog({
     )
   }
 
-  function handleSave() {
+  const isSaving =
+    addTeamsToRound.isPending ||
+    updateTeamName.isPending ||
+    removeTeamsByRound.isPending
+
+  async function handleSave() {
     const allNewTeams = configs.flatMap((cfg) =>
       cfg.teams.map((t) => ({
         name: t.name.trim() || defaultTeamName(t.playerIds, getPlayerName),
@@ -189,50 +199,64 @@ export function ConfigureTeamsDialog({
       }))
     )
 
-    // If editing existing teams, detect name changes and post feed events
-    if (existingTeams.length > 0) {
-      for (const newTeam of allNewTeams) {
-        // Find matching existing team by player composition
-        const oldTeam = existingTeams.find(
-          (et) =>
-            et.playerIds.length === newTeam.playerIds.length &&
-            et.playerIds.every((pid) => newTeam.playerIds.includes(pid))
-        )
-        if (oldTeam && oldTeam.name !== newTeam.name) {
-          // Name changed — update in place and post feed event if round is active
-          updateTeamName(oldTeam.id, newTeam.name)
-          if (round.status === 'active') {
-            addFeedEvent({
-              tournamentId,
-              type: 'team_name_changed',
-              message: `Team renamed: "${oldTeam.name}" → "${newTeam.name}"`,
-              roundId: round.id,
+    try {
+      // If editing existing teams, detect name changes and post feed events
+      if (existingTeams.length > 0) {
+        for (const newTeam of allNewTeams) {
+          // Find matching existing team by player composition
+          const oldTeam = existingTeams.find(
+            (et) =>
+              et.playerIds.length === newTeam.playerIds.length &&
+              et.playerIds.every((pid) => newTeam.playerIds.includes(pid))
+          )
+          if (oldTeam && oldTeam.name !== newTeam.name) {
+            // Name changed — update in place and post feed event if round is active
+            await updateTeamName.mutateAsync({
               teamId: oldTeam.id,
+              name: newTeam.name,
             })
+            if (round.status === 'active') {
+              addFeedEvent({
+                tournamentId,
+                type: 'team_name_changed',
+                message: `Team renamed: "${oldTeam.name}" → "${newTeam.name}"`,
+                roundId: round.id,
+                teamId: oldTeam.id,
+              })
+            }
           }
         }
-      }
 
-      // Check if team composition changed (not just names) — rebuild if so
-      const compositionChanged =
-        allNewTeams.length !== existingTeams.length ||
-        allNewTeams.some(
-          (nt) =>
-            !existingTeams.find(
-              (et) =>
-                et.playerIds.length === nt.playerIds.length &&
-                et.playerIds.every((pid) => nt.playerIds.includes(pid))
-            )
-        )
+        // Check if team composition changed (not just names) — rebuild if so
+        const compositionChanged =
+          allNewTeams.length !== existingTeams.length ||
+          allNewTeams.some(
+            (nt) =>
+              !existingTeams.find(
+                (et) =>
+                  et.playerIds.length === nt.playerIds.length &&
+                  et.playerIds.every((pid) => nt.playerIds.includes(pid))
+              )
+          )
 
-      if (compositionChanged) {
-        // Teams were reshuffled — remove old and add new
-        removeTeamsByRound(round.id)
-        addTeamsToRound(round.id, allNewTeams)
+        if (compositionChanged) {
+          // Teams were reshuffled — remove old and add new
+          await removeTeamsByRound.mutateAsync(round.id)
+          await addTeamsToRound.mutateAsync({
+            roundId: round.id,
+            teams: allNewTeams,
+          })
+        }
+      } else {
+        // No existing teams — just add new ones
+        await addTeamsToRound.mutateAsync({
+          roundId: round.id,
+          teams: allNewTeams,
+        })
       }
-    } else {
-      // No existing teams — just add new ones
-      addTeamsToRound(round.id, allNewTeams)
+    } catch {
+      toast.error('Failed to save teams')
+      return
     }
 
     onOpenChange(false)
@@ -334,8 +358,10 @@ export function ConfigureTeamsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={totalTeams === 0}>
-            Save {totalTeams} {totalTeams === 1 ? 'Team' : 'Teams'}
+          <Button onClick={handleSave} disabled={totalTeams === 0 || isSaving}>
+            {isSaving
+              ? 'Saving…'
+              : `Save ${totalTeams} ${totalTeams === 1 ? 'Team' : 'Teams'}`}
           </Button>
         </DialogFooter>
       </DialogContent>

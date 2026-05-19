@@ -1,6 +1,5 @@
 /// <reference types="vitest/globals" />
 import { useScoringStore } from './state/scoring-store'
-import { useRoundsStore } from '@/features/rounds/state/rounds-store'
 import { useSideEventsStore } from '@/features/side-events/state/side-events-store'
 import type { Hole } from '@/features/courses'
 
@@ -38,11 +37,6 @@ const HOLES_18: Hole[] = [
 describe('Group Score Entry', () => {
   beforeEach(() => {
     useScoringStore.setState({ scorecards: [], roundPoints: [] })
-    useRoundsStore.setState({
-      rounds: [],
-      groups: [],
-      teams: [],
-    })
     useSideEventsStore.setState({ events: [], images: [] })
   })
 

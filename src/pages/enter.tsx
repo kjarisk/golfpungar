@@ -11,7 +11,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useActiveTournament } from '@/features/tournament'
-import { useRoundsStore } from '@/features/rounds'
+import {
+  useRoundsByTournament,
+  useGroupsByRound,
+  useTeamsByRound,
+} from '@/features/rounds'
 import { useCourses, useHolesByCourse } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
 import { useScoringStore } from '@/features/scoring'
@@ -52,9 +56,6 @@ function persistGroupId(groupId: string) {
 
 export function EnterPage() {
   const tournament = useActiveTournament()
-  const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
-  const getGroupsByRound = useRoundsStore((s) => s.getGroupsByRound)
-  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allScorecards = useScoringStore((s) => s.scorecards)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
   const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
@@ -66,7 +67,7 @@ export function EnterPage() {
 
   const activeRound = useActiveRound()
 
-  const rounds = tournament ? getRoundsByTournament(tournament.id) : []
+  const rounds = useRoundsByTournament(tournament?.id)
   const players = useActivePlayers(tournament?.id)
 
   // Derive current player from auth userId
@@ -85,8 +86,8 @@ export function EnterPage() {
   const selectedRound = rounds.find((r) => r.id === effectiveRoundId)
   const holes = useHolesByCourse(selectedRound?.courseId)
   const coursePar = holes.reduce((s, h) => s + h.par, 0)
-  const groups = selectedRound ? getGroupsByRound(selectedRound.id) : []
-  const teams = selectedRound ? getTeamsByRound(selectedRound.id) : []
+  const groups = useGroupsByRound(selectedRound?.id)
+  const teams = useTeamsByRound(selectedRound?.id)
   const scorecards = selectedRound
     ? allScorecards.filter((sc) => sc.roundId === selectedRound.id)
     : []

@@ -14,7 +14,7 @@ import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveTournament } from '@/features/tournament'
 import { TournamentStatusBadge } from '@/features/tournament/components/tournament-status-badge'
 import { useActivePlayers } from '@/features/players'
-import { useRoundsStore } from '@/features/rounds'
+import { useTeamsByRound } from '@/features/rounds'
 import { useScoringStore } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import { usePenaltiesStore } from '@/features/penalties'
@@ -100,7 +100,6 @@ export function FeedPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
   const tournament = useActiveTournament()
-  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const allRoundPoints = useScoringStore((s) => s.roundPoints)
   const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
   const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
@@ -116,6 +115,7 @@ export function FeedPage() {
   const setRole = useAuthStore((s) => s.setRole)
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
+  const activeRoundTeams = useTeamsByRound(activeRound?.id)
 
   const players = useActivePlayers(tournament?.id)
 
@@ -170,7 +170,7 @@ export function FeedPage() {
     )
     const roundSCs = getScorecardsByRound(activeRound.id)
     const leaderboard = computeRoundLeaderboard(roundRPs, roundSCs)
-    const teams = getTeamsByRound(activeRound.id)
+    const teams = activeRoundTeams
     return leaderboard.slice(0, 5).map((entry) => {
       const player = players.find((p) => p.id === entry.participantId)
       const team = !player

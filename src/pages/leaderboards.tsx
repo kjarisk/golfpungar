@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useTournaments, useActiveTournament } from '@/features/tournament'
-import { useRoundsStore } from '@/features/rounds'
+import { useRoundsByTournament, useTeamsByRound } from '@/features/rounds'
 import { useActivePlayers } from '@/features/players'
 import {
   useScoringStore,
@@ -75,8 +75,6 @@ export function LeaderboardsPage() {
     : activeTournament
   const isBrowsingPast =
     !!queryTournamentId && tournament?.id !== activeTournament?.id
-  const getRoundsByTournament = useRoundsStore((s) => s.getRoundsByTournament)
-  const getTeamsByRound = useRoundsStore((s) => s.getTeamsByRound)
   const getAllRoundPoints = useScoringStore((s) => s.roundPoints)
   const allScorecards = useScoringStore((s) => s.scorecards)
   const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
@@ -102,7 +100,7 @@ export function LeaderboardsPage() {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null)
   const [comparePlayerId, setComparePlayerId] = useState<string | null>(null)
 
-  const rounds = tournament ? getRoundsByTournament(tournament.id) : []
+  const rounds = useRoundsByTournament(tournament?.id)
   const players = useActivePlayers(tournament?.id)
   const playerIds = players.map((p) => p.id)
 
@@ -231,7 +229,7 @@ export function LeaderboardsPage() {
     : []
 
   // Teams for the effective round (used to resolve team names in round leaderboard)
-  const roundTeams = effectiveRoundId ? getTeamsByRound(effectiveRoundId) : []
+  const roundTeams = useTeamsByRound(effectiveRoundId)
 
   // Players with scorecards in the effective round (for compare selector)
   const comparablePlayers = (() => {
