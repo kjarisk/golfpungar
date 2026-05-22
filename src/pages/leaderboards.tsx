@@ -42,7 +42,11 @@ import {
 import { useHoles } from '@/features/courses'
 import { usePenaltiesByTournament } from '@/features/penalties'
 import { computePenaltyTotals } from '@/features/penalties/lib/penalties-logic'
-import { useBettingStore } from '@/features/betting'
+import {
+  computeBettingTotals,
+  useBets,
+  useBetParticipants,
+} from '@/features/betting'
 import { computeTrophyStandings, RoadToWinner } from '@/features/trophies'
 import {
   computeTotalPointsLeaderboard,
@@ -98,7 +102,8 @@ export function LeaderboardsPage() {
   const { data: allSideEvents = [] } = useSideEvents()
   const tournamentSideEvents = useSideEventsByTournament(tournament?.id)
   const tournamentPenalties = usePenaltiesByTournament(tournament?.id)
-  const getBettingTotals = useBettingStore((s) => s.getTotalsForTournament)
+  const { data: allBets = [] } = useBets()
+  const { data: allBetParticipants = [] } = useBetParticipants()
 
   const activeRound = useActiveRound()
   const currentPlayerId = useCurrentPlayerId()
@@ -210,8 +215,13 @@ export function LeaderboardsPage() {
   })()
 
   // Biggest Bettor — compute leaderboard using same tie-handling pattern
+  const tournamentBets = tournament
+    ? allBets.filter((b) => b.tournamentId === tournament.id)
+    : []
   const bettingTotals = tournament
-    ? getBettingTotals(tournament.id, playerIds)
+    ? playerIds.map((pid) =>
+        computeBettingTotals(tournamentBets, allBetParticipants, pid)
+      )
     : []
   const bettingBoard = (() => {
     const entries = bettingTotals

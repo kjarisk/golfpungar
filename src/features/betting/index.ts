@@ -1,9 +1,25 @@
 // Public API for the betting feature
-export { useBettingStore } from './state/betting-store'
+export {
+  betsQueryKey,
+  betParticipantsQueryKey,
+  useBets,
+  useBetParticipants,
+  useBetsByTournament,
+  useBetsByStatus,
+  useBetsForPlayer,
+  useParticipantsForBet,
+  useCreateBet,
+  useAcceptBet,
+  useRejectBet,
+  useResolveBet,
+  useConfirmPaid,
+  useRemoveBet,
+} from './api/use-bets'
 export { BetList } from './components/bet-list'
 export { CreateBetDialog } from './components/create-bet-dialog'
 export { categorizeBets } from './lib/categorize-bets'
 export type { CategorizedBets } from './lib/categorize-bets'
+export { computeBettingTotals } from './lib/betting-logic'
 export type {
   Bet,
   BetParticipant,

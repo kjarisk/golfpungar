@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { useBettingStore } from '../state/betting-store'
+import { useCreateBet } from '../api/use-bets'
 import type { BetScope, BetMetric } from '../types'
 import type { Player } from '@/features/players/types'
 import type { Round } from '@/features/rounds/types'
@@ -49,7 +49,7 @@ export function CreateBetDialog({
   players,
   rounds,
 }: CreateBetDialogProps) {
-  const createBet = useBettingStore((s) => s.createBet)
+  const createBetMut = useCreateBet()
   const [scope, setScope] = useState<BetScope>('tournament')
   const [metricKey, setMetricKey] = useState<BetMetric>('head_to_head')
   const [customDescription, setCustomDescription] = useState('')
@@ -67,23 +67,28 @@ export function CreateBetDialog({
     )
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (selectedOpponentIds.length === 0) return
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) return
 
-    createBet({
-      tournamentId,
-      createdByPlayerId: currentPlayerId,
-      scope,
-      metricKey,
-      customDescription:
-        metricKey === 'custom' ? customDescription.trim() : undefined,
-      roundId: scope === 'round' && roundId ? roundId : undefined,
-      amount: parsedAmount,
-      opponentIds: selectedOpponentIds,
-    })
+    try {
+      await createBetMut.mutateAsync({
+        tournamentId,
+        createdByPlayerId: currentPlayerId,
+        scope,
+        metricKey,
+        customDescription:
+          metricKey === 'custom' ? customDescription.trim() : undefined,
+        roundId: scope === 'round' && roundId ? roundId : undefined,
+        amount: parsedAmount,
+        opponentIds: selectedOpponentIds,
+      })
+    } catch {
+      toast.error('Could not create bet.')
+      return
+    }
 
     const opponentNames = selectedOpponentIds
       .map((id) => players.find((p) => p.id === id)?.displayName ?? 'Player')
@@ -280,7 +285,8 @@ export function CreateBetDialog({
               disabled={
                 selectedOpponentIds.length === 0 ||
                 (scope === 'round' && !roundId) ||
-                (metricKey === 'custom' && !customDescription.trim())
+                (metricKey === 'custom' && !customDescription.trim()) ||
+                createBetMut.isPending
               }
             >
               Create Bet

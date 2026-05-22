@@ -25,7 +25,12 @@ import {
 import { useRoundsByTournament } from '@/features/rounds'
 import { useSideEventsByTournament } from '@/features/side-events'
 import { usePenaltiesByTournament } from '@/features/penalties'
-import { useBettingStore } from '@/features/betting'
+import {
+  useAcceptBet,
+  useBetsForPlayer,
+  useBetParticipants,
+  useRejectBet,
+} from '@/features/betting'
 import { useRecentFeedEvents } from '@/features/feed'
 import {
   computeTotalPointsLeaderboard,
@@ -116,10 +121,9 @@ export function FeedPage() {
   })
   const sideEvents = useSideEventsByTournament(tournament?.id)
   const penaltyEntries = usePenaltiesByTournament(tournament?.id)
-  const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
-  const getBetsForPlayer = useBettingStore((s) => s.getBetsForPlayer)
-  const acceptBet = useBettingStore((s) => s.acceptBet)
-  const rejectBet = useBettingStore((s) => s.rejectBet)
+  const { data: allBetParticipants = [] } = useBetParticipants()
+  const acceptMut = useAcceptBet()
+  const rejectMut = useRejectBet()
   const feedEvents = useRecentFeedEvents(tournament?.id, 50)
   const setRole = useAuthStore((s) => s.setRole)
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
@@ -135,6 +139,7 @@ export function FeedPage() {
     activeRound?.id,
     currentPlayer?.id
   )
+  const myBets = useBetsForPlayer(tournament?.id, currentPlayer?.id)
 
   // Total points for current user
   const totalLeaderboard = computeTotalPointsLeaderboard(
@@ -151,12 +156,12 @@ export function FeedPage() {
   // Pending bets that need current player's response
   const pendingBetsForMe =
     tournament && currentPlayer
-      ? getBetsForPlayer(tournament.id, currentPlayer.id).filter((bet) => {
+      ? myBets.filter((bet) => {
           if (bet.status !== 'pending') return false
           // Only show if I'm a participant (not the creator) and haven't responded
           if (bet.createdByPlayerId === currentPlayer.id) return false
-          const myP = getBetParticipants(bet.id).find(
-            (p) => p.playerId === currentPlayer.id
+          const myP = allBetParticipants.find(
+            (p) => p.betId === bet.id && p.playerId === currentPlayer.id
           )
           return myP?.accepted === null
         })
@@ -165,9 +170,7 @@ export function FeedPage() {
   // Active bets count (accepted, not yet resolved)
   const activeBetsCount =
     tournament && currentPlayer
-      ? getBetsForPlayer(tournament.id, currentPlayer.id).filter(
-          (b) => b.status === 'accepted'
-        ).length
+      ? myBets.filter((b) => b.status === 'accepted').length
       : 0
 
   // Active round leaders (top 5)
@@ -457,9 +460,15 @@ export function FeedPage() {
                         variant="ghost"
                         size="icon"
                         className="size-11 text-green-600 hover:text-green-700"
+                        disabled={acceptMut.isPending}
                         onClick={() => {
-                          acceptBet(bet.id, currentPlayer.id)
-                          toast('Bet accepted!')
+                          acceptMut
+                            .mutateAsync({
+                              betId: bet.id,
+                              playerId: currentPlayer.id,
+                            })
+                            .then(() => toast('Bet accepted!'))
+                            .catch(() => toast.error('Could not accept bet.'))
                         }}
                         aria-label="Accept bet"
                       >
@@ -469,9 +478,15 @@ export function FeedPage() {
                         variant="ghost"
                         size="icon"
                         className="size-11 text-red-600 hover:text-red-700"
+                        disabled={rejectMut.isPending}
                         onClick={() => {
-                          rejectBet(bet.id, currentPlayer.id)
-                          toast('Bet rejected.')
+                          rejectMut
+                            .mutateAsync({
+                              betId: bet.id,
+                              playerId: currentPlayer.id,
+                            })
+                            .then(() => toast('Bet rejected.'))
+                            .catch(() => toast.error('Could not reject bet.'))
                         }}
                         aria-label="Reject bet"
                       >

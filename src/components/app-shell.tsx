@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
 import { useActiveTournament } from '@/features/tournament'
-import { useBettingStore } from '@/features/betting'
+import { useBets, useBetParticipants } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
 import { useCurrentPlayerId } from '@/hooks/use-current-player-id'
 
@@ -37,8 +37,8 @@ export function AppShell() {
   const logout = useAuthStore((s) => s.logout)
   const userEmail = useAuthStore((s) => s.user?.email)
   const currentPlayerId = useCurrentPlayerId()
-  const bets = useBettingStore((s) => s.bets)
-  const participants = useBettingStore((s) => s.participants)
+  const { data: bets = [] } = useBets()
+  const { data: participants = [] } = useBetParticipants()
 
   // Count pending bets awaiting current player's response
   const pendingBetCount = (() => {

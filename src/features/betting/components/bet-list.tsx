@@ -15,7 +15,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { useBettingStore } from '../state/betting-store'
+import {
+  useAcceptBet,
+  useBetsByTournament,
+  useBetParticipants,
+  useConfirmPaid,
+  useRejectBet,
+  useRemoveBet,
+  useResolveBet,
+} from '../api/use-bets'
 import { CreateBetDialog } from './create-bet-dialog'
 import { categorizeBets } from '../lib/categorize-bets'
 import type { Player } from '@/features/players/types'
@@ -70,13 +78,13 @@ export function BetList({
   activeRoundId,
   isAdmin = false,
 }: BetListProps) {
-  const getBetsByTournament = useBettingStore((s) => s.getBetsByTournament)
-  const getParticipantsForBet = useBettingStore((s) => s.getParticipantsForBet)
-  const acceptBet = useBettingStore((s) => s.acceptBet)
-  const rejectBet = useBettingStore((s) => s.rejectBet)
-  const resolveBet = useBettingStore((s) => s.resolveBet)
-  const confirmPaid = useBettingStore((s) => s.confirmPaid)
-  const removeBet = useBettingStore((s) => s.removeBet)
+  const bets = useBetsByTournament(tournamentId)
+  const { data: allParticipants = [] } = useBetParticipants()
+  const acceptMut = useAcceptBet()
+  const rejectMut = useRejectBet()
+  const resolveMut = useResolveBet()
+  const confirmPaidMut = useConfirmPaid()
+  const removeMut = useRemoveBet()
 
   const [showDialog, setShowDialog] = useState(false)
   const [resolvingBetId, setResolvingBetId] = useState<string | null>(null)
@@ -86,11 +94,14 @@ export function BetList({
     null
   )
 
-  const bets = getBetsByTournament(tournamentId)
   const { roundBets, tournamentBets, settledBets } = categorizeBets(
     bets,
     activeRoundId
   )
+
+  function getParticipantsForBet(betId: string) {
+    return allParticipants.filter((p) => p.betId === betId)
+  }
 
   function getPlayerName(playerId: string) {
     return players.find((p) => p.id === playerId)?.displayName ?? 'Unknown'
@@ -113,38 +124,58 @@ export function BetList({
     return [bet.createdByPlayerId, ...participants.map((p) => p.playerId)]
   }
 
-  function handleAccept(betId: string) {
-    acceptBet(betId, currentPlayerId)
-    toast('Bet accepted!', { duration: 2000 })
+  async function handleAccept(betId: string) {
+    try {
+      await acceptMut.mutateAsync({ betId, playerId: currentPlayerId })
+      toast('Bet accepted!', { duration: 2000 })
+    } catch {
+      toast.error('Could not accept bet.', { duration: 2000 })
+    }
   }
 
-  function handleReject(betId: string) {
-    rejectBet(betId, currentPlayerId)
-    toast('Bet rejected.', { duration: 2000 })
+  async function handleReject(betId: string) {
+    try {
+      await rejectMut.mutateAsync({ betId, playerId: currentPlayerId })
+      toast('Bet rejected.', { duration: 2000 })
+    } catch {
+      toast.error('Could not reject bet.', { duration: 2000 })
+    }
   }
 
-  function handleResolve(betId: string) {
+  async function handleResolve(betId: string) {
     if (!selectedWinner) return
-    resolveBet(betId, selectedWinner)
-    const winnerName = getPlayerName(selectedWinner)
-    toast(`Bet resolved — ${winnerName} wins!`, { duration: 3000 })
+    try {
+      await resolveMut.mutateAsync({ betId, winnerId: selectedWinner })
+      const winnerName = getPlayerName(selectedWinner)
+      toast(`Bet resolved — ${winnerName} wins!`, { duration: 3000 })
+    } catch {
+      toast.error('Could not resolve bet.', { duration: 2000 })
+    }
     setResolvingBetId(null)
     setSelectedWinner('')
   }
 
-  function handleRemove(betId: string) {
-    const success = removeBet(betId, currentPlayerId, isAdmin)
-    if (success) {
+  async function handleRemove(betId: string) {
+    try {
+      await removeMut.mutateAsync({
+        id: betId,
+        callerPlayerId: currentPlayerId,
+        isAdmin,
+      })
       toast('Bet removed.', { duration: 2000 })
-    } else {
+    } catch {
       toast.error('Cannot remove this bet.', { duration: 2000 })
     }
     setConfirmingDeleteId(null)
   }
 
-  function handleConfirmPaid(betId: string) {
-    confirmPaid(betId, currentPlayerId)
-    toast('Payment confirmed!', { duration: 2000 })
+  async function handleConfirmPaid(betId: string) {
+    try {
+      await confirmPaidMut.mutateAsync({ betId, playerId: currentPlayerId })
+      toast('Payment confirmed!', { duration: 2000 })
+    } catch {
+      toast.error('Could not confirm payment.', { duration: 2000 })
+    }
   }
 
   const activeRoundName = activeRoundId
@@ -235,7 +266,8 @@ export function BetList({
                 size="sm"
                 variant="default"
                 className="h-9 gap-1.5 px-3 text-sm"
-                onClick={() => handleAccept(bet.id)}
+                onClick={() => void handleAccept(bet.id)}
+                disabled={acceptMut.isPending}
               >
                 <Check className="size-4" />
                 Accept
@@ -244,7 +276,8 @@ export function BetList({
                 size="sm"
                 variant="destructive"
                 className="h-9 gap-1.5 px-3 text-sm"
-                onClick={() => handleReject(bet.id)}
+                onClick={() => void handleReject(bet.id)}
+                disabled={rejectMut.isPending}
               >
                 <X className="size-4" />
                 Reject
@@ -290,8 +323,8 @@ export function BetList({
                 size="sm"
                 variant="default"
                 className="h-9 px-3 text-sm"
-                onClick={() => handleResolve(bet.id)}
-                disabled={!selectedWinner}
+                onClick={() => void handleResolve(bet.id)}
+                disabled={!selectedWinner || resolveMut.isPending}
               >
                 Confirm
               </Button>
@@ -312,7 +345,8 @@ export function BetList({
               size="sm"
               variant="outline"
               className="h-9 gap-1.5 px-3 text-sm"
-              onClick={() => handleConfirmPaid(bet.id)}
+              onClick={() => void handleConfirmPaid(bet.id)}
+              disabled={confirmPaidMut.isPending}
             >
               <Banknote className="size-4" />
               Mark as Paid
@@ -346,7 +380,8 @@ export function BetList({
                 variant="ghost"
                 size="sm"
                 className="h-8 px-2.5 text-sm text-green-600 hover:text-green-700"
-                onClick={() => handleRemove(bet.id)}
+                onClick={() => void handleRemove(bet.id)}
+                disabled={removeMut.isPending}
               >
                 Yes
               </Button>
