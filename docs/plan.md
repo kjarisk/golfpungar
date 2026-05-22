@@ -560,23 +560,27 @@ Done in 2 commits (`7e53d99` courses + holes, `bfb3e6e` rounds + groups + teams)
 - [x] Deleted the courses + rounds Zustand stores; `scoring-store` reads the rounds query cache via the shared `queryClient`
 - [x] api-layer tests vs a mocked supabase client — 327 tests pass
 
-## Phase 27 — Scoring
+## Phase 27 — Scoring ✅ done (2026-05-22, commit `a2c8c2a`)
 
-- [ ] Scorecards table: per-player per-round (or per-team for scramble/best-ball)
-- [ ] `hole_strokes` as JSONB column or separate `score_holes` table — decide based on query patterns
-- [ ] Mutation hook `useSetHoleStroke` that writes through to Supabase + invalidates leaderboard queries
-- [ ] Keep client-side calc (gross/net/stableford/points) — server stores raw strokes only
-- [ ] Auto-detected side events: same logic, just persists to `side_event_logs` instead of Zustand
-- [ ] Optimistic updates via `useOptimistic` / TanStack Query optimistic mutations (score entry must feel instant on-course)
+- [x] `scorecards` table stores raw strokes only (JSONB `hole_strokes`, `is_complete`)
+- [x] `useSetHoleStroke` writes through with TanStack Query **optimistic updates** — on-course tapping feels native
+- [x] gross/net/stableford/points computed client-side; `useScorecards()` is an enriching hook that joins rounds/holes/players from the cache and decorates raw rows with totals → consumers continue reading `sc.grossTotal` etc.
+- [x] Auto-detected side events from score changes stay wired (now through the Supabase side-events api, see Phase 28)
+- [x] `recalculatePoints` / `round_points` removed — points computed on demand via `awardPoints(...)` in consumers
+- [x] Tests rewritten against a mocked supabase client; 326 tests pass
 
-## Phase 28 — Side events, penalties, bets, announcements, feed
+## Phase 28 — Side events, penalties, bets, announcements, feed ✅ done (2026-05-22)
 
-- [ ] All these entities → query hooks + mutations
-- [ ] Feed page reads from `feed_events` directly (no more local emission)
-- [ ] Bet lifecycle (create/accept/reject/resolve/paid) → mutations + RLS guards
-- [ ] Penalty entries → admin-only mutations
-- [ ] Announcements → admin-only mutations
-- [ ] Delete remaining server-data Zustand stores
+Done in two commits: `b7a24c1` (side-events + penalties + feed + announcements) and `98755b1` (bets + bet_participants).
+
+- [x] Side events + evidence_images on Supabase (`src/features/side-events/api/`)
+- [x] Penalties (`ledger_entries`) on Supabase (`src/features/penalties/api/`)
+- [x] Feed events on Supabase; notable-events animated banner queue stays Zustand (UI-only)
+- [x] `emitFeedEvent` fire-and-forget helper for non-React emitters (auto-detect side events, betting lifecycle, handicap changes)
+- [x] Announcements on Supabase, paired with an `announcement` feed event
+- [x] Bets + bet_participants on Supabase, full lifecycle (create / accept / reject / resolve / confirmPaid / remove) emitting feed events at each transition
+- [x] All remaining server-data Zustand stores deleted. The only Zustand left is UI-only: `auth/state` (session), `tournament/state` (active-tournament selector), `feed/state/notable-events-store.ts` (transient banner queue)
+- [x] 305 tests pass
 
 ## Phase 29 — Real-time (live leaderboards + feed)
 
