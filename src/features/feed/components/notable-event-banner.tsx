@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { useFeedStore } from '../state/feed-store'
+import { useNotableEventsStore } from '../state/notable-events-store'
 import type { NotableEvent } from '../types'
 import { Bird, Zap, Star, Crosshair, X } from 'lucide-react'
 
@@ -51,8 +51,10 @@ const SLIDE_OUT_MS = 300
  * Respects prefers-reduced-motion by skipping animation delays.
  */
 export function NotableEventBanner() {
-  const notableEvents = useFeedStore((s) => s.notableEvents)
-  const dismissNotableEvent = useFeedStore((s) => s.dismissNotableEvent)
+  const notableEvents = useNotableEventsStore((s) => s.notableEvents)
+  const dismissNotableEvent = useNotableEventsStore(
+    (s) => s.dismissNotableEvent
+  )
   const bannerRef = useRef<HTMLDivElement>(null)
   const activeIdRef = useRef<string | null>(null)
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])

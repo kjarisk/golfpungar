@@ -21,7 +21,7 @@ import {
   useRemoveTeamsByRound,
 } from '@/features/rounds'
 import { useActivePlayers } from '@/features/players'
-import { useFeedStore } from '@/features/feed'
+import { useCreateFeedEvent } from '@/features/feed'
 import type { Round } from '@/features/rounds'
 import { Users, Shuffle, Pencil } from 'lucide-react'
 
@@ -88,7 +88,7 @@ export function ConfigureTeamsDialog({
   const addTeamsToRound = useAddTeamsToRound()
   const updateTeamName = useUpdateTeamName()
   const removeTeamsByRound = useRemoveTeamsByRound()
-  const addFeedEvent = useFeedStore((s) => s.addEvent)
+  const createFeedEvent = useCreateFeedEvent()
   const players = useActivePlayers(tournamentId)
 
   const groups = useGroupsByRound(round.id)
@@ -216,13 +216,17 @@ export function ConfigureTeamsDialog({
               name: newTeam.name,
             })
             if (round.status === 'active') {
-              addFeedEvent({
-                tournamentId,
-                type: 'team_name_changed',
-                message: `Team renamed: "${oldTeam.name}" → "${newTeam.name}"`,
-                roundId: round.id,
-                teamId: oldTeam.id,
-              })
+              try {
+                await createFeedEvent.mutateAsync({
+                  tournamentId,
+                  type: 'team_name_changed',
+                  message: `Team renamed: "${oldTeam.name}" → "${newTeam.name}"`,
+                  roundId: round.id,
+                  teamId: oldTeam.id,
+                })
+              } catch {
+                // Feed event is non-critical
+              }
             }
           }
         }

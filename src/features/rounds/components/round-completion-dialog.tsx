@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useScorecardsByRound, awardPoints } from '@/features/scoring'
-import { useSideEventsStore } from '@/features/side-events'
+import { useSideEvents } from '@/features/side-events'
 import { usePlayers } from '@/features/players'
 import { useTeamsByRound } from '@/features/rounds'
 import { computeRoundLeaderboard } from '@/lib/leaderboard-calc'
@@ -44,7 +44,7 @@ export function RoundCompletionDialog({
   onConfirm,
 }: RoundCompletionDialogProps) {
   const roundScorecards = useScorecardsByRound(round.id)
-  const sideEvents = useSideEventsStore((s) => s.events)
+  const { data: sideEvents = [] } = useSideEvents()
   const { data: players = [] } = usePlayers()
   const teams = useTeamsByRound(round.id)
 

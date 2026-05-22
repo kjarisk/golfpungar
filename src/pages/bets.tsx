@@ -5,7 +5,7 @@ import { useIsAdmin } from '@/hooks/use-is-admin'
 import { useActiveTournament } from '@/features/tournament'
 import { useActivePlayers } from '@/features/players'
 import { useRoundsByTournament } from '@/features/rounds'
-import { useFeedStore } from '@/features/feed'
+import { useFeedEventsByTournament } from '@/features/feed'
 import { BetList } from '@/features/betting'
 import { useActiveRound } from '@/hooks/use-active-round'
 import { CircleDollarSign } from 'lucide-react'
@@ -27,7 +27,7 @@ export function BetsPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
   const tournament = useActiveTournament()
-  const getEventsByTournament = useFeedStore((s) => s.getEventsByTournament)
+  const feedEventsForTournament = useFeedEventsByTournament(tournament?.id)
   const activeRound = useActiveRound()
 
   const players = useActivePlayers(tournament?.id)
@@ -35,9 +35,7 @@ export function BetsPage() {
   const currentPlayer = players.find((p) => p.userId === user?.id)
 
   // Bet-related feed events (chronological, newest first)
-  const betFeedEvents = tournament
-    ? getEventsByTournament(tournament.id).filter((e) => e.type === 'bet')
-    : []
+  const betFeedEvents = feedEventsForTournament.filter((e) => e.type === 'bet')
 
   if (!tournament || !currentPlayer) {
     return (

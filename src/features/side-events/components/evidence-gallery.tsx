@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useSideEventsStore } from '../state/side-events-store'
+import { useSideEventsByType, useEvidenceImages } from '../api/use-side-events'
 import { Camera, X } from 'lucide-react'
 
 interface EvidenceGalleryProps {
@@ -18,8 +18,11 @@ export function EvidenceGallery({
   tournamentId,
   getPlayerName,
 }: EvidenceGalleryProps) {
-  const getEventsByType = useSideEventsStore((s) => s.getEventsByType)
-  const getImagesForEvent = useSideEventsStore((s) => s.getImagesForEvent)
+  const driveEventsAll = useSideEventsByType(
+    tournamentId,
+    'longest_drive_meters'
+  )
+  const { data: allImages = [] } = useEvidenceImages()
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -39,13 +42,13 @@ export function EvidenceGallery({
   }, [lightboxUrl, closeLightbox])
 
   // Get all longest_drive_meters events with images
-  const driveEvents = getEventsByType(tournamentId, 'longest_drive_meters')
+  const driveEvents = driveEventsAll
     .filter((e) => e.value != null)
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0))
 
   // Collect all evidence entries: { event, image }
   const evidenceEntries = driveEvents.flatMap((event) => {
-    const images = getImagesForEvent(event.id)
+    const images = allImages.filter((img) => img.sideEventLogId === event.id)
     return images.map((img) => ({
       event,
       image: img,

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { useFeedStore } from '../../feed/state/feed-store'
+import { emitFeedEvent } from '../../feed/api/feed-events-api'
 import { queryClient } from '@/lib/query-client'
 import { playersQueryKey, type Player } from '@/features/players'
 import type {
@@ -30,14 +30,14 @@ function describeBet(bet: Bet): string {
   return labels[bet.metricKey] ?? bet.metricKey
 }
 
-/** Emit a bet-related feed event. */
+/** Emit a bet-related feed event (fire and forget). */
 function emitBetFeedEvent(
   tournamentId: string,
   message: string,
   playerId?: string,
   roundId?: string
 ) {
-  useFeedStore.getState().addEvent({
+  emitFeedEvent({
     tournamentId,
     type: 'bet',
     message,

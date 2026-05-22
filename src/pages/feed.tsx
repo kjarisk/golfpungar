@@ -23,10 +23,10 @@ import {
   type RoundPoints,
 } from '@/features/scoring'
 import { useRoundsByTournament } from '@/features/rounds'
-import { useSideEventsStore } from '@/features/side-events'
-import { usePenaltiesStore } from '@/features/penalties'
+import { useSideEventsByTournament } from '@/features/side-events'
+import { usePenaltiesByTournament } from '@/features/penalties'
 import { useBettingStore } from '@/features/betting'
-import { useFeedStore } from '@/features/feed'
+import { useRecentFeedEvents } from '@/features/feed'
 import {
   computeTotalPointsLeaderboard,
   computeRoundLeaderboard,
@@ -114,15 +114,13 @@ export function FeedPage() {
     const cards = allScorecards.filter((sc) => sc.roundId === r.id)
     return awardPoints(cards, r.format, r.pointsTable)
   })
-  const getEventsByTournament = useSideEventsStore(
-    (s) => s.getEventsByTournament
-  )
-  const getPenaltyEntries = usePenaltiesStore((s) => s.getEntriesByTournament)
+  const sideEvents = useSideEventsByTournament(tournament?.id)
+  const penaltyEntries = usePenaltiesByTournament(tournament?.id)
   const getBetParticipants = useBettingStore((s) => s.getParticipantsForBet)
   const getBetsForPlayer = useBettingStore((s) => s.getBetsForPlayer)
   const acceptBet = useBettingStore((s) => s.acceptBet)
   const rejectBet = useBettingStore((s) => s.rejectBet)
-  const getRecentFeedEvents = useFeedStore((s) => s.getRecentEvents)
+  const feedEvents = useRecentFeedEvents(tournament?.id, 50)
   const setRole = useAuthStore((s) => s.setRole)
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
@@ -193,9 +191,7 @@ export function FeedPage() {
   })()
 
   // Combine side events + penalties + feed events into a unified feed
-  const sideEvents = tournament ? getEventsByTournament(tournament.id) : []
-  const penaltyEntries = tournament ? getPenaltyEntries(tournament.id) : []
-  const feedEvents = tournament ? getRecentFeedEvents(tournament.id, 50) : []
+  // (side events / penalties / feed events are already scoped by hooks above).
 
   type UnifiedFeedItem = {
     id: string

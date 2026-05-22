@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { useFeedStore } from '@/features/feed'
+import { emitFeedEvent } from '@/features/feed'
 import type { Database } from '@/lib/supabase-types'
 import type { Player, UpdatePlayerInput } from '../types'
 
@@ -93,14 +93,15 @@ export async function updatePlayer(
   if (error) throw error
   const updated = toPlayer(data as unknown as PlayerRow)
 
-  // Handicap-change feed event. The feed store is still Zustand (until Phase 28).
+  // Handicap-change feed event (fire-and-forget — feed write should never
+  // block a player update).
   if (
     current &&
     updates.groupHandicap !== undefined &&
     Number((current as unknown as PlayerRow).group_handicap) !==
       updates.groupHandicap
   ) {
-    useFeedStore.getState().addEvent({
+    emitFeedEvent({
       tournamentId: updated.tournamentId,
       type: 'handicap_changed',
       message: `${updated.displayName} handicap changed: ${Number((current as unknown as PlayerRow).group_handicap)} → ${updates.groupHandicap}`,

@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useSideEventsStore } from '../state/side-events-store'
+import {
+  useSideEvents,
+  useCreateSideEvent,
+  useRemoveSideEvent,
+  useCreateEvidenceImage,
+} from '../api/use-side-events'
+import { deriveLastSnakeInGroup } from '../lib/side-events-logic'
 import { useAuthStore } from '@/features/auth'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 import { cn } from '@/lib/utils'
@@ -116,11 +122,10 @@ export function SideEventLogger({
   groupPlayerIds,
   holesPlayed,
 }: SideEventLoggerProps) {
-  const logEvent = useSideEventsStore((s) => s.logEvent)
-  const removeEvent = useSideEventsStore((s) => s.removeEvent)
-  const addImage = useSideEventsStore((s) => s.addImage)
-  const allEvents = useSideEventsStore((s) => s.events)
-  const getLastSnakeInGroup = useSideEventsStore((s) => s.getLastSnakeInGroup)
+  const createSideEvent = useCreateSideEvent()
+  const removeSideEvent = useRemoveSideEvent()
+  const createEvidenceImage = useCreateEvidenceImage()
+  const { data: allEvents = [] } = useSideEvents()
   const user = useAuthStore((s) => s.user)
 
   const [selectedHole, setSelectedHole] = useState<number | null>(1)
@@ -161,7 +166,7 @@ export function SideEventLogger({
     ...new Set(roundEvents.map((e) => e.holeNumber).filter(Boolean)),
   ] as number[]
 
-  function handleQuickLog(eventType: SideEventType) {
+  async function handleQuickLog(eventType: SideEventType) {
     if (!selectedHole) return
     if (!effectivePlayerId) return
 
@@ -173,14 +178,19 @@ export function SideEventLogger({
       return
     }
 
-    logEvent({
-      tournamentId,
-      roundId,
-      holeNumber: selectedHole,
-      playerId: effectivePlayerId,
-      type: eventType,
-      createdByPlayerId,
-    })
+    try {
+      await createSideEvent.mutateAsync({
+        tournamentId,
+        roundId,
+        holeNumber: selectedHole,
+        playerId: effectivePlayerId,
+        type: eventType,
+        createdByPlayerId,
+      })
+    } catch {
+      toast.error('Could not log event')
+      return
+    }
 
     const playerName =
       players.find((p) => p.id === effectivePlayerId)?.displayName ?? 'Player'
@@ -189,20 +199,25 @@ export function SideEventLogger({
     toast(message, { duration: 3000 })
   }
 
-  function handleLogValue() {
+  async function handleLogValue() {
     if (!selectedHole || !effectivePlayerId || !activeValueInput) return
     const meters = parseFloat(valueMeters)
     if (isNaN(meters) || meters <= 0) return
 
-    logEvent({
-      tournamentId,
-      roundId,
-      holeNumber: selectedHole,
-      playerId: effectivePlayerId,
-      type: activeValueInput,
-      value: meters,
-      createdByPlayerId,
-    })
+    try {
+      await createSideEvent.mutateAsync({
+        tournamentId,
+        roundId,
+        holeNumber: selectedHole,
+        playerId: effectivePlayerId,
+        type: activeValueInput,
+        value: meters,
+        createdByPlayerId,
+      })
+    } catch {
+      toast.error('Could not log event')
+      return
+    }
 
     const eventConfig = EVENT_BUTTONS.find((b) => b.type === activeValueInput)
     const playerName =
@@ -215,7 +230,7 @@ export function SideEventLogger({
     setActiveValueInput(null)
   }
 
-  function handleRemoveEvent(event: SideEventLog) {
+  async function handleRemoveEvent(event: SideEventLog) {
     const playerName =
       players.find((p) => p.id === event.playerId)?.displayName ?? 'Player'
     const config =
@@ -223,15 +238,20 @@ export function SideEventLogger({
       EVENT_BUTTONS.find((b) => b.type === event.type)
     const label = config?.label ?? event.type
 
-    removeEvent(event.id)
+    try {
+      await removeSideEvent.mutateAsync(event.id)
+    } catch {
+      toast.error('Could not remove event')
+      return
+    }
 
     toast(`Removed ${label} from ${playerName} on hole ${event.holeNumber}`, {
       duration: 3000,
       action: {
         label: 'Undo',
         onClick: () => {
-          // Re-log the event
-          logEvent({
+          // Re-log the event (fire and forget — toast acts as confirmation)
+          void createSideEvent.mutateAsync({
             tournamentId: event.tournamentId,
             roundId: event.roundId ?? roundId,
             holeNumber: event.holeNumber,
@@ -264,7 +284,10 @@ export function SideEventLogger({
       )
 
     if (driveEvents[0]) {
-      addImage(driveEvents[0].id, objectUrl)
+      void createEvidenceImage.mutateAsync({
+        sideEventLogId: driveEvents[0].id,
+        imageUrl: objectUrl,
+      })
     }
   }
 
@@ -374,7 +397,7 @@ export function SideEventLogger({
                     <button
                       key={evt.id}
                       type="button"
-                      onClick={() => handleRemoveEvent(evt)}
+                      onClick={() => void handleRemoveEvent(evt)}
                       className={cn(
                         'flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium transition-colors',
                         'bg-muted/50 hover:bg-destructive/10 hover:border-destructive/30 group'
@@ -421,7 +444,7 @@ export function SideEventLogger({
                   size="sm"
                   disabled={disabled}
                   className={`flex h-auto flex-col gap-1 py-2 ${disabled ? '' : btn.color}`}
-                  onClick={() => handleQuickLog(btn.type)}
+                  onClick={() => void handleQuickLog(btn.type)}
                 >
                   <Icon className="size-4" />
                   <span className="text-[10px] leading-tight">{btn.label}</span>
@@ -461,7 +484,7 @@ export function SideEventLogger({
                   m
                 </span>
               </div>
-              <Button size="sm" onClick={handleLogValue}>
+              <Button size="sm" onClick={() => void handleLogValue()}>
                 Log
               </Button>
               <Button
@@ -545,7 +568,8 @@ export function SideEventLogger({
         {groupPlayerIds &&
           groupPlayerIds.length > 0 &&
           (() => {
-            const lastSnake = getLastSnakeInGroup(
+            const lastSnake = deriveLastSnakeInGroup(
+              allEvents,
               roundId,
               'current-group',
               groupPlayerIds

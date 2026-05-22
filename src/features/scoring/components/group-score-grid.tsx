@@ -16,8 +16,12 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { useSetHoleStroke } from '@/features/scoring'
-import { useSideEventsStore } from '@/features/side-events'
-import { useFeedStore } from '@/features/feed'
+import {
+  useSideEvents,
+  useCreateSideEvent,
+  useRemoveSideEvent,
+} from '@/features/side-events'
+import { useNotableEventsStore } from '@/features/feed'
 import type { Scorecard, HoleStroke } from '@/features/scoring'
 import type { Hole } from '@/features/courses'
 import type { RoundFormat, Team } from '@/features/rounds'
@@ -163,9 +167,9 @@ export function GroupScoreGrid({
   readOnly = false,
 }: GroupScoreGridProps) {
   const setHoleStroke = useSetHoleStroke()
-  const logEvent = useSideEventsStore((s) => s.logEvent)
-  const removeEvent = useSideEventsStore((s) => s.removeEvent)
-  const allSideEvents = useSideEventsStore((s) => s.events)
+  const createSideEvent = useCreateSideEvent()
+  const removeSideEvent = useRemoveSideEvent()
+  const { data: allSideEvents = [] } = useSideEvents()
   const isMobile = useIsMobile()
 
   const roundEvents = allSideEvents.filter((e) => e.roundId === roundId)
@@ -322,10 +326,8 @@ export function GroupScoreGrid({
     const playerId = resolvePlayerId(participantId)
     const holeNumber = hole.holeNumber
 
-    // Get current round events from store (fresh read)
-    const currentEvents = useSideEventsStore
-      .getState()
-      .getEventsByRound(roundId)
+    // Read current round events from the cached query result.
+    const currentEvents = allSideEvents.filter((e) => e.roundId === roundId)
 
     // Find existing auto-detectable events for this hole + player
     const existingAutoEvents = currentEvents.filter(
@@ -348,27 +350,33 @@ export function GroupScoreGrid({
       return
     }
 
-    // Remove all existing auto-events that don't match
+    // Remove all existing auto-events that don't match (fire and forget)
     for (const evt of existingAutoEvents) {
       if (evt.type !== expectedType) {
-        removeEvent(evt.id)
+        void removeSideEvent.mutateAsync(evt.id).catch(() => {
+          toast.error('Could not remove side event')
+        })
       }
     }
 
     // Add the new auto-event if needed (and doesn't already exist)
     if (expectedType && !alreadyCorrect) {
-      logEvent({
-        tournamentId,
-        roundId,
-        holeNumber,
-        playerId,
-        type: expectedType,
-        createdByPlayerId: currentPlayerId,
-      })
+      void createSideEvent
+        .mutateAsync({
+          tournamentId,
+          roundId,
+          holeNumber,
+          playerId,
+          type: expectedType,
+          createdByPlayerId: currentPlayerId,
+        })
+        .catch(() => {
+          toast.error('Could not log side event')
+        })
 
       // Push notable event for the animated feed banner
       const playerName = resolvePlayerName(participantId)
-      useFeedStore.getState().pushNotableEvent({
+      useNotableEventsStore.getState().pushNotableEvent({
         id: `notable-${String(nextNotableId++).padStart(3, '0')}`,
         kind: expectedType as 'birdie' | 'eagle' | 'albatross' | 'hio',
         playerName,

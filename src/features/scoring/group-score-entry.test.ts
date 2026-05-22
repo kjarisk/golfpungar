@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { useSideEventsStore } from '@/features/side-events/state/side-events-store'
+import type { SideEventLog, CreateSideEventInput } from '@/features/side-events'
 import {
   awardPoints,
   calculateGrossTotal,
@@ -80,9 +80,36 @@ function makeScorecard(args: {
   }
 }
 
+/**
+ * Lightweight in-memory side-events sink for tests — mirrors the queue shape
+ * the old Zustand store provided so the scoring tests remain a unit test of
+ * the side-event modelling (not the persistence path).
+ */
+let SIDE_EVENTS: SideEventLog[] = []
+let nextSideEventId = 1
+function logEvent(input: CreateSideEventInput): SideEventLog {
+  const event: SideEventLog = {
+    id: `side-event-${nextSideEventId++}`,
+    tournamentId: input.tournamentId,
+    roundId: input.roundId,
+    holeNumber: input.holeNumber,
+    playerId: input.playerId,
+    type: input.type,
+    value: input.value,
+    createdAt: new Date().toISOString(),
+    createdByPlayerId: input.createdByPlayerId,
+  }
+  SIDE_EVENTS = [...SIDE_EVENTS, event]
+  return event
+}
+function getEventsByRound(roundId: string): SideEventLog[] {
+  return SIDE_EVENTS.filter((e) => e.roundId === roundId)
+}
+
 describe('Group Score Entry', () => {
   beforeEach(() => {
-    useSideEventsStore.setState({ events: [], images: [] })
+    SIDE_EVENTS = []
+    nextSideEventId = 1
   })
 
   describe('individual format — group-based scoring', () => {
@@ -228,8 +255,7 @@ describe('Group Score Entry', () => {
 
   describe('side events scoped to group', () => {
     it('logs side event for a specific player on a hole', () => {
-      const sideStore = useSideEventsStore.getState()
-      const event = sideStore.logEvent({
+      const event = logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 5,
@@ -244,9 +270,7 @@ describe('Group Score Entry', () => {
     })
 
     it('filters events by round for group display', () => {
-      const sideStore = useSideEventsStore.getState()
-
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 3,
@@ -254,7 +278,7 @@ describe('Group Score Entry', () => {
         type: 'birdie',
         createdByPlayerId: 'player-1',
       })
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 7,
@@ -262,7 +286,7 @@ describe('Group Score Entry', () => {
         type: 'snake',
         createdByPlayerId: 'player-2',
       })
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-2',
         holeNumber: 1,
@@ -271,17 +295,15 @@ describe('Group Score Entry', () => {
         createdByPlayerId: 'player-1',
       })
 
-      const r1Events = useSideEventsStore.getState().getEventsByRound('round-1')
-      const r2Events = useSideEventsStore.getState().getEventsByRound('round-2')
+      const r1Events = getEventsByRound('round-1')
+      const r2Events = getEventsByRound('round-2')
 
       expect(r1Events).toHaveLength(2)
       expect(r2Events).toHaveLength(1)
     })
 
     it('multiple side events on same hole for different players', () => {
-      const sideStore = useSideEventsStore.getState()
-
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 5,
@@ -289,7 +311,7 @@ describe('Group Score Entry', () => {
         type: 'birdie',
         createdByPlayerId: 'player-1',
       })
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 5,
@@ -298,7 +320,7 @@ describe('Group Score Entry', () => {
         createdByPlayerId: 'player-2',
       })
 
-      const events = useSideEventsStore.getState().getEventsByRound('round-1')
+      const events = getEventsByRound('round-1')
       const hole5Events = events.filter((e) => e.holeNumber === 5)
       expect(hole5Events).toHaveLength(2)
 
@@ -309,9 +331,7 @@ describe('Group Score Entry', () => {
     })
 
     it('snopp can be logged multiple times per hole per player', () => {
-      const sideStore = useSideEventsStore.getState()
-
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 3,
@@ -319,7 +339,7 @@ describe('Group Score Entry', () => {
         type: 'snopp',
         createdByPlayerId: 'player-1',
       })
-      sideStore.logEvent({
+      logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
         holeNumber: 3,
@@ -328,7 +348,7 @@ describe('Group Score Entry', () => {
         createdByPlayerId: 'player-1',
       })
 
-      const events = useSideEventsStore.getState().getEventsByRound('round-1')
+      const events = getEventsByRound('round-1')
       const snoppEvents = events.filter(
         (e) =>
           e.holeNumber === 3 && e.playerId === 'player-1' && e.type === 'snopp'

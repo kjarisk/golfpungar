@@ -28,9 +28,20 @@ import {
   type Scorecard,
   type RoundPoints,
 } from '@/features/scoring'
-import { useSideEventsStore, EvidenceGallery } from '@/features/side-events'
+import {
+  useSideEvents,
+  useSideEventsByTournament,
+  EvidenceGallery,
+} from '@/features/side-events'
+import {
+  computeSideEventTotals,
+  computeLongestDriveBest,
+  computeLongestPuttBest,
+  computeNearestToPinBest,
+} from '@/features/side-events/lib/side-events-logic'
 import { useHoles } from '@/features/courses'
-import { usePenaltiesStore } from '@/features/penalties'
+import { usePenaltiesByTournament } from '@/features/penalties'
+import { computePenaltyTotals } from '@/features/penalties/lib/penalties-logic'
 import { useBettingStore } from '@/features/betting'
 import { computeTrophyStandings, RoadToWinner } from '@/features/trophies'
 import {
@@ -84,19 +95,9 @@ export function LeaderboardsPage() {
       allScorecards.filter((sc) => sc.roundId === roundId),
     [allScorecards]
   )
-  const getTotalsForTournament = useSideEventsStore(
-    (s) => s.getTotalsForTournament
-  )
-  const getLongestDriveLeaderboard = useSideEventsStore(
-    (s) => s.getLongestDriveLeaderboard
-  )
-  const getLongestPuttLeaderboard = useSideEventsStore(
-    (s) => s.getLongestPuttLeaderboard
-  )
-  const getNearestToPinLeaderboard = useSideEventsStore(
-    (s) => s.getNearestToPinLeaderboard
-  )
-  const getPenaltyTotals = usePenaltiesStore((s) => s.getTotalsForTournament)
+  const { data: allSideEvents = [] } = useSideEvents()
+  const tournamentSideEvents = useSideEventsByTournament(tournament?.id)
+  const tournamentPenalties = usePenaltiesByTournament(tournament?.id)
   const getBettingTotals = useBettingStore((s) => s.getTotalsForTournament)
 
   const activeRound = useActiveRound()
@@ -127,7 +128,10 @@ export function LeaderboardsPage() {
         .sort((a, b) => a.holeNumber - b.holeNumber),
     [allHoles]
   )
-  const getEventsByRound = useSideEventsStore((s) => s.getEventsByRound)
+  const getEventsByRound = useCallback(
+    (roundId: string) => allSideEvents.filter((e) => e.roundId === roundId),
+    [allSideEvents]
+  )
 
   const toggleExpand = useCallback((playerId: string) => {
     setExpandedPlayerId((prev) => (prev === playerId ? null : playerId))
@@ -159,7 +163,7 @@ export function LeaderboardsPage() {
 
   // Side competitions
   const sideTotals = tournament
-    ? getTotalsForTournament(tournament.id, playerIds)
+    ? computeSideEventTotals(tournamentSideEvents, tournament.id, playerIds)
     : []
   const birdieBoard = computeSideLeaderboard(sideTotals, (t) => t.birdies)
   const eagleBoard = computeSideLeaderboard(sideTotals, (t) => t.eagles)
@@ -172,21 +176,21 @@ export function LeaderboardsPage() {
   const snoppBoard = computeSideLeaderboard(sideTotals, (t) => t.snopp)
   const girBoard = computeSideLeaderboard(sideTotals, (t) => t.gir)
   const longestDrives = tournament
-    ? getLongestDriveLeaderboard(tournament.id)
+    ? computeLongestDriveBest(tournamentSideEvents, tournament.id)
     : []
   const longestDriveBoard = computeLongestDriveLeaderboard(longestDrives)
   const longestPutts = tournament
-    ? getLongestPuttLeaderboard(tournament.id)
+    ? computeLongestPuttBest(tournamentSideEvents, tournament.id)
     : []
   const longestPuttBoard = computeLongestPuttLeaderboard(longestPutts)
   const nearestToPins = tournament
-    ? getNearestToPinLeaderboard(tournament.id)
+    ? computeNearestToPinBest(tournamentSideEvents, tournament.id)
     : []
   const nearestToPinBoard = computeNearestToPinLeaderboard(nearestToPins)
 
   // Penalty King — compute leaderboard using same tie-handling pattern
   const penaltyTotals = tournament
-    ? getPenaltyTotals(tournament.id, playerIds)
+    ? computePenaltyTotals(tournamentPenalties, tournament.id, playerIds)
     : []
   const penaltyBoard = (() => {
     const entries = penaltyTotals

@@ -25,7 +25,7 @@ import {
 } from '@/features/scoring'
 import { toast } from 'sonner'
 import { GroupScoreGrid } from '@/features/scoring/components/group-score-grid'
-import { SideEventLogger, useSideEventsStore } from '@/features/side-events'
+import { SideEventLogger, useSideEvents } from '@/features/side-events'
 import { deriveLastSnakeInGroup } from '@/features/side-events/lib/side-events-logic'
 import { CourseCard } from '@/features/courses/components/course-card'
 import {
@@ -76,7 +76,7 @@ export function EnterPage() {
   ): Scorecard | undefined =>
     allScorecards.find((sc) => sc.roundId === roundId && sc.teamId === teamId)
   const { data: allCourses = [] } = useCourses()
-  const sideEvents = useSideEventsStore((s) => s.events)
+  const { data: sideEvents = [] } = useSideEvents()
   const authUser = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
 

@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { usePenaltiesStore } from '../state/penalties-store'
+import { useCreatePenalty } from '../api/use-penalties'
 import type { Player } from '@/features/players/types'
 import type { Round } from '@/features/rounds/types'
 
@@ -37,25 +37,30 @@ export function AddPenaltyDialog({
   players,
   rounds,
 }: AddPenaltyDialogProps) {
-  const addPenalty = usePenaltiesStore((s) => s.addPenalty)
+  const createPenalty = useCreatePenalty()
   const [playerId, setPlayerId] = useState('')
   const [amount, setAmount] = useState('1')
   const [note, setNote] = useState('')
   const [roundId, setRoundId] = useState('')
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!playerId) return
     const parsedAmount = parseFloat(amount)
     if (isNaN(parsedAmount) || parsedAmount <= 0) return
 
-    addPenalty({
-      tournamentId,
-      playerId,
-      amount: parsedAmount,
-      note: note.trim(),
-      roundId: roundId || undefined,
-    })
+    try {
+      await createPenalty.mutateAsync({
+        tournamentId,
+        playerId,
+        amount: parsedAmount,
+        note: note.trim(),
+        roundId: roundId && roundId !== 'none' ? roundId : undefined,
+      })
+    } catch {
+      toast.error('Could not add penalty')
+      return
+    }
 
     const playerName =
       players.find((p) => p.id === playerId)?.displayName ?? 'Player'
@@ -80,7 +85,10 @@ export function AddPenaltyDialog({
             tournament.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form
+          onSubmit={(e) => void handleSubmit(e)}
+          className="flex flex-col gap-4"
+        >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="penalty-player">Player</Label>
             <Select value={playerId} onValueChange={setPlayerId}>

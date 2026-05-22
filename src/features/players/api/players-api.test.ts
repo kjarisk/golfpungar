@@ -3,9 +3,9 @@
 const { from } = vi.hoisted(() => ({ from: vi.fn() }))
 vi.mock('@/lib/supabase', () => ({ supabase: { from } }))
 
-const { addEvent } = vi.hoisted(() => ({ addEvent: vi.fn() }))
+const { emitFeedEvent } = vi.hoisted(() => ({ emitFeedEvent: vi.fn() }))
 vi.mock('@/features/feed', () => ({
-  useFeedStore: { getState: () => ({ addEvent }) },
+  emitFeedEvent,
 }))
 
 import {
@@ -70,7 +70,7 @@ const PLAYER = {
 
 beforeEach(() => {
   from.mockReset()
-  addEvent.mockReset()
+  emitFeedEvent.mockReset()
 })
 
 describe('fetchPlayers', () => {
@@ -145,8 +145,8 @@ describe('updatePlayer', () => {
         query({ data: { ...JOINED_ROW, group_handicap: 16 }, error: null })
       )
     await updatePlayer('p1', { groupHandicap: 16 })
-    expect(addEvent).toHaveBeenCalledTimes(1)
-    expect(addEvent.mock.calls[0][0]).toMatchObject({
+    expect(emitFeedEvent).toHaveBeenCalledTimes(1)
+    expect(emitFeedEvent.mock.calls[0][0]).toMatchObject({
       type: 'handicap_changed',
       playerId: 'p1',
     })
@@ -157,7 +157,7 @@ describe('updatePlayer', () => {
       .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup (hcp 18)
       .mockReturnValueOnce(query({ data: JOINED_ROW, error: null }))
     await updatePlayer('p1', { groupHandicap: 18 })
-    expect(addEvent).not.toHaveBeenCalled()
+    expect(emitFeedEvent).not.toHaveBeenCalled()
   })
 
   it('does NOT post a feed event when only `active` changes', async () => {
@@ -165,7 +165,7 @@ describe('updatePlayer', () => {
       .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup
       .mockReturnValueOnce(query({ data: JOINED_ROW, error: null }))
     await updatePlayer('p1', { active: false })
-    expect(addEvent).not.toHaveBeenCalled()
+    expect(emitFeedEvent).not.toHaveBeenCalled()
   })
 })
 
