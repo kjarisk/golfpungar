@@ -184,6 +184,7 @@ export function CreateCourseDialog({
               holes={frontNine}
               startIndex={0}
               subtotal={frontPar}
+              totalHoles={holeCount}
               onParChange={updateHolePar}
               onSIChange={updateHoleSI}
             />
@@ -193,6 +194,7 @@ export function CreateCourseDialog({
                 holes={backNine}
                 startIndex={9}
                 subtotal={backPar}
+                totalHoles={holeCount}
                 totalPar={totalPar}
                 onParChange={updateHolePar}
                 onSIChange={updateHoleSI}
@@ -232,6 +234,8 @@ interface HoleGridProps {
   holes: HoleDraft[]
   startIndex: number
   subtotal: number
+  /** Total hole count of the course (9 or 18) — bounds the SI input range. */
+  totalHoles: number
   totalPar?: number
   onParChange: (index: number, par: 3 | 4 | 5) => void
   onSIChange: (index: number, si: string) => void
@@ -242,6 +246,7 @@ function HoleGrid({
   holes,
   startIndex,
   subtotal,
+  totalHoles,
   totalPar,
   onParChange,
   onSIChange,
@@ -310,8 +315,8 @@ function HoleGrid({
                     type="number"
                     inputMode="numeric"
                     min={1}
-                    max={holes.length === 9 && startIndex === 0 ? 9 : 18}
-                    className="bg-background border-border w-7 rounded border text-center text-xs tabular-nums outline-none focus:border-primary"
+                    max={totalHoles}
+                    className="bg-background border-border w-11 rounded border px-1 text-center text-xs tabular-nums outline-none focus:border-primary"
                     value={h.strokeIndex}
                     onChange={(e) => onSIChange(startIndex + i, e.target.value)}
                     aria-label={`Hole ${startIndex + i + 1} stroke index`}
