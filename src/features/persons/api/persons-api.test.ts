@@ -41,6 +41,7 @@ const ROW = {
   nickname: 'Kjarri',
   email: 'kjartan@test.com',
   user_id: 'u1',
+  current_handicap: 14.5,
   created_at: '2026-01-15T10:00:00Z',
 }
 
@@ -50,6 +51,7 @@ const PERSON = {
   nickname: 'Kjarri',
   email: 'kjartan@test.com',
   userId: 'u1',
+  currentHandicap: 14.5,
   createdAt: '2026-01-15T10:00:00Z',
 }
 
@@ -84,15 +86,20 @@ describe('fetchPersons', () => {
 })
 
 describe('createPerson', () => {
-  it('inserts and returns the created person', async () => {
-    from.mockReturnValue(query({ data: ROW, error: null }))
+  it('inserts and returns the created person (incl. currentHandicap)', async () => {
+    const chain = query({ data: ROW, error: null })
+    from.mockReturnValue(chain)
     const person = await createPerson({
       displayName: 'Kjartan',
       nickname: 'Kjarri',
       email: 'kjartan@test.com',
+      currentHandicap: 14.5,
     })
     expect(person).toEqual(PERSON)
     expect(from).toHaveBeenCalledWith('persons')
+    expect(chain.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ current_handicap: 14.5 })
+    )
   })
 
   it('throws when the insert fails (e.g. unique email index)', async () => {

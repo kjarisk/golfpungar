@@ -43,12 +43,20 @@ function PersonFormDialogInner({
   const [displayName, setDisplayName] = useState(person?.displayName ?? '')
   const [nickname, setNickname] = useState(person?.nickname ?? '')
   const [email, setEmail] = useState(person?.email ?? '')
+  const [handicap, setHandicap] = useState(
+    String(person?.currentHandicap ?? 18)
+  )
 
   const isEditing = !!person
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!displayName.trim()) return
+
+    const parsedHandicap = parseFloat(handicap)
+    const currentHandicap = Number.isFinite(parsedHandicap)
+      ? parsedHandicap
+      : 18
 
     try {
       if (isEditing) {
@@ -58,6 +66,7 @@ function PersonFormDialogInner({
             displayName: displayName.trim(),
             nickname: nickname.trim() || undefined,
             email: email.trim() || undefined,
+            currentHandicap,
           },
         })
       } else {
@@ -65,6 +74,7 @@ function PersonFormDialogInner({
           displayName: displayName.trim(),
           nickname: nickname.trim() || undefined,
           email: email.trim() || undefined,
+          currentHandicap,
         })
       }
     } catch {
@@ -76,6 +86,7 @@ function PersonFormDialogInner({
       setDisplayName('')
       setNickname('')
       setEmail('')
+      setHandicap('18')
     }
     onOpenChange(false)
   }
@@ -116,6 +127,18 @@ function PersonFormDialogInner({
               placeholder="e.g. Maggi"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="personHandicap">Handicap</Label>
+            <Input
+              id="personHandicap"
+              type="number"
+              min="0"
+              step="0.1"
+              value={handicap}
+              onChange={(e) => setHandicap(e.target.value)}
             />
           </div>
 

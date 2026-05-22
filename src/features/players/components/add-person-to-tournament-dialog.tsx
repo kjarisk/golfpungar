@@ -58,7 +58,7 @@ export function AddPersonToTournamentDialog({
       setTournamentId(
         candidateTournaments.length === 1 ? candidateTournaments[0].id : ''
       )
-      setHandicap(String(DEFAULT_HANDICAP))
+      setHandicap(String(person?.currentHandicap ?? DEFAULT_HANDICAP))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, personId])
@@ -66,7 +66,7 @@ export function AddPersonToTournamentDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!personId || !tournamentId) return
-    const hcp = parseInt(handicap, 10)
+    const hcp = parseFloat(handicap)
     try {
       await createPlayer.mutateAsync({
         tournamentId,

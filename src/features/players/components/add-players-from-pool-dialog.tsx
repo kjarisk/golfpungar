@@ -52,7 +52,10 @@ export function AddPlayersFromPoolDialog({
     if (open) {
       const next: Record<string, RowState> = {}
       for (const p of candidates) {
-        next[p.id] = { checked: false, handicap: String(DEFAULT_HANDICAP) }
+        next[p.id] = {
+          checked: false,
+          handicap: String(p.currentHandicap ?? DEFAULT_HANDICAP),
+        }
       }
       setRows(next)
       setSubmitting(false)
@@ -78,7 +81,7 @@ export function AddPlayersFromPoolDialog({
     const failures: string[] = []
     for (const personId of selectedIds) {
       const row = rows[personId]
-      const hcp = parseInt(row.handicap, 10)
+      const hcp = parseFloat(row.handicap)
       try {
         await createPlayer.mutateAsync({
           tournamentId,

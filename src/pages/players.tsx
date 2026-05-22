@@ -12,14 +12,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
-import { useActiveTournament, useTournaments } from '@/features/tournament'
+import { useTournaments } from '@/features/tournament'
 import type { Tournament, TournamentStatus } from '@/features/tournament'
-import {
-  usePlayers,
-  useSendInvite,
-  AddPersonToTournamentDialog,
-  InvitePlayersDialog,
-} from '@/features/players'
+import { usePlayers, AddPersonToTournamentDialog } from '@/features/players'
 import type { Player } from '@/features/players'
 import {
   PersonFormDialog,
@@ -27,8 +22,9 @@ import {
   useRemovePerson,
 } from '@/features/persons'
 import type { Person } from '@/features/persons'
-import { Mail, Plus, MoreHorizontal, UserPlus } from 'lucide-react'
+import { Plus, MoreHorizontal, UserPlus } from 'lucide-react'
 import { useIsAdmin } from '@/hooks/use-is-admin'
+import { supabase } from '@/lib/supabase'
 
 function getInitials(name: string) {
   return name
@@ -48,16 +44,13 @@ function chipVariantFor(
 }
 
 export function PlayersPage() {
-  const activeTournament = useActiveTournament()
   const playersQuery = usePlayers()
   const personsQuery = usePersons()
   const tournamentsQuery = useTournaments()
 
   const isAdmin = useIsAdmin()
   const removePerson = useRemovePerson()
-  const sendInvite = useSendInvite()
 
-  const [showInvite, setShowInvite] = useState(false)
   const [personDialogOpen, setPersonDialogOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState<Person | undefined>()
   const [addToTournamentPersonId, setAddToTournamentPersonId] = useState<
@@ -66,6 +59,7 @@ export function PlayersPage() {
   const [confirmingRemovePersonId, setConfirmingRemovePersonId] = useState<
     string | null
   >(null)
+  const [invitingPersonId, setInvitingPersonId] = useState<string | null>(null)
 
   const isLoading =
     personsQuery.isLoading ||
@@ -109,16 +103,25 @@ export function PlayersPage() {
     }
   }
 
-  async function handleSendInvite(email: string) {
-    if (!activeTournament) return
+  async function handleSendSignInLink(person: Person) {
+    if (!person.email) return
+    setInvitingPersonId(person.id)
     try {
-      await sendInvite.mutateAsync({
-        tournamentId: activeTournament.id,
-        email,
+      const { error } = await supabase.auth.signInWithOtp({
+        email: person.email,
+        options: { emailRedirectTo: window.location.origin },
       })
-      toast(`Invite sent to ${email}`, { duration: 2500 })
-    } catch {
-      toast.error('Could not send invite')
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      toast(`Sign-in link sent to ${person.email}`, { duration: 2500 })
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : 'Could not send sign-in link'
+      )
+    } finally {
+      setInvitingPersonId(null)
     }
   }
 
@@ -154,16 +157,6 @@ export function PlayersPage() {
         </div>
         {isAdmin && (
           <div className="flex gap-2">
-            {activeTournament && (
-              <Button
-                variant="outline"
-                onClick={() => setShowInvite(true)}
-                aria-label="Invite players"
-              >
-                <Mail className="size-4" aria-hidden="true" />
-                <span className="hidden sm:inline">Invite</span>
-              </Button>
-            )}
             <Button
               onClick={() => {
                 setEditingPerson(undefined)
@@ -203,7 +196,8 @@ export function PlayersPage() {
             persons.map((person, i) => {
               const chips = tournamentsByPerson.get(person.id) ?? []
               const confirmingRemove = confirmingRemovePersonId === person.id
-              const canSendInvite = !!person.email && !!activeTournament
+              const canSendSignInLink = !!person.email && !person.userId
+              const isInviting = invitingPersonId === person.id
               return (
                 <div key={person.id}>
                   {i > 0 && <Separator />}
@@ -223,6 +217,12 @@ export function PlayersPage() {
                             &ldquo;{person.nickname}&rdquo;
                           </span>
                         )}
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] tabular-nums"
+                        >
+                          h:{person.currentHandicap}
+                        </Badge>
                       </div>
                       {person.email && (
                         <span className="text-muted-foreground truncate text-xs">
@@ -296,13 +296,17 @@ export function PlayersPage() {
                               >
                                 Edit
                               </DropdownMenuItem>
-                              {canSendInvite && (
+                              {canSendSignInLink && (
                                 <DropdownMenuItem
-                                  onSelect={() =>
-                                    void handleSendInvite(person.email!)
-                                  }
+                                  disabled={isInviting}
+                                  onSelect={(e) => {
+                                    e.preventDefault()
+                                    void handleSendSignInLink(person)
+                                  }}
                                 >
-                                  Send invite
+                                  {isInviting
+                                    ? 'Sending…'
+                                    : 'Send sign-in link'}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuSeparator />
@@ -343,14 +347,6 @@ export function PlayersPage() {
         }}
         person={editingPerson}
       />
-
-      {activeTournament && (
-        <InvitePlayersDialog
-          open={showInvite}
-          onOpenChange={setShowInvite}
-          tournamentId={activeTournament.id}
-        />
-      )}
     </div>
   )
 }
