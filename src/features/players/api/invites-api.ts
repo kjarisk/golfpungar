@@ -10,11 +10,11 @@ interface InviteRow {
   expires_at: string
   accepted_at: string | null
   status: InviteStatus
-  linked_player_id: string | null
+  linked_person_id: string | null
 }
 
 const COLUMNS =
-  'id, tournament_id, email, role, token, expires_at, accepted_at, status, linked_player_id'
+  'id, tournament_id, email, role, token, expires_at, accepted_at, status, linked_person_id'
 
 function toInvite(row: InviteRow): Invite {
   return {
@@ -26,7 +26,7 @@ function toInvite(row: InviteRow): Invite {
     expiresAt: row.expires_at,
     acceptedAt: row.accepted_at ?? undefined,
     status: row.status,
-    linkedPlayerId: row.linked_player_id ?? undefined,
+    linkedPersonId: row.linked_person_id ?? undefined,
   }
 }
 
@@ -39,8 +39,8 @@ export async function fetchInvites(): Promise<Invite[]> {
 /**
  * Record an invite. The magic-link signup itself is handled by Supabase auth;
  * the `handle_new_user` DB trigger reads pending invites on signup to set the
- * new user's role and claim their player row — so there is no client-side
- * "accept invite" step.
+ * new user's role and link them to the matching person row — so there is no
+ * client-side "accept invite" step.
  */
 export async function sendInvite(
   tournamentId: string,

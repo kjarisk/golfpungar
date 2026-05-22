@@ -415,7 +415,7 @@ export type Database = {
           email: string
           expires_at: string
           id: string
-          linked_player_id: string | null
+          linked_person_id: string | null
           role: Database['public']['Enums']['user_role']
           status: Database['public']['Enums']['invite_status']
           token: string
@@ -427,7 +427,7 @@ export type Database = {
           email: string
           expires_at: string
           id?: string
-          linked_player_id?: string | null
+          linked_person_id?: string | null
           role?: Database['public']['Enums']['user_role']
           status?: Database['public']['Enums']['invite_status']
           token: string
@@ -439,7 +439,7 @@ export type Database = {
           email?: string
           expires_at?: string
           id?: string
-          linked_player_id?: string | null
+          linked_person_id?: string | null
           role?: Database['public']['Enums']['user_role']
           status?: Database['public']['Enums']['invite_status']
           token?: string
@@ -447,10 +447,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: 'invites_linked_player_id_fkey'
-            columns: ['linked_player_id']
+            foreignKeyName: 'invites_linked_person_id_fkey'
+            columns: ['linked_person_id']
             isOneToOne: false
-            referencedRelation: 'players'
+            referencedRelation: 'persons'
             referencedColumns: ['id']
           },
           {
@@ -517,53 +517,79 @@ export type Database = {
           },
         ]
       }
+      persons: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          id: string
+          nickname: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email?: string | null
+          id?: string
+          nickname?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          id?: string
+          nickname?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'persons_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       players: {
         Row: {
           active: boolean
           created_at: string
-          display_name: string
-          email: string | null
           group_handicap: number
           id: string
-          nickname: string | null
+          person_id: string
           tournament_id: string
-          user_id: string | null
         }
         Insert: {
           active?: boolean
           created_at?: string
-          display_name: string
-          email?: string | null
           group_handicap?: number
           id?: string
-          nickname?: string | null
+          person_id: string
           tournament_id: string
-          user_id?: string | null
         }
         Update: {
           active?: boolean
           created_at?: string
-          display_name?: string
-          email?: string | null
           group_handicap?: number
           id?: string
-          nickname?: string | null
+          person_id?: string
           tournament_id?: string
-          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'players_person_id_fkey'
+            columns: ['person_id']
+            isOneToOne: false
+            referencedRelation: 'persons'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'players_tournament_id_fkey'
             columns: ['tournament_id']
             isOneToOne: false
             referencedRelation: 'tournaments'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 'players_user_id_fkey'
-            columns: ['user_id']
-            isOneToOne: false
-            referencedRelation: 'profiles'
             referencedColumns: ['id']
           },
         ]

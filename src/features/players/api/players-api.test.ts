@@ -8,7 +8,17 @@ vi.mock('@/features/feed', () => ({
   useFeedStore: { getState: () => ({ addEvent }) },
 }))
 
+const { createPersonMock, removePersonMock } = vi.hoisted(() => ({
+  createPersonMock: vi.fn(),
+  removePersonMock: vi.fn(),
+}))
+vi.mock('@/features/persons/api/persons-api', () => ({
+  createPerson: createPersonMock,
+  removePerson: removePersonMock,
+}))
+
 import {
+  addNewPersonToTournament,
   createPlayer,
   fetchPlayers,
   removePlayer,
@@ -40,21 +50,25 @@ function query(result: Result) {
   return chain
 }
 
-const ROW = {
+const JOINED_ROW = {
   id: 'p1',
   tournament_id: 't1',
-  user_id: 'u1',
-  display_name: 'Kjartan',
-  nickname: 'Kjarri',
-  email: 'kjartan@test.com',
+  person_id: 'pn1',
   group_handicap: 18,
   active: true,
   created_at: '2026-01-15T10:00:00Z',
+  persons: {
+    display_name: 'Kjartan',
+    nickname: 'Kjarri',
+    email: 'kjartan@test.com',
+    user_id: 'u1',
+  },
 }
 
 const PLAYER = {
   id: 'p1',
   tournamentId: 't1',
+  personId: 'pn1',
   userId: 'u1',
   displayName: 'Kjartan',
   nickname: 'Kjarri',
@@ -64,28 +78,42 @@ const PLAYER = {
   createdAt: '2026-01-15T10:00:00Z',
 }
 
+const PERSON = {
+  id: 'pn1',
+  displayName: 'Kjartan',
+  nickname: 'Kjarri',
+  email: 'kjartan@test.com',
+  userId: 'u1',
+  createdAt: '2026-01-15T10:00:00Z',
+}
+
 beforeEach(() => {
   from.mockReset()
   addEvent.mockReset()
+  createPersonMock.mockReset()
+  removePersonMock.mockReset()
 })
 
 describe('fetchPlayers', () => {
-  it('maps Supabase rows to Player objects', async () => {
-    from.mockReturnValue(query({ data: [ROW], error: null }))
+  it('maps nested-select rows to flat Player objects', async () => {
+    from.mockReturnValue(query({ data: [JOINED_ROW], error: null }))
     const players = await fetchPlayers()
     expect(players).toEqual([PLAYER])
   })
 
-  it('maps null nickname/email/user_id to undefined/empty', async () => {
+  it('maps a null user_id on the joined person to an empty string', async () => {
     from.mockReturnValue(
       query({
-        data: [{ ...ROW, nickname: null, email: null, user_id: null }],
+        data: [
+          {
+            ...JOINED_ROW,
+            persons: { ...JOINED_ROW.persons, user_id: null },
+          },
+        ],
         error: null,
       })
     )
     const [p] = await fetchPlayers()
-    expect(p.nickname).toBeUndefined()
-    expect(p.email).toBeUndefined()
     expect(p.userId).toBe('')
   })
 
@@ -96,12 +124,11 @@ describe('fetchPlayers', () => {
 })
 
 describe('createPlayer', () => {
-  it('inserts and returns the created player', async () => {
-    from.mockReturnValue(query({ data: ROW, error: null }))
-    const player = await createPlayer('t1', {
-      displayName: 'Kjartan',
-      nickname: 'Kjarri',
-      email: 'kjartan@test.com',
+  it('inserts a participation row and returns the joined Player', async () => {
+    from.mockReturnValue(query({ data: JOINED_ROW, error: null }))
+    const player = await createPlayer({
+      tournamentId: 't1',
+      personId: 'pn1',
       groupHandicap: 18,
     })
     expect(player).toEqual(PLAYER)
@@ -111,32 +138,67 @@ describe('createPlayer', () => {
   it('throws when the insert fails', async () => {
     from.mockReturnValue(query({ data: null, error: new Error('denied') }))
     await expect(
-      createPlayer('t1', { displayName: 'X', groupHandicap: 18 })
+      createPlayer({ tournamentId: 't1', personId: 'pn1', groupHandicap: 18 })
     ).rejects.toThrow('denied')
+  })
+})
+
+describe('addNewPersonToTournament', () => {
+  it('creates the person then the player and returns both', async () => {
+    createPersonMock.mockResolvedValue(PERSON)
+    from.mockReturnValue(query({ data: JOINED_ROW, error: null }))
+    const result = await addNewPersonToTournament({
+      tournamentId: 't1',
+      displayName: 'Kjartan',
+      nickname: 'Kjarri',
+      email: 'kjartan@test.com',
+      groupHandicap: 18,
+    })
+    expect(result.person).toEqual(PERSON)
+    expect(result.player).toEqual(PLAYER)
+    expect(createPersonMock).toHaveBeenCalledWith({
+      displayName: 'Kjartan',
+      nickname: 'Kjarri',
+      email: 'kjartan@test.com',
+    })
+    expect(removePersonMock).not.toHaveBeenCalled()
+  })
+
+  it('rolls the person back when the player insert fails', async () => {
+    createPersonMock.mockResolvedValue(PERSON)
+    from.mockReturnValue(query({ data: null, error: new Error('denied') }))
+    await expect(
+      addNewPersonToTournament({
+        tournamentId: 't1',
+        displayName: 'Kjartan',
+        groupHandicap: 18,
+      })
+    ).rejects.toThrow('denied')
+    expect(removePersonMock).toHaveBeenCalledWith('pn1')
   })
 })
 
 describe('updatePlayer', () => {
   it('updates and returns the player', async () => {
-    from.mockReturnValue(query({ data: ROW, error: null }))
-    const player = await updatePlayer('p1', { displayName: 'Kjartan' })
+    from.mockReturnValue(query({ data: JOINED_ROW, error: null }))
+    const player = await updatePlayer('p1', { groupHandicap: 18 })
     expect(player).toEqual(PLAYER)
   })
 
   it('throws when the update fails', async () => {
     from
-      .mockReturnValueOnce(query({ data: ROW, error: null })) // lookup
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup
       .mockReturnValueOnce(query({ data: null, error: new Error('nope') }))
-    await expect(updatePlayer('p1', { displayName: 'X' })).rejects.toThrow(
+    await expect(updatePlayer('p1', { groupHandicap: 17 })).rejects.toThrow(
       'nope'
     )
   })
 
   it('posts a handicap-changed feed event when the handicap changes', async () => {
     from
-      .mockReturnValueOnce(query({ data: ROW, error: null })) // lookup (hcp 18)
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup (hcp 18)
       .mockReturnValueOnce(
-        query({ data: { ...ROW, group_handicap: 16 }, error: null })
+        query({ data: { ...JOINED_ROW, group_handicap: 16 }, error: null })
       )
     await updatePlayer('p1', { groupHandicap: 16 })
     expect(addEvent).toHaveBeenCalledTimes(1)
@@ -148,17 +210,17 @@ describe('updatePlayer', () => {
 
   it('does NOT post a feed event when the handicap is unchanged', async () => {
     from
-      .mockReturnValueOnce(query({ data: ROW, error: null })) // lookup (hcp 18)
-      .mockReturnValueOnce(query({ data: ROW, error: null }))
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup (hcp 18)
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null }))
     await updatePlayer('p1', { groupHandicap: 18 })
     expect(addEvent).not.toHaveBeenCalled()
   })
 
-  it('does NOT post a feed event for non-handicap updates', async () => {
+  it('does NOT post a feed event when only `active` changes', async () => {
     from
-      .mockReturnValueOnce(query({ data: ROW, error: null })) // lookup
-      .mockReturnValueOnce(query({ data: ROW, error: null }))
-    await updatePlayer('p1', { displayName: 'NewName' })
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null })) // lookup
+      .mockReturnValueOnce(query({ data: JOINED_ROW, error: null }))
+    await updatePlayer('p1', { active: false })
     expect(addEvent).not.toHaveBeenCalled()
   })
 })

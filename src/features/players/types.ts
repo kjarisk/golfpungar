@@ -1,26 +1,28 @@
 export interface Player {
   id: string
   tournamentId: string
+  personId: string
+  /** Denormalized from the joined person row */
   userId: string
+  /** Denormalized from the joined person row */
   displayName: string
+  /** Denormalized */
   nickname?: string
+  /** Denormalized */
   email?: string
   groupHandicap: number
   active: boolean
   createdAt: string
 }
 
+/** Pure participation creation — picks an existing person. */
 export interface CreatePlayerInput {
-  displayName: string
-  nickname?: string
-  email?: string
+  personId: string
   groupHandicap: number
 }
 
+/** Tournament-participation updates only. Identity edits go through usePersons. */
 export interface UpdatePlayerInput {
-  displayName?: string
-  nickname?: string
-  email?: string
   groupHandicap?: number
   active?: boolean
 }
@@ -36,6 +38,6 @@ export interface Invite {
   expiresAt: string
   acceptedAt?: string
   status: InviteStatus
-  /** Linked player ID — set when a player with matching email exists */
-  linkedPlayerId?: string
+  /** Linked person ID — set when a person with matching email exists */
+  linkedPersonId?: string
 }

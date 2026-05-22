@@ -39,7 +39,7 @@ const ROW = {
   expires_at: '2026-06-01T00:00:00Z',
   accepted_at: null,
   status: 'pending' as const,
-  linked_player_id: null,
+  linked_person_id: null,
 }
 
 const INVITE = {
@@ -51,7 +51,7 @@ const INVITE = {
   expiresAt: '2026-06-01T00:00:00Z',
   acceptedAt: undefined,
   status: 'pending' as const,
-  linkedPlayerId: undefined,
+  linkedPersonId: undefined,
 }
 
 beforeEach(() => {
@@ -65,11 +65,11 @@ describe('fetchInvites', () => {
     expect(invites).toEqual([INVITE])
   })
 
-  it('maps accepted_at/linked_player_id to undefined when null', async () => {
+  it('maps accepted_at/linked_person_id to undefined when null', async () => {
     from.mockReturnValue(query({ data: [ROW], error: null }))
     const [i] = await fetchInvites()
     expect(i.acceptedAt).toBeUndefined()
-    expect(i.linkedPlayerId).toBeUndefined()
+    expect(i.linkedPersonId).toBeUndefined()
   })
 
   it('throws when Supabase returns an error', async () => {

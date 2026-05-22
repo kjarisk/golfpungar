@@ -1,5 +1,18 @@
-export * from './api/use-players'
-export * from './api/use-invites'
+export {
+  usePlayers,
+  useActivePlayers,
+  useCreatePlayer,
+  useAddNewPersonToTournament,
+  useUpdatePlayer,
+  useRemovePlayer,
+  playersQueryKey,
+} from './api/use-players'
+export {
+  useInvites,
+  useTournamentInvites,
+  useSendInvite,
+  invitesQueryKey,
+} from './api/use-invites'
 export type {
   Player,
   CreatePlayerInput,
