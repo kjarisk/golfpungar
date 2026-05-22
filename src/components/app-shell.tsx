@@ -35,6 +35,7 @@ export function AppShell() {
   const tournament = useActiveTournament()
   const { resolvedTheme, setTheme } = useTheme()
   const logout = useAuthStore((s) => s.logout)
+  const userEmail = useAuthStore((s) => s.user?.email)
   const currentPlayerId = useCurrentPlayerId()
   const bets = useBettingStore((s) => s.bets)
   const participants = useBettingStore((s) => s.participants)
@@ -66,6 +67,15 @@ export function AppShell() {
             <ChevronRight className="size-3" aria-hidden="true" />
           </Link>
           <div className="flex items-center gap-1">
+            {userEmail && (
+              <Link
+                to="/players"
+                title={`Signed in as ${userEmail}`}
+                className="text-muted-foreground hover:text-foreground mr-1 max-w-[110px] truncate text-xs transition-colors sm:max-w-[220px]"
+              >
+                {userEmail}
+              </Link>
+            )}
             <Button
               asChild
               variant="ghost"

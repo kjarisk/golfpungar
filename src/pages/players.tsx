@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useTournaments } from '@/features/tournament'
 import type { Tournament, TournamentStatus } from '@/features/tournament'
+import { useAuthStore } from '@/features/auth'
 import { usePlayers, AddPersonToTournamentDialog } from '@/features/players'
 import type { Player } from '@/features/players'
 import {
@@ -50,6 +51,7 @@ export function PlayersPage() {
 
   const isAdmin = useIsAdmin()
   const removePerson = useRemovePerson()
+  const currentUserId = useAuthStore((s) => s.user?.id)
 
   const [personDialogOpen, setPersonDialogOpen] = useState(false)
   const [editingPerson, setEditingPerson] = useState<Person | undefined>()
@@ -221,8 +223,16 @@ export function PlayersPage() {
                           variant="outline"
                           className="text-[10px] tabular-nums"
                         >
-                          h:{person.currentHandicap}
+                          hcp: {person.currentHandicap}
                         </Badge>
+                        {!!person.userId && person.userId === currentUserId && (
+                          <Badge
+                            variant="default"
+                            className="bg-primary/15 text-primary border-primary/30 border text-[10px] font-semibold"
+                          >
+                            You
+                          </Badge>
+                        )}
                       </div>
                       {person.email && (
                         <span className="text-muted-foreground truncate text-xs">
@@ -237,7 +247,7 @@ export function PlayersPage() {
                               variant={chipVariantFor(tournament.status)}
                               className="text-[10px] tabular-nums"
                             >
-                              {tournament.name} · h:{player.groupHandicap}
+                              {tournament.name} · hcp: {player.groupHandicap}
                             </Badge>
                           ))}
                         </div>
