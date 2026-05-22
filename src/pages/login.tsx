@@ -84,11 +84,44 @@ export function LoginPage() {
         <div className="absolute inset-x-0 bottom-0 h-8 bg-green-700/15 dark:bg-green-500/8" />
       </div>
 
-      {/* Flag on the "hill" */}
-      <div className="absolute bottom-24 right-1/4">
-        <div className="flex flex-col items-center">
-          <div className="h-2 w-5 rounded-sm bg-red-500/60" />
-          <div className="h-16 w-0.5 bg-gray-400/50" />
+      {/* Pin, cup, and ball on the back hill */}
+      <div className="absolute right-1/4 bottom-24 select-none">
+        <div className="relative">
+          {/* Pole */}
+          <div className="h-24 w-[2px] bg-white/75 shadow-sm dark:bg-white/65" />
+          {/* Triangular pennant with hole number — gently waves */}
+          <div
+            className="animate-flag-wave absolute top-0 left-[2px] h-4 w-10 bg-red-500 drop-shadow-md dark:bg-red-500/90"
+            style={{ clipPath: 'polygon(0 0, 100% 50%, 0 100%)' }}
+          >
+            <span className="absolute top-1/2 left-[3px] -translate-y-1/2 text-[9px] font-bold leading-none tracking-tight text-white/95">
+              18
+            </span>
+          </div>
+          {/* Cup (the hole) at the base */}
+          <div className="absolute -bottom-[3px] left-1/2 h-1 w-6 -translate-x-1/2 rounded-full bg-black/45" />
+          {/* Putting line — dots brighten in sequence ball → cup so the eye
+              reads the putt as rolling toward the hole. */}
+          <div className="absolute bottom-0 -left-[40px] flex items-center gap-[5px]">
+            <div
+              className="animate-putt-chase size-[2px] rounded-full bg-white"
+              style={{ animationDelay: '0ms' }}
+            />
+            <div
+              className="animate-putt-chase size-[2px] rounded-full bg-white"
+              style={{ animationDelay: '150ms' }}
+            />
+            <div
+              className="animate-putt-chase size-[2px] rounded-full bg-white"
+              style={{ animationDelay: '300ms' }}
+            />
+            <div
+              className="animate-putt-chase size-[2px] rounded-full bg-white"
+              style={{ animationDelay: '450ms' }}
+            />
+          </div>
+          {/* Golf ball — about to roll in */}
+          <div className="absolute -bottom-[1px] -left-14 size-2.5 rounded-full bg-white shadow-md ring-1 ring-black/10" />
         </div>
       </div>
 
@@ -96,19 +129,49 @@ export function LoginPage() {
       <div className="relative z-10 flex w-full max-w-sm flex-col items-center px-6">
         {/* Logo */}
         <div className="mb-3">
+          {/* Logo: two golf balls — a quiet nod to "pungar" (Icelandic: balls) */}
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 512 512"
             className="size-20 drop-shadow-lg"
+            aria-label="Golfpungar logo"
           >
             <rect width="512" height="512" rx="96" fill="#16a34a" />
-            <circle cx="256" cy="220" r="60" fill="white" />
-            <path d="M256 280 L240 400 L256 380 L272 400 Z" fill="white" />
-            <path
-              d="M180 160 C180 160 200 100 256 80 C312 100 332 160 332 160"
-              stroke="white"
-              strokeWidth="8"
-              fill="none"
+            {/* Soft turf shadows under each ball */}
+            <ellipse
+              cx="162"
+              cy="384"
+              rx="74"
+              ry="10"
+              fill="rgba(0,0,0,0.22)"
+            />
+            <ellipse
+              cx="350"
+              cy="384"
+              rx="74"
+              ry="10"
+              fill="rgba(0,0,0,0.22)"
+            />
+            {/* The pungar */}
+            <circle cx="162" cy="290" r="88" fill="white" />
+            <circle cx="350" cy="290" r="88" fill="white" />
+            {/* Alignment marks — the classic putting-line stripe */}
+            <line
+              x1="98"
+              y1="290"
+              x2="226"
+              y2="290"
+              stroke="rgba(0,0,0,0.16)"
+              strokeWidth="6"
+              strokeLinecap="round"
+            />
+            <line
+              x1="286"
+              y1="290"
+              x2="414"
+              y2="290"
+              stroke="rgba(0,0,0,0.16)"
+              strokeWidth="6"
               strokeLinecap="round"
             />
           </svg>

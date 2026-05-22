@@ -136,8 +136,41 @@
   animation: gradient 6s linear infinite;
 }
 
+@keyframes flag-wave {
+  0%,
+  100% {
+    transform: skewY(0deg) scaleX(1);
+  }
+  50% {
+    transform: skewY(-6deg) scaleX(0.92);
+  }
+}
+
+.animate-flag-wave {
+  animation: flag-wave 2.5s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+@keyframes putt-chase {
+  0%,
+  75%,
+  100% {
+    opacity: 0.18;
+  }
+  20%,
+  35% {
+    opacity: 0.8;
+  }
+}
+
+.animate-putt-chase {
+  animation: putt-chase 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-gradient {
+  .animate-gradient,
+  .animate-flag-wave,
+  .animate-putt-chase {
     animation: none;
   }
 }
