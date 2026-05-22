@@ -15,7 +15,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { useScoringStore } from '@/features/scoring'
+import { useSetHoleStroke } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import { useFeedStore } from '@/features/feed'
 import type { Scorecard, HoleStroke } from '@/features/scoring'
@@ -162,7 +162,7 @@ export function GroupScoreGrid({
   currentPlayerId,
   readOnly = false,
 }: GroupScoreGridProps) {
-  const setHoleStroke = useScoringStore((s) => s.setHoleStroke)
+  const setHoleStroke = useSetHoleStroke()
   const logEvent = useSideEventsStore((s) => s.logEvent)
   const removeEvent = useSideEventsStore((s) => s.removeEvent)
   const allSideEvents = useSideEventsStore((s) => s.events)
@@ -382,7 +382,11 @@ export function GroupScoreGrid({
   function setStroke(holeIdx: number, pIdx: number, value: number | null) {
     const p = participants[pIdx]
     if (!p) return
-    setHoleStroke(p.scorecard.id, holeIdx, value, holes, p.handicap, format)
+    setHoleStroke({
+      scorecardId: p.scorecard.id,
+      holeIndex: holeIdx,
+      strokes: value,
+    })
     syncAutoSideEvents(holeIdx, p.id, value)
   }
 

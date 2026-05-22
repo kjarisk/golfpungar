@@ -15,7 +15,14 @@ import { useActiveTournament } from '@/features/tournament'
 import { TournamentStatusBadge } from '@/features/tournament/components/tournament-status-badge'
 import { useActivePlayers } from '@/features/players'
 import { useTeamsByRound } from '@/features/rounds'
-import { useScoringStore } from '@/features/scoring'
+import {
+  useScorecards,
+  useScorecardsByRound,
+  useScorecardForPlayer,
+  awardPoints,
+  type RoundPoints,
+} from '@/features/scoring'
+import { useRoundsByTournament } from '@/features/rounds'
 import { useSideEventsStore } from '@/features/side-events'
 import { usePenaltiesStore } from '@/features/penalties'
 import { useBettingStore } from '@/features/betting'
@@ -100,9 +107,13 @@ export function FeedPage() {
   const user = useAuthStore((s) => s.user)
   const isAdmin = useIsAdmin()
   const tournament = useActiveTournament()
-  const allRoundPoints = useScoringStore((s) => s.roundPoints)
-  const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
-  const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
+  const { data: allScorecards = [] } = useScorecards()
+  const rounds = useRoundsByTournament(tournament?.id)
+  // Compute round points on the fly from scorecards + each round's format
+  const allRoundPoints: RoundPoints[] = rounds.flatMap((r) => {
+    const cards = allScorecards.filter((sc) => sc.roundId === r.id)
+    return awardPoints(cards, r.format, r.pointsTable)
+  })
   const getEventsByTournament = useSideEventsStore(
     (s) => s.getEventsByTournament
   )
@@ -116,11 +127,16 @@ export function FeedPage() {
   const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
   const activeRoundTeams = useTeamsByRound(activeRound?.id)
+  const activeRoundScorecards = useScorecardsByRound(activeRound?.id)
 
   const players = useActivePlayers(tournament?.id)
 
   // Current user's player record
   const currentPlayer = players.find((p) => p.userId === user?.id)
+  const myActiveScorecard = useScorecardForPlayer(
+    activeRound?.id,
+    currentPlayer?.id
+  )
 
   // Total points for current user
   const totalLeaderboard = computeTotalPointsLeaderboard(
@@ -156,20 +172,13 @@ export function FeedPage() {
         ).length
       : 0
 
-  // My scorecard for active round
-  const myActiveScorecard =
-    activeRound && currentPlayer
-      ? getScorecardForPlayer(activeRound.id, currentPlayer.id)
-      : null
-
   // Active round leaders (top 5)
   const activeRoundLeaders = (() => {
     if (!activeRound) return []
     const roundRPs = allRoundPoints.filter(
       (rp) => rp.roundId === activeRound.id
     )
-    const roundSCs = getScorecardsByRound(activeRound.id)
-    const leaderboard = computeRoundLeaderboard(roundRPs, roundSCs)
+    const leaderboard = computeRoundLeaderboard(roundRPs, activeRoundScorecards)
     const teams = activeRoundTeams
     return leaderboard.slice(0, 5).map((entry) => {
       const player = players.find((p) => p.id === entry.participantId)

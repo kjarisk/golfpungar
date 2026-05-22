@@ -18,7 +18,12 @@ import {
 } from '@/features/rounds'
 import { useCourses, useHolesByCourse } from '@/features/courses'
 import { useActivePlayers } from '@/features/players'
-import { useScoringStore } from '@/features/scoring'
+import {
+  useScorecards,
+  useCreateScorecard,
+  type Scorecard,
+} from '@/features/scoring'
+import { toast } from 'sonner'
 import { GroupScoreGrid } from '@/features/scoring/components/group-score-grid'
 import { SideEventLogger, useSideEventsStore } from '@/features/side-events'
 import { deriveLastSnakeInGroup } from '@/features/side-events/lib/side-events-logic'
@@ -56,10 +61,20 @@ function persistGroupId(groupId: string) {
 
 export function EnterPage() {
   const tournament = useActiveTournament()
-  const allScorecards = useScoringStore((s) => s.scorecards)
-  const getScorecardForPlayer = useScoringStore((s) => s.getScorecardForPlayer)
-  const getScorecardForTeam = useScoringStore((s) => s.getScorecardForTeam)
-  const createScorecard = useScoringStore((s) => s.createScorecard)
+  const { data: allScorecards = [] } = useScorecards()
+  const createScorecard = useCreateScorecard()
+  const getScorecardForPlayer = (
+    roundId: string,
+    playerId: string
+  ): Scorecard | undefined =>
+    allScorecards.find(
+      (sc) => sc.roundId === roundId && sc.playerId === playerId
+    )
+  const getScorecardForTeam = (
+    roundId: string,
+    teamId: string
+  ): Scorecard | undefined =>
+    allScorecards.find((sc) => sc.roundId === roundId && sc.teamId === teamId)
   const { data: allCourses = [] } = useCourses()
   const sideEvents = useSideEventsStore((s) => s.events)
   const authUser = useAuthStore((s) => s.user)
@@ -146,31 +161,34 @@ export function EnterPage() {
   const roundPlayers = players.filter((p) => roundPlayerIds.includes(p.id))
 
   // Ensure scorecards exist for all participants in the round (on-demand)
-  function ensureScorecards() {
+  async function ensureScorecards() {
     if (!selectedRound) return
-    if (useTeamScorecards) {
-      for (const team of teams) {
-        const existing = getScorecardForTeam(selectedRound.id, team.id)
-        if (!existing) {
-          createScorecard(
-            selectedRound.id,
-            selectedRound.holesPlayed,
-            undefined,
-            team.id
-          )
+    try {
+      if (useTeamScorecards) {
+        for (const team of teams) {
+          const existing = getScorecardForTeam(selectedRound.id, team.id)
+          if (!existing) {
+            await createScorecard.mutateAsync({
+              roundId: selectedRound.id,
+              holesPlayed: selectedRound.holesPlayed,
+              teamId: team.id,
+            })
+          }
+        }
+      } else {
+        for (const player of roundPlayers) {
+          const existing = getScorecardForPlayer(selectedRound.id, player.id)
+          if (!existing) {
+            await createScorecard.mutateAsync({
+              roundId: selectedRound.id,
+              holesPlayed: selectedRound.holesPlayed,
+              playerId: player.id,
+            })
+          }
         }
       }
-    } else {
-      for (const player of roundPlayers) {
-        const existing = getScorecardForPlayer(selectedRound.id, player.id)
-        if (!existing) {
-          createScorecard(
-            selectedRound.id,
-            selectedRound.holesPlayed,
-            player.id
-          )
-        }
-      }
+    } catch {
+      toast.error('Could not create scorecards')
     }
   }
 
@@ -189,7 +207,7 @@ export function EnterPage() {
       !initializedRoundsRef.current.has(selectedRound.id)
     ) {
       initializedRoundsRef.current.add(selectedRound.id)
-      ensureScorecards()
+      void ensureScorecards()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRound?.id, hasParticipants, scorecards.length])

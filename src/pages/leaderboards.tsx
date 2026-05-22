@@ -20,10 +20,13 @@ import { useTournaments, useActiveTournament } from '@/features/tournament'
 import { useRoundsByTournament, useTeamsByRound } from '@/features/rounds'
 import { useActivePlayers } from '@/features/players'
 import {
-  useScoringStore,
+  useScorecards,
   ScorecardDetail,
   ScorecardComparison,
   SideEventBadges,
+  awardPoints,
+  type Scorecard,
+  type RoundPoints,
 } from '@/features/scoring'
 import { useSideEventsStore, EvidenceGallery } from '@/features/side-events'
 import { useHoles } from '@/features/courses'
@@ -75,10 +78,12 @@ export function LeaderboardsPage() {
     : activeTournament
   const isBrowsingPast =
     !!queryTournamentId && tournament?.id !== activeTournament?.id
-  const getAllRoundPoints = useScoringStore((s) => s.roundPoints)
-  const allScorecards = useScoringStore((s) => s.scorecards)
-  const getPointsByRound = useScoringStore((s) => s.getPointsByRound)
-  const getScorecardsByRound = useScoringStore((s) => s.getScorecardsByRound)
+  const { data: allScorecards = [] } = useScorecards()
+  const getScorecardsByRound = useCallback(
+    (roundId: string): Scorecard[] =>
+      allScorecards.filter((sc) => sc.roundId === roundId),
+    [allScorecards]
+  )
   const getTotalsForTournament = useSideEventsStore(
     (s) => s.getTotalsForTournament
   )
@@ -103,6 +108,15 @@ export function LeaderboardsPage() {
   const rounds = useRoundsByTournament(tournament?.id)
   const players = useActivePlayers(tournament?.id)
   const playerIds = players.map((p) => p.id)
+
+  // Compute round points on the fly from scorecards + each round's format/pointsTable.
+  // Replaces the old useScoringStore.roundPoints + recalculatePoints flow.
+  const getAllRoundPoints: RoundPoints[] = rounds.flatMap((r) => {
+    const cards = allScorecards.filter((sc) => sc.roundId === r.id)
+    return awardPoints(cards, r.format, r.pointsTable)
+  })
+  const getPointsByRound = (roundId: string): RoundPoints[] =>
+    getAllRoundPoints.filter((rp) => rp.roundId === roundId)
 
   // Course + holes for scorecard detail view
   const { data: allHoles = [] } = useHoles()

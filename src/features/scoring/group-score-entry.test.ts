@@ -1,7 +1,15 @@
 /// <reference types="vitest/globals" />
-import { useScoringStore } from './state/scoring-store'
 import { useSideEventsStore } from '@/features/side-events/state/side-events-store'
+import {
+  awardPoints,
+  calculateGrossTotal,
+  calculateNetTotal,
+  calculateStablefordTotal,
+  isScorecardComplete,
+  type Scorecard,
+} from '@/features/scoring'
 import type { Hole } from '@/features/courses'
+import type { HoleStroke } from '@/features/scoring'
 
 function makeHole(num: number, par: number, si: number): Hole {
   return {
@@ -34,208 +42,182 @@ const HOLES_18: Hole[] = [
   makeHole(18, 5, 14),
 ]
 
+/**
+ * Helper to build an enriched Scorecard the way `useScorecards()` would —
+ * raw strokes + computed totals. Mirrors the enrich() function in
+ * `api/use-scorecards.ts` for the test environment.
+ */
+function makeScorecard(args: {
+  id: string
+  roundId: string
+  playerId?: string
+  teamId?: string
+  holeStrokes: HoleStroke[]
+  holes: Hole[]
+  groupHandicap?: number
+  format?: 'stableford' | 'handicap' | 'scramble' | 'bestball'
+}): Scorecard {
+  const handicap = args.groupHandicap ?? 0
+  const grossTotal = calculateGrossTotal(args.holeStrokes)
+  const netTotal =
+    args.holes.length > 0
+      ? calculateNetTotal(args.holeStrokes, args.holes, handicap)
+      : null
+  const stablefordPoints =
+    args.format === 'stableford' && args.holes.length > 0
+      ? calculateStablefordTotal(args.holeStrokes, args.holes, handicap)
+      : null
+  return {
+    id: args.id,
+    roundId: args.roundId,
+    playerId: args.playerId,
+    teamId: args.teamId,
+    holeStrokes: args.holeStrokes,
+    grossTotal,
+    netTotal,
+    stablefordPoints,
+    isComplete: isScorecardComplete(args.holeStrokes),
+  }
+}
+
 describe('Group Score Entry', () => {
   beforeEach(() => {
-    useScoringStore.setState({ scorecards: [], roundPoints: [] })
     useSideEventsStore.setState({ events: [], images: [] })
   })
 
   describe('individual format — group-based scoring', () => {
-    it('creates scorecards for multiple players in a group', () => {
-      const store = useScoringStore.getState()
-      store.createScorecard('round-1', 18, 'player-1')
-      store.createScorecard('round-1', 18, 'player-2')
-      store.createScorecard('round-1', 18, 'player-3')
-      store.createScorecard('round-1', 18, 'player-4')
+    it('enriches scorecards correctly per player with own handicap', () => {
+      const sc1 = makeScorecard({
+        id: 'sc-1',
+        roundId: 'round-1',
+        playerId: 'player-1',
+        holeStrokes: [4, ...Array(17).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 10,
+        format: 'handicap',
+      })
+      const sc2 = makeScorecard({
+        id: 'sc-2',
+        roundId: 'round-1',
+        playerId: 'player-2',
+        holeStrokes: [5, ...Array(17).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 15,
+        format: 'handicap',
+      })
 
-      const all = useScoringStore.getState().getScorecardsByRound('round-1')
-      expect(all).toHaveLength(4)
-      expect(all.map((s) => s.playerId)).toEqual([
-        'player-1',
-        'player-2',
-        'player-3',
-        'player-4',
-      ])
-    })
-
-    it('enters scores for different players in same group independently', () => {
-      const store = useScoringStore.getState()
-      const sc1 = store.createScorecard('round-1', 18, 'player-1')
-      const sc2 = store.createScorecard('round-1', 18, 'player-2')
-
-      // Player 1 scores 4 on hole 1
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc1.id, 0, 4, HOLES_18, 10, 'handicap')
-      // Player 2 scores 5 on hole 1
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc2.id, 0, 5, HOLES_18, 15, 'handicap')
-
-      const updated1 = useScoringStore
-        .getState()
-        .getScorecardForPlayer('round-1', 'player-1')
-      const updated2 = useScoringStore
-        .getState()
-        .getScorecardForPlayer('round-1', 'player-2')
-
-      expect(updated1?.holeStrokes[0]).toBe(4)
-      expect(updated2?.holeStrokes[0]).toBe(5)
-      // Other holes remain null
-      expect(updated1?.holeStrokes[1]).toBeNull()
-      expect(updated2?.holeStrokes[1]).toBeNull()
+      expect(sc1.holeStrokes[0]).toBe(4)
+      expect(sc2.holeStrokes[0]).toBe(5)
+      expect(sc1.holeStrokes[1]).toBeNull()
+      expect(sc2.holeStrokes[1]).toBeNull()
     })
 
     it('auto-calculates gross for each player in group independently', () => {
-      const store = useScoringStore.getState()
-      const sc1 = store.createScorecard('round-1', 18, 'player-1')
-      const sc2 = store.createScorecard('round-1', 18, 'player-2')
+      const sc1 = makeScorecard({
+        id: 'sc-1',
+        roundId: 'round-1',
+        playerId: 'player-1',
+        holeStrokes: [4, 5, 3, ...Array(15).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 10,
+        format: 'handicap',
+      })
+      const sc2 = makeScorecard({
+        id: 'sc-2',
+        roundId: 'round-1',
+        playerId: 'player-2',
+        holeStrokes: [5, 6, 4, ...Array(15).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 15,
+        format: 'handicap',
+      })
 
-      // Enter first 3 holes for player 1: 4, 5, 3
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc1.id, 0, 4, HOLES_18, 10, 'handicap')
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc1.id, 1, 5, HOLES_18, 10, 'handicap')
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc1.id, 2, 3, HOLES_18, 10, 'handicap')
-
-      // Enter first 3 holes for player 2: 5, 6, 4
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc2.id, 0, 5, HOLES_18, 15, 'handicap')
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc2.id, 1, 6, HOLES_18, 15, 'handicap')
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc2.id, 2, 4, HOLES_18, 15, 'handicap')
-
-      const p1 = useScoringStore
-        .getState()
-        .getScorecardForPlayer('round-1', 'player-1')
-      const p2 = useScoringStore
-        .getState()
-        .getScorecardForPlayer('round-1', 'player-2')
-
-      expect(p1?.grossTotal).toBe(12) // 4+5+3
-      expect(p2?.grossTotal).toBe(15) // 5+6+4
-    })
-
-    it('group scorecards do not interfere across rounds', () => {
-      const store = useScoringStore.getState()
-      store.createScorecard('round-1', 18, 'player-1')
-      store.createScorecard('round-2', 18, 'player-1')
-
-      const r1 = useScoringStore.getState().getScorecardsByRound('round-1')
-      const r2 = useScoringStore.getState().getScorecardsByRound('round-2')
-      expect(r1).toHaveLength(1)
-      expect(r2).toHaveLength(1)
-      expect(r1[0].id).not.toBe(r2[0].id)
+      expect(sc1.grossTotal).toBe(12) // 4+5+3
+      expect(sc2.grossTotal).toBe(15) // 5+6+4
     })
   })
 
   describe('team format — team column scoring', () => {
     it('creates team scorecards with teamId', () => {
-      const store = useScoringStore.getState()
-      const sc = store.createScorecard('round-1', 18, undefined, 'team-1')
+      const sc = makeScorecard({
+        id: 'sc-team-1',
+        roundId: 'round-1',
+        teamId: 'team-1',
+        holeStrokes: Array(18).fill(null),
+        holes: HOLES_18,
+        format: 'scramble',
+      })
 
       expect(sc.teamId).toBe('team-1')
       expect(sc.playerId).toBeUndefined()
       expect(sc.holeStrokes).toHaveLength(18)
     })
 
-    it('retrieves team scorecard via getScorecardForTeam', () => {
-      const store = useScoringStore.getState()
-      store.createScorecard('round-1', 18, undefined, 'team-1')
-      store.createScorecard('round-1', 18, undefined, 'team-2')
-
-      const t1 = useScoringStore
-        .getState()
-        .getScorecardForTeam('round-1', 'team-1')
-      const t2 = useScoringStore
-        .getState()
-        .getScorecardForTeam('round-1', 'team-2')
-
-      expect(t1).toBeDefined()
-      expect(t2).toBeDefined()
-      expect(t1?.teamId).toBe('team-1')
-      expect(t2?.teamId).toBe('team-2')
-    })
-
     it('enters strokes on team scorecard', () => {
-      const store = useScoringStore.getState()
-      const sc = store.createScorecard('round-1', 18, undefined, 'team-1')
+      const sc = makeScorecard({
+        id: 'sc-team-1',
+        roundId: 'round-1',
+        teamId: 'team-1',
+        holeStrokes: [4, ...Array(17).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 12,
+        format: 'scramble',
+      })
 
-      // Team scores 4 on hole 1 (using avg handicap 12)
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc.id, 0, 4, HOLES_18, 12, 'scramble')
-
-      const updated = useScoringStore
-        .getState()
-        .getScorecardForTeam('round-1', 'team-1')
-
-      expect(updated?.holeStrokes[0]).toBe(4)
-      expect(updated?.grossTotal).toBe(4)
+      expect(sc.holeStrokes[0]).toBe(4)
+      expect(sc.grossTotal).toBe(4)
     })
 
     it('multiple team scorecards in same round are independent', () => {
-      const store = useScoringStore.getState()
-      const sc1 = store.createScorecard('round-1', 18, undefined, 'team-1')
-      const sc2 = store.createScorecard('round-1', 18, undefined, 'team-2')
+      const sc1 = makeScorecard({
+        id: 'sc-1',
+        roundId: 'round-1',
+        teamId: 'team-1',
+        holeStrokes: [3, ...Array(17).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 10,
+        format: 'scramble',
+      })
+      const sc2 = makeScorecard({
+        id: 'sc-2',
+        roundId: 'round-1',
+        teamId: 'team-2',
+        holeStrokes: [5, ...Array(17).fill(null)],
+        holes: HOLES_18,
+        groupHandicap: 14,
+        format: 'scramble',
+      })
 
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc1.id, 0, 3, HOLES_18, 10, 'scramble')
-      useScoringStore
-        .getState()
-        .setHoleStroke(sc2.id, 0, 5, HOLES_18, 14, 'scramble')
-
-      const t1 = useScoringStore
-        .getState()
-        .getScorecardForTeam('round-1', 'team-1')
-      const t2 = useScoringStore
-        .getState()
-        .getScorecardForTeam('round-1', 'team-2')
-
-      expect(t1?.holeStrokes[0]).toBe(3)
-      expect(t2?.holeStrokes[0]).toBe(5)
-      expect(t1?.grossTotal).toBe(3)
-      expect(t2?.grossTotal).toBe(5)
+      expect(sc1.grossTotal).toBe(3)
+      expect(sc2.grossTotal).toBe(5)
     })
 
     it('points calc uses teamId as participantId for team scorecards', () => {
-      const store = useScoringStore.getState()
-      const sc1 = store.createScorecard('round-1', 18, undefined, 'team-1')
-      const sc2 = store.createScorecard('round-1', 18, undefined, 'team-2')
+      // Fill all 18 holes par for team-1, +1 for team-2
+      const team1Strokes = HOLES_18.map((h) => h.par)
+      const team2Strokes = HOLES_18.map((h) => h.par + 1)
+      const sc1 = makeScorecard({
+        id: 'sc-1',
+        roundId: 'round-1',
+        teamId: 'team-1',
+        holeStrokes: team1Strokes,
+        holes: HOLES_18,
+        groupHandicap: 10,
+        format: 'scramble',
+      })
+      const sc2 = makeScorecard({
+        id: 'sc-2',
+        roundId: 'round-1',
+        teamId: 'team-2',
+        holeStrokes: team2Strokes,
+        holes: HOLES_18,
+        groupHandicap: 14,
+        format: 'scramble',
+      })
 
-      // Fill all 18 holes for both teams
-      for (let i = 0; i < 18; i++) {
-        useScoringStore
-          .getState()
-          .setHoleStroke(sc1.id, i, HOLES_18[i].par, HOLES_18, 10, 'scramble')
-        useScoringStore
-          .getState()
-          .setHoleStroke(
-            sc2.id,
-            i,
-            HOLES_18[i].par + 1,
-            HOLES_18,
-            14,
-            'scramble'
-          )
-      }
-
-      // Recalculate points
-      useScoringStore.getState().recalculatePoints('round-1', 'scramble')
-
-      const points = useScoringStore.getState().getPointsByRound('round-1')
+      const points = awardPoints([sc1, sc2], 'scramble')
       expect(points.length).toBeGreaterThanOrEqual(2)
 
-      // Team-1 played par (lower score), team-2 played +1 each
       const t1Points = points.find((p) => p.participantId === 'team-1')
       const t2Points = points.find((p) => p.participantId === 'team-2')
       expect(t1Points).toBeDefined()
@@ -264,7 +246,6 @@ describe('Group Score Entry', () => {
     it('filters events by round for group display', () => {
       const sideStore = useSideEventsStore.getState()
 
-      // Events in round 1
       sideStore.logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-1',
@@ -281,8 +262,6 @@ describe('Group Score Entry', () => {
         type: 'snake',
         createdByPlayerId: 'player-2',
       })
-
-      // Event in round 2 (different round)
       sideStore.logEvent({
         tournamentId: 'tournament-1',
         roundId: 'round-2',

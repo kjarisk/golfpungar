@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useScoringStore } from '@/features/scoring'
+import { useScorecardsByRound, awardPoints } from '@/features/scoring'
 import { useSideEventsStore } from '@/features/side-events'
 import { usePlayers } from '@/features/players'
 import { useTeamsByRound } from '@/features/rounds'
@@ -43,15 +43,17 @@ export function RoundCompletionDialog({
   round,
   onConfirm,
 }: RoundCompletionDialogProps) {
-  const scorecards = useScoringStore((s) => s.scorecards)
-  const allRoundPoints = useScoringStore((s) => s.roundPoints)
+  const roundScorecards = useScorecardsByRound(round.id)
   const sideEvents = useSideEventsStore((s) => s.events)
   const { data: players = [] } = usePlayers()
   const teams = useTeamsByRound(round.id)
 
-  // Get scorecards and points for this round
-  const roundScorecards = scorecards.filter((sc) => sc.roundId === round.id)
-  const roundPoints = allRoundPoints.filter((rp) => rp.roundId === round.id)
+  // Compute round points on the fly from this round's scorecards + format
+  const roundPoints = awardPoints(
+    roundScorecards,
+    round.format,
+    round.pointsTable
+  )
   const isTeamFormat =
     round.format === 'scramble' || round.format === 'bestball'
 
