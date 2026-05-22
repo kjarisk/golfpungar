@@ -8,17 +8,7 @@ vi.mock('@/features/feed', () => ({
   useFeedStore: { getState: () => ({ addEvent }) },
 }))
 
-const { createPersonMock, removePersonMock } = vi.hoisted(() => ({
-  createPersonMock: vi.fn(),
-  removePersonMock: vi.fn(),
-}))
-vi.mock('@/features/persons/api/persons-api', () => ({
-  createPerson: createPersonMock,
-  removePerson: removePersonMock,
-}))
-
 import {
-  addNewPersonToTournament,
   createPlayer,
   fetchPlayers,
   removePlayer,
@@ -78,20 +68,9 @@ const PLAYER = {
   createdAt: '2026-01-15T10:00:00Z',
 }
 
-const PERSON = {
-  id: 'pn1',
-  displayName: 'Kjartan',
-  nickname: 'Kjarri',
-  email: 'kjartan@test.com',
-  userId: 'u1',
-  createdAt: '2026-01-15T10:00:00Z',
-}
-
 beforeEach(() => {
   from.mockReset()
   addEvent.mockReset()
-  createPersonMock.mockReset()
-  removePersonMock.mockReset()
 })
 
 describe('fetchPlayers', () => {
@@ -143,41 +122,6 @@ describe('createPlayer', () => {
   })
 })
 
-describe('addNewPersonToTournament', () => {
-  it('creates the person then the player and returns both', async () => {
-    createPersonMock.mockResolvedValue(PERSON)
-    from.mockReturnValue(query({ data: JOINED_ROW, error: null }))
-    const result = await addNewPersonToTournament({
-      tournamentId: 't1',
-      displayName: 'Kjartan',
-      nickname: 'Kjarri',
-      email: 'kjartan@test.com',
-      groupHandicap: 18,
-    })
-    expect(result.person).toEqual(PERSON)
-    expect(result.player).toEqual(PLAYER)
-    expect(createPersonMock).toHaveBeenCalledWith({
-      displayName: 'Kjartan',
-      nickname: 'Kjarri',
-      email: 'kjartan@test.com',
-    })
-    expect(removePersonMock).not.toHaveBeenCalled()
-  })
-
-  it('rolls the person back when the player insert fails', async () => {
-    createPersonMock.mockResolvedValue(PERSON)
-    from.mockReturnValue(query({ data: null, error: new Error('denied') }))
-    await expect(
-      addNewPersonToTournament({
-        tournamentId: 't1',
-        displayName: 'Kjartan',
-        groupHandicap: 18,
-      })
-    ).rejects.toThrow('denied')
-    expect(removePersonMock).toHaveBeenCalledWith('pn1')
-  })
-})
-
 describe('updatePlayer', () => {
   it('updates and returns the player', async () => {
     from.mockReturnValue(query({ data: JOINED_ROW, error: null }))
@@ -226,12 +170,16 @@ describe('updatePlayer', () => {
 })
 
 describe('removePlayer', () => {
-  it('resolves when the soft delete succeeds', async () => {
-    from.mockReturnValue(query({ data: null, error: null }))
+  it('hard-deletes the row and resolves on success', async () => {
+    const chain = query({ data: null, error: null })
+    from.mockReturnValue(chain)
     await expect(removePlayer('p1')).resolves.toBeUndefined()
+    expect(from).toHaveBeenCalledWith('players')
+    expect(chain.delete).toHaveBeenCalled()
+    expect(chain.eq).toHaveBeenCalledWith('id', 'p1')
   })
 
-  it('throws when the soft delete fails', async () => {
+  it('throws when the hard delete fails', async () => {
     from.mockReturnValue(query({ data: null, error: new Error('denied') }))
     await expect(removePlayer('p1')).rejects.toThrow('denied')
   })

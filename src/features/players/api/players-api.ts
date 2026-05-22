@@ -1,7 +1,5 @@
 import { supabase } from '@/lib/supabase'
 import { useFeedStore } from '@/features/feed'
-import { createPerson, removePerson } from '@/features/persons/api/persons-api'
-import type { Person } from '@/features/persons'
 import type { Database } from '@/lib/supabase-types'
 import type { Player, UpdatePlayerInput } from '../types'
 
@@ -72,43 +70,6 @@ export async function createPlayer({
   return toPlayer(data as unknown as PlayerRow)
 }
 
-/**
- * Create a person and immediately add them as a player to the tournament.
- * If the player insert fails, the just-created person is rolled back
- * (compensating delete) so we don't leave an orphan pool entry.
- */
-export async function addNewPersonToTournament({
-  tournamentId,
-  displayName,
-  nickname,
-  email,
-  groupHandicap,
-}: {
-  tournamentId: string
-  displayName: string
-  nickname?: string
-  email?: string
-  groupHandicap: number
-}): Promise<{ person: Person; player: Player }> {
-  const person = await createPerson({ displayName, nickname, email })
-  try {
-    const player = await createPlayer({
-      tournamentId,
-      personId: person.id,
-      groupHandicap,
-    })
-    return { person, player }
-  } catch (err) {
-    // Compensating delete — we don't want a stranded person row.
-    try {
-      await removePerson(person.id)
-    } catch {
-      // Swallow — the original error is more useful to surface.
-    }
-    throw err
-  }
-}
-
 export async function updatePlayer(
   id: string,
   updates: UpdatePlayerInput
@@ -149,11 +110,12 @@ export async function updatePlayer(
   return updated
 }
 
-/** Soft delete — players are deactivated, never hard-deleted. */
+/**
+ * Hard delete — the row goes away entirely so the same person can be re-added
+ * later without colliding with the `unique(tournament_id, person_id)` constraint.
+ * The `active` column stays in the schema for future "temporary leave" use.
+ */
 export async function removePlayer(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('players')
-    .update({ active: false })
-    .eq('id', id)
+  const { error } = await supabase.from('players').delete().eq('id', id)
   if (error) throw error
 }

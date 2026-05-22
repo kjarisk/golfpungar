@@ -1,8 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { personsQueryKey } from '@/features/persons'
 import type { UpdatePlayerInput } from '../types'
 import {
-  addNewPersonToTournament,
   createPlayer,
   fetchPlayers,
   removePlayer,
@@ -26,17 +24,6 @@ export function useCreatePlayer() {
     mutationFn: createPlayer,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: playersQueryKey })
-    },
-  })
-}
-
-export function useAddNewPersonToTournament() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: addNewPersonToTournament,
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: playersQueryKey })
-      void queryClient.invalidateQueries({ queryKey: personsQueryKey })
     },
   })
 }

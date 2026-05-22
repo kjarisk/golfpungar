@@ -11,9 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Separator } from '@/components/ui/separator'
+import { Plus, Trash2 } from 'lucide-react'
 import { useUpdateTournament } from '@/features/tournament'
 import { CountrySelect } from '@/features/countries'
 import type { Tournament } from '@/features/tournament'
+import {
+  useActivePlayers,
+  useUpdatePlayer,
+  useRemovePlayer,
+  AddPlayersFromPoolDialog,
+} from '@/features/players'
 
 interface EditTournamentDialogProps {
   tournament: Tournament
@@ -52,6 +60,10 @@ function EditTournamentForm({
   onClose: () => void
 }) {
   const updateTournament = useUpdateTournament()
+  const updatePlayer = useUpdatePlayer()
+  const removePlayer = useRemovePlayer()
+  const players = useActivePlayers(tournament.id)
+
   const [name, setName] = useState(tournament.name)
   const [location, setLocation] = useState(tournament.location ?? '')
   const [countryId, setCountryId] = useState<string | undefined>(
@@ -59,6 +71,11 @@ function EditTournamentForm({
   )
   const [startDate, setStartDate] = useState(tournament.startDate)
   const [endDate, setEndDate] = useState(tournament.endDate)
+
+  const [showAddFromPool, setShowAddFromPool] = useState(false)
+  const [confirmingRemovePlayerId, setConfirmingRemovePlayerId] = useState<
+    string | null
+  >(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -81,6 +98,24 @@ function EditTournamentForm({
     }
 
     onClose()
+  }
+
+  function handleHandicapChange(playerId: string, value: string) {
+    const hcp = parseInt(value, 10)
+    if (isNaN(hcp)) return
+    updatePlayer.mutate(
+      { id: playerId, updates: { groupHandicap: hcp } },
+      {
+        onError: () => toast.error('Could not update handicap'),
+      }
+    )
+  }
+
+  function handleRemovePlayer(playerId: string) {
+    setConfirmingRemovePlayerId(null)
+    removePlayer.mutate(playerId, {
+      onError: () => toast.error('Could not remove player'),
+    })
   }
 
   return (
@@ -131,6 +166,93 @@ function EditTournamentForm({
         </div>
       </div>
 
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <Label>Players ({players.length})</Label>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAddFromPool(true)}
+          >
+            <Plus className="size-4" aria-hidden="true" />
+            <span>Add players from pool</span>
+          </Button>
+        </div>
+        {players.length === 0 ? (
+          <p className="text-muted-foreground text-sm">
+            No players yet. Add some from the pool.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-0 rounded-md border">
+            {players.map((player, i) => {
+              const confirmingRemove = confirmingRemovePlayerId === player.id
+              return (
+                <div key={player.id}>
+                  {i > 0 && <Separator />}
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <span className="truncate text-sm font-medium">
+                        {player.displayName}
+                      </span>
+                      {player.nickname && (
+                        <span className="text-muted-foreground ml-1.5 truncate text-xs">
+                          &ldquo;{player.nickname}&rdquo;
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={54}
+                      defaultValue={player.groupHandicap}
+                      onBlur={(e) =>
+                        handleHandicapChange(player.id, e.target.value)
+                      }
+                      aria-label={`Handicap for ${player.displayName}`}
+                      className="w-20"
+                    />
+                    {confirmingRemove ? (
+                      <span className="flex items-center gap-1 text-sm">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-sm text-green-600 hover:text-green-700"
+                          onClick={() => handleRemovePlayer(player.id)}
+                        >
+                          Yes
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 text-sm"
+                          onClick={() => setConfirmingRemovePlayerId(null)}
+                        >
+                          No
+                        </Button>
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => setConfirmingRemovePlayerId(player.id)}
+                        aria-label={`Remove ${player.displayName} from tournament`}
+                        className="text-muted-foreground hover:text-destructive"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <DialogFooter>
         <Button
           type="button"
@@ -150,6 +272,12 @@ function EditTournamentForm({
           {updateTournament.isPending ? 'Saving…' : 'Save'}
         </Button>
       </DialogFooter>
+
+      <AddPlayersFromPoolDialog
+        tournamentId={tournament.id}
+        open={showAddFromPool}
+        onOpenChange={setShowAddFromPool}
+      />
     </form>
   )
 }

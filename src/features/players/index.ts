@@ -2,7 +2,6 @@ export {
   usePlayers,
   useActivePlayers,
   useCreatePlayer,
-  useAddNewPersonToTournament,
   useUpdatePlayer,
   useRemovePlayer,
   playersQueryKey,
@@ -20,5 +19,6 @@ export type {
   Invite,
   InviteStatus,
 } from './types'
-export { PlayerFormDialog } from './components/player-form-dialog'
 export { InvitePlayersDialog } from './components/invite-players-dialog'
+export { AddPersonToTournamentDialog } from './components/add-person-to-tournament-dialog'
+export { AddPlayersFromPoolDialog } from './components/add-players-from-pool-dialog'
