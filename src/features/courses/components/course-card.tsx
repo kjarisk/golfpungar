@@ -36,44 +36,43 @@ export function CourseCard({ course, holes, onClick }: CourseCardProps) {
       }
       onClick={onClick}
     >
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
-            <CardTitle className="text-base">{course.name}</CardTitle>
-            <span className="text-muted-foreground text-xs tabular-nums">
-              Par {totalPar}
-            </span>
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <CardTitle className="text-base leading-tight">
+              {course.name}
+            </CardTitle>
+            <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs">
+              <span className="tabular-nums">Par {totalPar}</span>
+              {country && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{country.name}</span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-col items-end gap-1">
             <Badge variant="outline" className="text-xs tabular-nums">
               {holes.length}H
             </Badge>
-            <div className="text-muted-foreground flex gap-2 text-[10px]">
+            <div className="text-muted-foreground/80 flex gap-1.5 text-[10px] tabular-nums">
               <span>{par3s}×P3</span>
               <span>{par4s}×P4</span>
               <span>{par5s}×P5</span>
             </div>
           </div>
         </div>
-        {country && (
-          <span className="text-muted-foreground text-xs">{country.name}</span>
-        )}
       </CardHeader>
-      <CardContent className="px-3 pb-3">
-        {/* Front 9 */}
+      <CardContent className="space-y-3 px-3 pb-3">
         <HalfTable label="Out" holes={frontNine} subtotal={frontPar} />
-
-        {/* Back 9 */}
         {has18 && (
-          <>
-            <div className="my-1" />
-            <HalfTable
-              label="In"
-              holes={backNine}
-              subtotal={backPar}
-              totalPar={totalPar}
-            />
-          </>
+          <HalfTable
+            label="In"
+            holes={backNine}
+            subtotal={backPar}
+            totalPar={totalPar}
+          />
         )}
       </CardContent>
     </Card>
@@ -90,54 +89,75 @@ interface HalfTableProps {
 function HalfTable({ label, holes, subtotal, totalPar }: HalfTableProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-center text-xs tabular-nums">
-        <thead>
-          <tr className="text-muted-foreground">
-            <th className="w-8 py-0.5 text-left text-[10px] font-medium">
+      <table className="w-full table-fixed border-collapse tabular-nums">
+        <colgroup>
+          <col className="w-9" />
+          <col span={9} />
+          <col className="w-10" />
+          {totalPar != null && <col className="w-10" />}
+        </colgroup>
+        <tbody>
+          {/* Hole numbers */}
+          <tr className="text-muted-foreground text-[11px]">
+            <th
+              scope="row"
+              className="py-1 pl-1 text-left font-medium uppercase tracking-wider"
+            >
               Hole
             </th>
             {holes.map((h) => (
               <th
                 key={h.holeNumber}
-                className="min-w-[22px] py-0.5 font-medium"
+                scope="col"
+                className="py-1 text-center font-medium"
               >
                 {h.holeNumber}
               </th>
             ))}
-            <th className="text-primary min-w-[28px] py-0.5 font-semibold">
+            <th className="text-primary py-1 text-center text-xs font-semibold">
               {label}
             </th>
             {totalPar != null && (
-              <th className="text-primary min-w-[28px] py-0.5 font-semibold">
+              <th className="text-primary py-1 text-center text-xs font-semibold">
                 Tot
               </th>
             )}
           </tr>
-        </thead>
-        <tbody>
-          {/* Par row */}
-          <tr className="bg-muted/40">
-            <td className="py-0.5 text-left text-[10px] font-medium">Par</td>
-            {holes.map((h) => (
-              <td key={h.holeNumber} className="py-0.5">
-                {h.par}
-              </td>
-            ))}
-            <td className="text-primary py-0.5 font-semibold">{subtotal}</td>
-            {totalPar != null && (
-              <td className="text-primary py-0.5 font-semibold">{totalPar}</td>
-            )}
-          </tr>
-          {/* Stroke Index row */}
-          <tr>
-            <td className="text-muted-foreground py-0.5 text-left text-[10px] font-medium">
-              SI
-            </td>
+          {/* Par — emphasized band */}
+          <tr className="bg-muted/40 text-sm">
+            <th
+              scope="row"
+              className="text-muted-foreground py-1.5 pl-1 text-left text-[11px] font-medium uppercase tracking-wider"
+            >
+              Par
+            </th>
             {holes.map((h) => (
               <td
                 key={h.holeNumber}
-                className="text-muted-foreground py-0.5 text-[10px]"
+                className="py-1.5 text-center font-semibold"
               >
+                {h.par}
+              </td>
+            ))}
+            <td className="text-primary py-1.5 text-center font-semibold">
+              {subtotal}
+            </td>
+            {totalPar != null && (
+              <td className="text-primary py-1.5 text-center font-semibold">
+                {totalPar}
+              </td>
+            )}
+          </tr>
+          {/* Stroke index — quieter */}
+          <tr className="text-muted-foreground text-xs">
+            <th
+              scope="row"
+              className="py-1 pl-1 text-left text-[11px] font-medium uppercase tracking-wider"
+            >
+              SI
+            </th>
+            {holes.map((h) => (
+              <td key={h.holeNumber} className="py-1 text-center">
                 {h.strokeIndex}
               </td>
             ))}
