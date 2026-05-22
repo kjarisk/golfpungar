@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -15,10 +16,10 @@ import { Separator } from '@/components/ui/separator'
 import { Plus, Trash2 } from 'lucide-react'
 import { useUpdateTournament } from '@/features/tournament'
 import { CountrySelect } from '@/features/countries'
+import { usePersons } from '@/features/persons'
 import type { Tournament } from '@/features/tournament'
 import {
   useActivePlayers,
-  useUpdatePlayer,
   useRemovePlayer,
   AddPlayersFromPoolDialog,
 } from '@/features/players'
@@ -60,9 +61,13 @@ function EditTournamentForm({
   onClose: () => void
 }) {
   const updateTournament = useUpdateTournament()
-  const updatePlayer = useUpdatePlayer()
   const removePlayer = useRemovePlayer()
   const players = useActivePlayers(tournament.id)
+  const { data: allPersons = [] } = usePersons()
+  const candidatesFromPool = useMemo(() => {
+    const inTournament = new Set(players.map((p) => p.personId))
+    return allPersons.filter((p) => !inTournament.has(p.id))
+  }, [allPersons, players])
 
   const [name, setName] = useState(tournament.name)
   const [location, setLocation] = useState(tournament.location ?? '')
@@ -98,17 +103,6 @@ function EditTournamentForm({
     }
 
     onClose()
-  }
-
-  function handleHandicapChange(playerId: string, value: string) {
-    const hcp = parseInt(value, 10)
-    if (isNaN(hcp)) return
-    updatePlayer.mutate(
-      { id: playerId, updates: { groupHandicap: hcp } },
-      {
-        onError: () => toast.error('Could not update handicap'),
-      }
-    )
   }
 
   function handleRemovePlayer(playerId: string) {
@@ -169,15 +163,17 @@ function EditTournamentForm({
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <Label>Players ({players.length})</Label>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAddFromPool(true)}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            <span>Add players from pool</span>
-          </Button>
+          {candidatesFromPool.length > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAddFromPool(true)}
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              <span>Add players from pool</span>
+            </Button>
+          )}
         </div>
         {players.length === 0 ? (
           <p className="text-muted-foreground text-sm">
@@ -201,17 +197,13 @@ function EditTournamentForm({
                         </span>
                       )}
                     </div>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={54}
-                      defaultValue={player.groupHandicap}
-                      onBlur={(e) =>
-                        handleHandicapChange(player.id, e.target.value)
-                      }
-                      aria-label={`Handicap for ${player.displayName}`}
-                      className="w-20"
-                    />
+                    <Badge
+                      variant="outline"
+                      className="tabular-nums"
+                      title="Edit handicap from the Players page"
+                    >
+                      hcp: {player.groupHandicap}
+                    </Badge>
                     {confirmingRemove ? (
                       <span className="flex items-center gap-1 text-sm">
                         <Button
