@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-  <rect width="180" height="180" rx="40" fill="#16a34a"/>
-  <circle cx="90" cy="78" r="22" fill="white"/>
-  <path d="M90 100 L84 142 L90 136 L96 142 Z" fill="white"/>
-  <path d="M62 56 C62 56 70 34 90 26 C110 34 118 56 118 56" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Golfpungar">
+  <!-- iOS home-screen icon — square fill; iOS applies the rounded mask. -->
+  <rect width="512" height="512" fill="#16a34a"/>
+  <ellipse cx="162" cy="384" rx="74" ry="10" fill="rgba(0,0,0,0.22)"/>
+  <ellipse cx="350" cy="384" rx="74" ry="10" fill="rgba(0,0,0,0.22)"/>
+  <circle cx="162" cy="290" r="88" fill="white"/>
+  <circle cx="350" cy="290" r="88" fill="white"/>
+  <line x1="98"  y1="290" x2="226" y2="290" stroke="rgba(0,0,0,0.16)" stroke-width="6" stroke-linecap="round"/>
+  <line x1="286" y1="290" x2="414" y2="290" stroke="rgba(0,0,0,0.16)" stroke-width="6" stroke-linecap="round"/>
 </svg>

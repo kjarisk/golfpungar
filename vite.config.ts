@@ -12,13 +12,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'apple-touch-icon.svg'],
+      includeAssets: ['icon.svg', 'icon-maskable.svg', 'apple-touch-icon.svg'],
       manifest: {
         name: 'Golfpungar',
         short_name: 'Golfpungar',
         description: 'Golf trip tournament companion app',
         theme_color: '#16a34a',
-        background_color: '#09090b',
+        background_color: '#052e16',
         display: 'standalone',
         scope: '/',
         start_url: '/',
@@ -30,7 +30,7 @@ export default defineConfig({
             purpose: 'any',
           },
           {
-            src: 'icon.svg',
+            src: 'icon-maskable.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'maskable',
