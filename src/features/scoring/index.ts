@@ -9,6 +9,7 @@ export {
   useSetHoleStroke,
   useRemoveScorecard,
 } from './api/use-scorecards'
+export { useScorecardsRealtime } from './api/use-scorecards-realtime'
 export {
   handicapStrokesForHole,
   netStrokesForHole,

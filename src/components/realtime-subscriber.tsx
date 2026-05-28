@@ -1,4 +1,5 @@
 import { useFeedEventsRealtime } from '@/features/feed/api/use-feed-events-realtime'
+import { useScorecardsRealtime } from '@/features/scoring/api/use-scorecards-realtime'
 
 /**
  * Mounts the app's Supabase realtime subscriptions. Rendered only inside the
@@ -7,5 +8,6 @@ import { useFeedEventsRealtime } from '@/features/feed/api/use-feed-events-realt
  */
 export function RealtimeSubscriber() {
   useFeedEventsRealtime()
+  useScorecardsRealtime()
   return null
 }
