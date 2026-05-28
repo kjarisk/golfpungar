@@ -125,8 +125,6 @@ export function FeedPage() {
   const acceptMut = useAcceptBet()
   const rejectMut = useRejectBet()
   const feedEvents = useRecentFeedEvents(tournament?.id, 50)
-  const setRole = useAuthStore((s) => s.setRole)
-  const currentRole = useAuthStore((s) => s.user?.role ?? 'player')
   const activeRound = useActiveRound()
   const activeRoundTeams = useTeamsByRound(activeRound?.id)
   const activeRoundScorecards = useScorecardsByRound(activeRound?.id)
@@ -532,22 +530,6 @@ export function FeedPage() {
             />
           </CardContent>
         </Card>
-      )}
-
-      {/* Dev-only role toggle */}
-      {import.meta.env.DEV && (
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              setRole(currentRole === 'admin' ? 'player' : 'admin')
-            }
-            className="gap-1.5 text-xs"
-          >
-            Role: {currentRole}
-          </Button>
-        </div>
       )}
 
       {/* Live feed */}

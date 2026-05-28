@@ -52,10 +52,12 @@ describe('useIsAdmin hook', () => {
     expect(result.current).toBe(false)
   })
 
-  it('updates reactively when the role changes via setRole', () => {
+  it('updates reactively when the user role changes', () => {
     const { result } = renderHook(() => useIsAdmin())
     expect(result.current).toBe(true)
-    act(() => useAuthStore.getState().setRole('player'))
+    act(() =>
+      useAuthStore.getState().setUser({ ...ADMIN_USER, role: 'player' })
+    )
     expect(result.current).toBe(false)
   })
 })
@@ -80,17 +82,6 @@ describe('auth store', () => {
     useAuthStore.getState().setUser(null)
     expect(useAuthStore.getState().user).toBeNull()
     expect(useAuthStore.getState().isAuthenticated).toBe(false)
-  })
-
-  it('setRole updates the current user role', () => {
-    useAuthStore.getState().setRole('player')
-    expect(useAuthStore.getState().user?.role).toBe('player')
-  })
-
-  it('setRole does nothing when no user is signed in', () => {
-    useAuthStore.setState({ user: null })
-    useAuthStore.getState().setRole('admin')
-    expect(useAuthStore.getState().user).toBeNull()
   })
 
   it('logout clears the user and calls supabase signOut', async () => {

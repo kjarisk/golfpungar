@@ -17,11 +17,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user: null, isAuthenticated: false })
     await supabase.auth.signOut()
   },
-
-  setRole: (role) =>
-    set((state) => ({
-      user: state.user ? { ...state.user, role } : null,
-    })),
 }))
 
 /** Compose the app User from a Supabase session and its profile row. */

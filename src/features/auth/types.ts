@@ -19,6 +19,4 @@ export interface AuthState {
   setLoading: (loading: boolean) => void
   /** Sign out of Supabase. */
   logout: () => Promise<void>
-  /** Dev-only: preview the app as another role without re-authenticating. */
-  setRole: (role: UserRole) => void
 }
