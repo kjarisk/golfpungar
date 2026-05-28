@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useRealtimeStatusStore } from '@/lib/realtime-status'
 import { betsQueryKey, betParticipantsQueryKey } from './use-bets'
+
+const CHANNEL = 'bets-changes'
 
 /**
  * Subscribes to changes on `bets` and `bet_participants` and invalidates both
@@ -17,7 +20,7 @@ export function useBetsRealtime(): void {
 
   useEffect(() => {
     const channel = supabase
-      .channel('bets-changes')
+      .channel(CHANNEL)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bets' },
@@ -34,7 +37,9 @@ export function useBetsRealtime(): void {
           })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        useRealtimeStatusStore.getState().setChannelStatus(CHANNEL, status)
+      })
 
     return () => {
       void supabase.removeChannel(channel)

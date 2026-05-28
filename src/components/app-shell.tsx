@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { PageSkeleton } from '@/components/page-skeleton'
+import { RealtimeStatusBanner } from '@/components/realtime-status-banner'
 import { useActiveTournament } from '@/features/tournament'
 import { useBets, useBetParticipants } from '@/features/betting'
 import { useAuthStore } from '@/features/auth'
@@ -111,6 +112,7 @@ export function AppShell() {
           </div>
         </div>
       </header>
+      <RealtimeStatusBanner />
       {/* Page content area — scrollable, with bottom padding for nav */}
       <main className="flex-1 overflow-y-auto px-4 pt-4 pb-20">
         <div className="mx-auto w-full max-w-lg md:max-w-2xl">

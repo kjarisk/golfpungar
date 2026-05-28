@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useRealtimeStatusStore } from '@/lib/realtime-status'
 import { feedEventsQueryKey } from './use-feed-events'
+
+const CHANNEL = 'feed-events-insert'
 
 /**
  * Subscribes to INSERTs on `feed_events` and invalidates the feed query so
@@ -16,7 +19,7 @@ export function useFeedEventsRealtime(): void {
 
   useEffect(() => {
     const channel = supabase
-      .channel('feed-events-insert')
+      .channel(CHANNEL)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'feed_events' },
@@ -24,7 +27,9 @@ export function useFeedEventsRealtime(): void {
           void queryClient.invalidateQueries({ queryKey: feedEventsQueryKey })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        useRealtimeStatusStore.getState().setChannelStatus(CHANNEL, status)
+      })
 
     return () => {
       void supabase.removeChannel(channel)

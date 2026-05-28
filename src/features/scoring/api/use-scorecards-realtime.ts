@@ -1,7 +1,10 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useRealtimeStatusStore } from '@/lib/realtime-status'
 import { scorecardsQueryKey } from './use-scorecards'
+
+const CHANNEL = 'scorecards-changes'
 
 /**
  * Subscribes to changes on `scorecards` and invalidates the scorecards query
@@ -17,7 +20,7 @@ export function useScorecardsRealtime(): void {
 
   useEffect(() => {
     const channel = supabase
-      .channel('scorecards-changes')
+      .channel(CHANNEL)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'scorecards' },
@@ -25,7 +28,9 @@ export function useScorecardsRealtime(): void {
           void queryClient.invalidateQueries({ queryKey: scorecardsQueryKey })
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        useRealtimeStatusStore.getState().setChannelStatus(CHANNEL, status)
+      })
 
     return () => {
       void supabase.removeChannel(channel)
