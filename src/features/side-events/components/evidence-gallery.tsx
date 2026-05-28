@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useSideEventsByType, useEvidenceImages } from '../api/use-side-events'
+import {
+  useSideEventsByType,
+  useEvidenceImages,
+  useEvidenceSignedUrls,
+} from '../api/use-side-events'
 import { Camera, X } from 'lucide-react'
 
 interface EvidenceGalleryProps {
@@ -55,6 +59,11 @@ export function EvidenceGallery({
     }))
   })
 
+  // image.imageUrl holds a private storage path — resolve signed URLs for display.
+  const { data: signedUrls = {} } = useEvidenceSignedUrls(
+    evidenceEntries.map((e) => e.image.imageUrl)
+  )
+
   if (evidenceEntries.length === 0) {
     return (
       <Card>
@@ -90,31 +99,39 @@ export function EvidenceGallery({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {evidenceEntries.map(({ event, image }) => (
-              <button
-                key={image.id}
-                className="group relative aspect-square overflow-hidden rounded-lg"
-                onClick={() => setLightboxUrl(image.imageUrl)}
-                type="button"
-              >
-                <img
-                  src={image.imageUrl}
-                  alt={`${getPlayerName(event.playerId)} — ${event.value}m drive`}
-                  className="size-full object-cover transition-transform group-hover:scale-105"
-                />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
-                  <p className="truncate text-xs font-medium text-white">
-                    {getPlayerName(event.playerId)}
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className="mt-0.5 bg-white/20 text-[10px] text-white backdrop-blur-sm"
-                  >
-                    {event.value}m
-                  </Badge>
-                </div>
-              </button>
-            ))}
+            {evidenceEntries.map(({ event, image }) => {
+              const url = signedUrls[image.imageUrl]
+              return (
+                <button
+                  key={image.id}
+                  className="group relative aspect-square overflow-hidden rounded-lg"
+                  onClick={() => url && setLightboxUrl(url)}
+                  type="button"
+                  disabled={!url}
+                >
+                  {url ? (
+                    <img
+                      src={url}
+                      alt={`${getPlayerName(event.playerId)} — ${event.value}m drive`}
+                      className="size-full object-cover transition-transform group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="bg-muted size-full animate-pulse" />
+                  )}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                    <p className="truncate text-xs font-medium text-white">
+                      {getPlayerName(event.playerId)}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className="mt-0.5 bg-white/20 text-[10px] text-white backdrop-blur-sm"
+                    >
+                      {event.value}m
+                    </Badge>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </CardContent>
       </Card>

@@ -10,9 +10,15 @@ export {
   useEvidenceImagesForEvent,
   useCreateEvidenceImage,
   useRemoveEvidenceImage,
+  useEvidenceSignedUrls,
   sideEventsQueryKey,
   evidenceImagesQueryKey,
 } from './api/use-side-events'
+export {
+  uploadEvidenceImage,
+  getEvidenceSignedUrl,
+  getEvidenceSignedUrls,
+} from './lib/evidence-storage'
 export {
   fetchSideEvents,
   createSideEvent,

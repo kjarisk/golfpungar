@@ -11,6 +11,7 @@ import {
   useCreateEvidenceImage,
 } from '../api/use-side-events'
 import { deriveLastSnakeInGroup } from '../lib/side-events-logic'
+import { uploadEvidenceImage } from '../lib/evidence-storage'
 import { useAuthStore } from '@/features/auth'
 import { SIDE_EVENT_ICONS } from '@/lib/side-event-icons'
 import { cn } from '@/lib/utils'
@@ -265,14 +266,13 @@ export function SideEventLogger({
     })
   }
 
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.length) return
     const file = e.target.files[0]
-    // Create object URL for now (local preview). In production, upload to Supabase Storage.
-    const objectUrl = URL.createObjectURL(file)
+    e.target.value = '' // allow re-selecting the same file
 
     // Attach to the most recent longest_drive_meters event from this player
-    const driveEvents = roundEvents
+    const driveEvent = roundEvents
       .filter(
         (ev) =>
           ev.type === 'longest_drive_meters' &&
@@ -281,13 +281,26 @@ export function SideEventLogger({
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+      )[0]
 
-    if (driveEvents[0]) {
-      void createEvidenceImage.mutateAsync({
-        sideEventLogId: driveEvents[0].id,
-        imageUrl: objectUrl,
+    if (!driveEvent) {
+      toast.error('Log the drive distance first, then add a photo')
+      return
+    }
+
+    try {
+      const path = await uploadEvidenceImage({
+        tournamentId,
+        sideEventLogId: driveEvent.id,
+        file,
       })
+      await createEvidenceImage.mutateAsync({
+        sideEventLogId: driveEvent.id,
+        imageUrl: path,
+      })
+      toast.success('Photo evidence uploaded')
+    } catch {
+      toast.error('Could not upload photo')
     }
   }
 
@@ -511,7 +524,7 @@ export function SideEventLogger({
                   accept="image/*"
                   capture="environment"
                   className="hidden"
-                  onChange={handleImageUpload}
+                  onChange={(e) => void handleImageUpload(e)}
                 />
               </div>
             )}

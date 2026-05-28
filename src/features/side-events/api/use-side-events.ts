@@ -9,10 +9,12 @@ import {
   fetchEvidenceImages,
   removeEvidenceImage,
 } from './evidence-images-api'
+import { getEvidenceSignedUrls } from '../lib/evidence-storage'
 import type { SideEventLog, EvidenceImage, SideEventType } from '../types'
 
 export const sideEventsQueryKey = ['side-events'] as const
 export const evidenceImagesQueryKey = ['evidence-images'] as const
+export const evidenceSignedUrlsQueryKey = ['evidence-signed-urls'] as const
 
 // --- Side events ---
 
@@ -96,6 +98,21 @@ export function useCreateEvidenceImage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: evidenceImagesQueryKey })
     },
+  })
+}
+
+/**
+ * Resolve signed URLs for stored evidence paths. Keyed by the sorted path
+ * list so the cache is reused across renders; refetched well within the
+ * 60-minute signed-URL TTL.
+ */
+export function useEvidenceSignedUrls(paths: string[]) {
+  const sorted = [...paths].sort()
+  return useQuery({
+    queryKey: [...evidenceSignedUrlsQueryKey, sorted],
+    queryFn: () => getEvidenceSignedUrls(sorted),
+    enabled: sorted.length > 0,
+    staleTime: 30 * 60 * 1000, // 30 min — half the signed-URL TTL
   })
 }
 
