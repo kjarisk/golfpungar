@@ -16,7 +16,6 @@ An invite-only golf trip tournament app (email magic link login) for 12–20 pla
 - No payment processing (bets are tracked, not transferred)
 - No offline-first mode
 - No external course API integration
-- No Supabase/backend integration yet (mock data in Zustand; Supabase deferred)
 
 ---
 

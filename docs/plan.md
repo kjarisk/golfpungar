@@ -596,19 +596,28 @@ TanStack Query keys; RLS filters each stream per user.
 - [x] Connection state indicator: shared status store + offline banner in the app shell, clears on re-subscribe (slice 4, `139a7fc`)
 - [x] Cleanup: `supabase.removeChannel` on unmount; supabase-js auto-reconnects the socket on focus/regain
 
-## Phase 30 — Storage + polish
+## Phase 30 — Storage + polish ✅ done (2026-05-28, commit `e7291af`)
 
-- [ ] Upload longest-drive photos to `evidence` bucket
-- [ ] Generate signed URLs (60min TTL) for display
-- [ ] Storage RLS policies: player can upload to own group's events; everyone in tournament can read
-- [ ] Image compression before upload (target <500KB)
-- [ ] Production deploy: update Site URL + redirect URLs in Supabase
-- [ ] Remove demo seed data UI from production builds (keep in dev)
-- [ ] Final test pass + bump test count
+Real longest-drive photo evidence on Supabase Storage. Path convention
+`{tournamentId}/{sideEventLogId}/{uuid}.jpg`; the storage helper compresses
+client-side then uploads, and the gallery resolves signed URLs at display time.
 
-## Phase 31 — Decommission mock data
+- [x] Upload longest-drive photos to the private `evidence` bucket (`src/features/side-events/lib/evidence-storage.ts`)
+- [x] Generate signed URLs (60min TTL) for display — single + batch (`getEvidenceSignedUrl(s)`), cached via `useEvidenceSignedUrls`
+- [x] Storage RLS policies (migration `20260528182700`): bucket gated by `private.is_tournament_member` of the path's tournament segment, admin override. (Simplified from group-scoped write to tournament-scoped — group scoping is already enforced when the side_event_logs row is created.)
+- [x] Image compression before upload: canvas downscale (max 1600px) + JPEG quality step-down targeting <500KB
+- [ ] Production deploy: update Site URL + redirect URLs in Supabase — **deferred to deploy time** (manual dashboard step once the domain is live)
+- [x] Remove demo seed data UI — N/A: the demo-seed system was already retired in Phase 25
+- [x] Final test pass: 328 tests at the time of the storage commit
 
-- [ ] Delete `src/lib/demo-data.ts` (or move to `docs/seed.sql` for re-seeding a dev DB)
-- [ ] Delete role switcher (real auth = real role)
-- [ ] Delete any `useXxxStore` shells that are now empty
-- [ ] Final docs pass: README, decisions.md, outline.md (remove "Supabase deferred" note)
+## Phase 31 — Decommission mock data ✅ done (2026-05-28)
+
+- [x] Delete `src/lib/demo-data.ts` — already removed in Phase 25 (demo-seed system retired)
+- [x] Delete role switcher (real auth = real role) — removed the dev-only Feed toggle + `setRole` store action (commit `4a3856f`)
+- [x] Delete any `useXxxStore` shells that are now empty — none: remaining Zustand stores (`auth`, `active-tournament`, `notable-events`, `realtime-status`) are all intentionally UI-only
+- [x] Final docs pass: this plan + outline.md "Supabase deferred" note removed
+
+---
+
+**Remaining before Linode deploy (no app code):** set Supabase Site URL +
+redirect URLs for the production domain (`golfpungar.kjarisk.com`), then deploy.

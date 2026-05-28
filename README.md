@@ -72,10 +72,11 @@ Click **"Seed Demo Data"** on the Feed page to populate a full v2 demo:
 - React 19 + Vite + TypeScript
 - Tailwind CSS v4 (inline theme, no config file)
 - shadcn/ui components
-- TanStack Query (server state -- wired to Supabase later)
-- Zustand (client/UI state + mock data stores)
+- TanStack Query (server state -- wired to Supabase)
+- Zustand (UI-only state: auth session mirror, active-tournament selector, transient banners)
+- Supabase (Postgres + RLS, magic-link auth, Realtime, Storage)
 - React Router v7 (5-tab bottom navigation)
-- Vitest + Testing Library (352 tests)
+- Vitest + Testing Library (326 tests)
 
 ## Project Structure
 
@@ -150,6 +151,6 @@ Sample files available in `docs/csv-examples/`:
 
 ## Current Status
 
-All phases (0-22) complete plus post-v2 improvement pass. v2 features include admin/player roles, multi-tournament, round status management, group-based score entry grid with Dialog overlay, team configuration, feed announcements with animated banners, scorecard detail views, and comprehensive demo data. Post-v2 improvements: score entry overlay redesign, auto-detect side events from scores, soft delete/restore for rounds, full Edit Round dialog with course + group editing, and dead code cleanup. All data is in Zustand mock stores. Backend (Supabase) integration deferred.
+All phases (0-31) complete. v2 features include admin/player roles, multi-tournament, round status management, group-based score entry grid with Dialog overlay, team configuration, feed announcements with animated banners, and scorecard detail views. The full backend now runs on Supabase: Postgres schema with RLS, magic-link auth, Realtime (live feed/leaderboards/bets + offline banner), and Storage (longest-drive photo evidence with signed URLs). Remaining before production: set the Supabase Site URL + redirect URLs for the live domain, then deploy.
 
-352 tests across 21 test files. See `docs/plan.md` for the full implementation plan.
+326 tests. See `docs/plan.md` for the full implementation plan.
