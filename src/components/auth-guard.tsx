@@ -1,5 +1,6 @@
 import { Navigate, Outlet } from 'react-router'
 import { useAuthStore } from '@/features/auth/state/auth-store'
+import { RealtimeSubscriber } from '@/components/realtime-subscriber'
 
 /**
  * Route guard that redirects unauthenticated users to /login.
@@ -24,5 +25,10 @@ export function AuthGuard() {
     return <Navigate to="/login" replace />
   }
 
-  return <Outlet />
+  return (
+    <>
+      <RealtimeSubscriber />
+      <Outlet />
+    </>
+  )
 }

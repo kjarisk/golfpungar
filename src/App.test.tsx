@@ -10,6 +10,14 @@ vi.mock('@/lib/supabase', () => ({
         data: { subscription: { unsubscribe: vi.fn() } },
       })),
     },
+    // Realtime subscriptions (Phase 29) — chainable channel stub.
+    channel: vi.fn(() => {
+      const ch: Record<string, unknown> = {}
+      ch.on = vi.fn(() => ch)
+      ch.subscribe = vi.fn(() => ch)
+      return ch
+    }),
+    removeChannel: vi.fn(),
     // Every table query (e.g. tournaments) resolves to an empty result.
     from: vi.fn(() => {
       const result = { data: [], error: null }

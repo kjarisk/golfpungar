@@ -6,6 +6,7 @@ export {
   useCreateFeedEvent,
   feedEventsQueryKey,
 } from './api/use-feed-events'
+export { useFeedEventsRealtime } from './api/use-feed-events-realtime'
 export {
   fetchFeedEvents,
   createFeedEvent,
