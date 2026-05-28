@@ -15,6 +15,7 @@ export {
   useConfirmPaid,
   useRemoveBet,
 } from './api/use-bets'
+export { useBetsRealtime } from './api/use-bets-realtime'
 export { BetList } from './components/bet-list'
 export { CreateBetDialog } from './components/create-bet-dialog'
 export { categorizeBets } from './lib/categorize-bets'
