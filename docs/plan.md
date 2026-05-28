@@ -582,13 +582,19 @@ Done in two commits: `b7a24c1` (side-events + penalties + feed + announcements) 
 - [x] All remaining server-data Zustand stores deleted. The only Zustand left is UI-only: `auth/state` (session), `tournament/state` (active-tournament selector), `feed/state/notable-events-store.ts` (transient banner queue)
 - [x] 305 tests pass
 
-## Phase 29 — Real-time (live leaderboards + feed)
+## Phase 29 — Real-time (live leaderboards + feed) ✅ done (2026-05-28)
 
-- [ ] Subscribe to `feed_events` inserts → invalidate feed queries + show notable-event banner
-- [ ] Subscribe to `scorecards` updates → invalidate leaderboard queries
-- [ ] Subscribe to `bets` + `bet_participants` updates → notification badge on Feed tab
-- [ ] Connection state indicator (offline banner if disconnected)
-- [ ] Cleanup: unsubscribe on unmount; reconnect on focus
+Done in 4 slices. Each realtime table was added to the `supabase_realtime`
+publication via migration; a `RealtimeSubscriber` mounted inside `AuthGuard`
+hosts the per-feature subscription hooks (so they run only with an active
+session and tear down on logout). Subscriptions invalidate the relevant
+TanStack Query keys; RLS filters each stream per user.
+
+- [x] Subscribe to `feed_events` inserts → invalidate feed query (slice 1, `2be5d3e`)
+- [x] Subscribe to `scorecards` changes → invalidate scorecards query (leaderboards/feed/enter all derive from it) (slice 2, `1fdb2e8`)
+- [x] Subscribe to `bets` + `bet_participants` changes → invalidate both queries, keeping the pending-bet badge live (slice 3, `40d3fbd`)
+- [x] Connection state indicator: shared status store + offline banner in the app shell, clears on re-subscribe (slice 4, `139a7fc`)
+- [x] Cleanup: `supabase.removeChannel` on unmount; supabase-js auto-reconnects the socket on focus/regain
 
 ## Phase 30 — Storage + polish
 
